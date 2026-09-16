@@ -27,3 +27,9 @@ test("reloading from persistence keeps pages isolated", async () => {
   await first.apply(a.pageId, 0, [{ type: "rename", name: "A2" }]); const second = new PageStore(persistence); await second.load();
   assert.equal(second.get(a.pageId).name, "A2"); assert.equal(second.get(b.pageId).name, "B"); assert.notEqual(a.pageId, b.pageId);
 });
+
+test("invalid import cannot overwrite an existing page", async () => {
+  const persistence = new MemoryPersistence(); const store = new PageStore(persistence); const page = await store.create("保留页面");
+  await assert.rejects(store.import({ ...page, schemaVersion: 999 }), /页面描述版本或标识无效/);
+  assert.equal(store.get(page.pageId).name, "保留页面"); assert.equal(store.get(page.pageId).revision, 0);
+});

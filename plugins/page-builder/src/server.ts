@@ -6,6 +6,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { catalogList, COMPONENTS } from "./catalog.js";
+import { capturePage } from "./capture.js";
 import { DomainError, type Operation } from "./domain.js";
 import { exportPage } from "./exporter.js";
 import { createEditorServer } from "./http.js";
@@ -48,6 +49,14 @@ server.registerTool("page_undo", { title: "撤销页面修改", description: "Un
 server.registerTool("page_redo", { title: "重做页面修改", description: "Redo one committed batch and advance the revision.", inputSchema: { pageId: z.string(), expectedRevision: z.number().int().nonnegative() } }, async ({ pageId, expectedRevision }) => handle(async () => ({ page: await store.redo(pageId, expectedRevision) })));
 server.registerTool("page_export", { title: "导出页面工程", description: "Export the committed revision as a self-contained ZIP with B2B runtime assets.", inputSchema: { pageId: z.string() } }, async ({ pageId }) => handle(async () => ({ export: await exportPage(store.get(pageId), uiDirectory, exportDirectory) })));
 server.registerTool("page_import", { title: "导入页面描述", description: "Validate and import a Page Builder page.json without overwriting an existing page.", inputSchema: { page: z.record(z.unknown()) } }, async ({ page }) => handle(async () => ({ page: await store.import(page) })));
+server.registerTool("page_capture", { title: "获取页面实际画面", description: "Render the requested saved page in Chrome and return a screenshot bound to pageId, revision, and viewport.", inputSchema: { pageId: z.string(), viewport: z.enum(["desktop", "narrow"]).default("desktop") } }, async ({ pageId, viewport }) => {
+  try {
+    const before = store.get(pageId); const capture = await capturePage(before, editorUrl, viewport); const after = store.get(pageId);
+    if (after.revision !== before.revision) throw new DomainError("CAPTURE_STALE", `截图期间页面从 revision ${before.revision} 更新到 ${after.revision}，旧图未返回。`, { currentRevision: after.revision });
+    const metadata = { pageId, revision: before.revision, viewport, width: capture.dimensions.width, height: capture.dimensions.height };
+    return { content: [{ type: "text" as const, text: JSON.stringify(metadata) }, { type: "image" as const, data: capture.png.toString("base64"), mimeType: "image/png" }], structuredContent: metadata };
+  } catch (error) { const err = error instanceof DomainError ? error : new DomainError("CAPTURE_FAILED", error instanceof Error ? error.message : String(error)); return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ error: { code: err.code, message: err.message, details: err.details } }) }] }; }
+});
 
 process.once("SIGTERM", () => editor.close().finally(() => process.exit(0)));
 process.once("SIGINT", () => editor.close().finally(() => process.exit(0)));

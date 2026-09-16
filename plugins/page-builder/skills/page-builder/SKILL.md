@@ -25,3 +25,4 @@ Only use components returned by `component_list`. C-34 is a leaf component and d
 
 Use `page_export` only after reading the latest committed revision. The returned ZIP includes the Page Schema, B2B runtime resources, generated renderer entry, and an isolated business-logic file. Use `page_import` for the plugin's own `page.json`; it creates a new page instead of overwriting an existing one.
 
+Use `page_capture` only after reading the latest page when visual judgment matters. Its image metadata binds the result to pageId, revision, and desktop/narrow viewport. If it returns `CAPTURE_STALE`, read again and request a fresh image; never describe the discarded old render as current.

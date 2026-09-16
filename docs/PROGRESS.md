@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-首个可运行增量已完成：正式项目现有可维护 TypeScript 源码、锁文件、构建、测试、五个真实 Renderer、页面操作与存储、MCP 工具、浏览器编辑器、独立导出/重新导入和可安装开发版。完整首版仍缺属性/布局/历史的全量 UI 验收、截图工具、宿主原生入口与同页 AI 实测等项目。
+首版的本地实现与浏览器路径已完成：正式项目现有可维护 TypeScript 源码、锁文件、构建、测试、五个真实 Renderer、页面操作与存储、MCP 工具、实际画面、浏览器编辑器、独立导出/重新导入和可安装开发版。剩余完成条件集中在安装后新 Codex 任务中的原生右侧入口和同页 AI 宿主实测（A17）。
 
-已安装开发版：`page-builder@page-builder-development`，版本 `0.2.0+codex.20260916081255`。它来自本正式目录；旧 `page-builder@page-builder-marketplace` 0.1.0 保留，不覆盖其用户数据。
+已安装开发版：`page-builder@page-builder-development`，版本 `0.2.0+codex.20260916082103`。它来自本正式目录；旧 `page-builder@page-builder-marketplace` 0.1.0 保留，不覆盖其用户数据。
 
 ## 已完成准备
 
@@ -28,9 +28,9 @@
 
 ## 2026-09-16 / 首个可运行增量
 
-- 已完成行为：搜索组件；按钮或拖拽添加；五种真实组件渲染；选中与属性编辑；排序、复制、删除；撤销重做；保存刷新恢复；预览真实选择器交互；桌面/窄屏；原子 AI 操作；ZIP 导出；page.json 重新导入。
+- 已完成行为：搜索组件；按钮或拖拽添加；五种真实组件渲染；选中与属性编辑；布局、排序、复制、删除；撤销重做；保存刷新恢复；预览真实选择器交互；桌面/窄屏；原子 AI 操作；实际页面截图；ZIP 导出；page.json 重新导入。
 - 实现位置：`plugins/page-builder/src`、`tests`、`vendor/b2b`；插件入口与 Marketplace 位于插件清单和 `.agents/plugins/marketplace.json`。
-- 验证：`npm run verify` 通过；9 条 TypeScript 行为测试、1 条 MCP 集成、编辑器浏览器闭环、独立导出浏览器闭环全部通过。五个组件实例 `validate()` 成功，浏览器控制台错误为 0。
+- 验证：`npm run verify` 通过；TypeScript 行为测试、MCP 集成（含实际 PNG）、编辑器浏览器闭环、独立导出浏览器闭环全部通过。五个组件实例 `validate()` 成功，浏览器控制台错误为 0。
 - 浏览器证据：[桌面](../artifacts/evidence/editor-desktop.png) 1440×900；[窄屏](../artifacts/evidence/editor-narrow.png) 680×900。Browser Skill 未在本任务工具清单中，按前端测试流程使用本机 Playwright/Chrome。两图已用 `view_image` 复核。
 - 导出证据：ZIP 87 个文件；独立目录运行 5 个生产实例；无 `/Users/wangkewei` 或组件库桌面绝对路径；导入后 5 个节点保持。
 - 缺陷与回归：真实组件加载初次暴露缺少 foundations/C-44/C-33 资源，补齐最小闭包；快速连续添加暴露旧异步渲染重复追加，使用写入队列与 render generation 修复；真实 Token 覆盖编辑器 `--muted`，以 `--pb-*` 命名空间修复。上述均由相同浏览器路径复测。
@@ -39,9 +39,8 @@
 
 ## 下一步
 
-1. 在安装后新建的 Codex 任务中验证原生右侧入口、entry version 4、同页 MCP 读取/修改与选区，并补 A17 证据。
-2. 完成 A05–A08、A10、A12 的完整真实 UI 场景：布局移动/非法落点、全部首批属性变体、删除撤销、输入框 Delete 键、保存失败和损坏导入提示。
-3. 设计并实现绑定 pageId/revision/viewport 的实际截图工具，完成 A13；再扩展后续组件覆盖。
+1. 在安装后新建的 Codex 任务中验证原生右侧入口、entry version 4、同页 MCP 读取/修改/选区/实际画面，并补 A17 证据。
+2. 宿主验收通过后，再按需求扩展复杂属性编辑、错误提示细节和后续组件覆盖；未适配组件继续保持不可添加。
 
 ## 增量记录模板
 
