@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "pageBuilder": {
+      "title": "页面搭建器",
+      "description": "Open the visual editor or read and atomically mutate versioned Page Schemas.",
+      "cwd": ".",
+      "command": "node",
+      "args": ["./dist/server.js"]
+    }
+  }
+}
+

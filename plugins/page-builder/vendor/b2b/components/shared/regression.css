@@ -1,0 +1,154 @@
+
+/* 51 组件统一回归：历史标本展开层与窄屏容器约束 */
+.component-spec-board[data-component-id="C-13"] .specimen-stage,
+.component-spec-board[data-component-id="C-23"] .specimen-stage{max-width:100%;overflow-x:auto;overflow-y:visible;overscroll-behavior-inline:contain}
+.component-spec-board[data-component-id="C-13"] .breadcrumb-overflow-demo,
+.component-spec-board[data-component-id="C-19"] .date-picker-spec,
+.component-spec-board[data-component-id="C-23"] .source-select{max-width:100%}
+
+/* 全局圆角语义：常规控件 6px；面板、卡片、浮层与弹框统一升一级为 8px。 */
+.component-card,
+.demo-menu:not(.is-component-menu),
+.b2b-popover,
+.demo-native-dialog,
+.cascader-popup,
+.cascader-panel,
+.color-palette,
+.calendar-panel,
+.select-panel,
+.tree-panel,
+.time-panel,
+.date-picker-panel,
+.source-select-panel,
+.source-tree-panel,
+.source-time-panel,
+.source-transfer,
+.source-upload-file,
+.source-upload-drop,
+.rating-card,
+.sentiment-card,
+.corner-card,
+.source-design-card:not(.is-radius-small),
+.source-accordion,
+.source-popover,
+.source-toast,
+.b2b-alert,
+.b2b-toast,
+.b2b-accordion,
+.checkbox-rule-demo,
+.checkbox-picker-demo,
+.checkbox-calendar-demo,
+.checkbox-state-matrix,
+.top-nav-menu,
+.side-nav-flyout,
+.breadcrumb-history,
+.breadcrumb-transfer-context,
+.form-subgroup,
+.form-error-summary,
+.dialog-level-secondary,
+.source-native-dialog,
+.layout-card,
+.template-card,
+.layout-info-card,
+.layout-dialog,
+.template-modal {
+  border-radius: var(--b2b-radius-surface) !important;
+}
+
+.practice-card,
+.choice-cards label,
+.upload-drag,
+.upload-picture,
+.skeleton.is-card,
+.alert-spec,
+.toast-spec,
+.initialization-cards button,
+.preview-toolbar-breakdown,
+.preview-window-demo.is-native,
+.adaptation-stage.is-narrow,
+.foundation-review,
+.search-results,
+.progress-context-card,
+.progress-file-card {
+  border-radius: var(--b2b-radius-surface) !important;
+}
+
+.select-shell,
+.source-select-trigger,
+.source-select-option,
+.source-select-search,
+.source-tree-trigger,
+.source-tree-search,
+.source-tree [data-tree-choice],
+.date-trigger,
+.date-shortcuts button,
+.date-time-row input,
+.date-unit-grid button,
+.source-time-picker .time-trigger,
+.source-time-panel .time-column button,
+.source-input,
+.source-number-input,
+.source-affix-input,
+.source-combination-input,
+.source-textarea,
+.source-stepper,
+.source-slider-linked,
+.pagination-spec .page-button,
+.pagination-jump input,
+.cascade-option,
+.cascade-search,
+.color-custom-fields input,
+.calendar-days button.is-selected,
+.input-combo,
+.search-shell,
+.textarea-shell textarea,
+.tree-panel > button,
+.time-panel button,
+.checkbox-select-shell,
+.checkbox-calendar-title input,
+.checkbox-calendar-title button,
+.checkbox-calendar-time span,
+.checkbox-calendar-options > button,
+.top-nav-menu button,
+.breadcrumb-link,
+.breadcrumb-more > button,
+.breadcrumb-history button,
+.source-input > button,
+.rating-reasons button,
+.rating-card textarea,
+.sentiment-card textarea,
+.sentiment-spec > button,
+.transfer-search,
+.transfer-choice,
+.transfer-selected,
+.upload-file-actions button {
+  border-radius: var(--b2b-radius-control) !important;
+}
+
+.text-timezone-list > button,
+.text-condition-row > button {
+  border-radius: var(--b2b-radius-control) !important;
+}
+
+@media(max-width:760px){
+  .component-spec-board[data-component-id="C-02"] .specimen-stage{max-width:100%;overflow-x:auto;overflow-y:visible;overscroll-behavior-inline:contain}
+  .component-spec-board[data-component-id="C-02"] .button-layout-example,
+  .component-spec-board[data-component-id="C-02"] .layout-toolbar,
+  .component-spec-board[data-component-id="C-02"] .layout-canvas,
+  .component-spec-board[data-component-id="C-02"] .practice-line{box-sizing:border-box;width:100%;max-width:100%}
+  .component-spec-board[data-component-id="C-02"] .layout-toolbar{flex-wrap:wrap}
+  .component-spec-board[data-component-id="C-02"] .interactive-dropdown{max-width:100%}
+  .component-spec-board[data-component-id="C-02"] .button-layout-example .interactive-dropdown{width:157px;flex:0 0 157px}
+  .component-spec-board[data-component-id="C-06"] .specimen-matrix,
+  .component-spec-board[data-component-id="C-07"] .specimen-matrix{grid-template-columns:minmax(0,1fr)!important}
+  .component-spec-board[data-component-id="C-06"] .fake-popover-example,
+  .component-spec-board[data-component-id="C-06"] .fake-popover-panel,
+  .component-spec-board[data-component-id="C-06"] .split-practice,
+  .component-spec-board[data-component-id="C-07"] .floating-compare{box-sizing:border-box;width:100%;max-width:100%}
+  .component-spec-board[data-component-id="C-06"] .fake-popover-panel{position:static}
+  .component-spec-board[data-component-id="C-08"] .specimen-stage,
+  .component-spec-board[data-component-id="C-09"] .specimen-stage{max-width:100%;overflow-x:auto;overflow-y:visible;overscroll-behavior-inline:contain}
+  .component-spec-board[data-component-id="C-08"] .menu-trigger-pair{width:100%;max-width:100%;flex-wrap:wrap}
+  .component-spec-board[data-component-id="C-08"] .demo-menu.is-static{width:100%;max-width:100%}
+  .component-spec-board[data-component-id="C-09"] .cascader-panel.is-long-content{min-width:546px}
+}

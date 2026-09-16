@@ -1,0 +1,35 @@
+/*
+ * Global component radius presets.
+ *
+ * The medium preset preserves the existing design-source values. Controls and
+ * surfaces continue to consume their semantic aliases, while circular and pill
+ * shapes remain intentionally round across every preset.
+ */
+
+:root[data-radius="none"] {
+  --b2b-radius-xs: 0;
+  --b2b-radius-sm: 0;
+  --b2b-radius-md: 0;
+  --b2b-radius-lg: 0;
+}
+
+:root[data-radius="small"] {
+  --b2b-radius-xs: 2px;
+  --b2b-radius-sm: 4px;
+  --b2b-radius-md: 6px;
+  --b2b-radius-lg: 8px;
+}
+
+:root[data-radius="medium"] {
+  --b2b-radius-xs: 4px;
+  --b2b-radius-sm: 6px;
+  --b2b-radius-md: 8px;
+  --b2b-radius-lg: 10px;
+}
+
+:root[data-radius="large"] {
+  --b2b-radius-xs: 6px;
+  --b2b-radius-sm: 8px;
+  --b2b-radius-md: 12px;
+  --b2b-radius-lg: 16px;
+}

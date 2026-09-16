@@ -1,0 +1,199 @@
+
+.component-spec-board[data-component-id="C-04"] .specimen-row,
+.component-spec-board[data-component-id="C-04"] .specimen-cell,
+.component-spec-board[data-component-id="C-04"] .specimen-stage {
+  overflow: visible;
+}
+
+.component-spec-board[data-component-id="C-04"] .specimen-row:nth-child(4) .specimen-matrix,
+.component-spec-board[data-component-id="C-04"] .specimen-row:nth-child(6) .specimen-matrix {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.component-spec-board[data-component-id="C-04"] .specimen-row:nth-child(4) .specimen-stage,
+.component-spec-board[data-component-id="C-04"] .specimen-row:nth-child(6) .specimen-stage,
+.component-spec-board[data-component-id="C-04"] .specimen-row:nth-child(7) .specimen-stage {
+  place-items: stretch;
+}
+
+.icon-anatomy,
+.icon-confusion-card,
+.icon-size-spec,
+.icon-content-practice,
+.more-menu-practice,
+.outlined-icon-scene {
+  display: grid;
+  width: 100%;
+  gap: var(--b2b-space-3);
+}
+
+.icon-anatomy {
+  width: min(100%, calc(var(--b2b-control-height-lg) * 9));
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.icon-anatomy > .button-tooltip-anchor {
+  grid-row: 1 / span 3;
+  margin-right: var(--b2b-space-5);
+}
+
+.icon-anatomy p,
+.icon-confusion-card p,
+.icon-size-spec p,
+.icon-content-practice p,
+.more-menu-practice p {
+  margin: 0;
+  color: var(--b2b-color-text-secondary);
+  font-size: var(--b2b-font-size-12);
+  line-height: var(--b2b-line-height-20);
+}
+
+.icon-tooltip-anchor {
+  vertical-align: middle;
+}
+
+.component-spec-board[data-component-id="C-04"] .b2b-button.is-icon.is-subtle {
+  border-color: transparent;
+  background: transparent;
+  color: var(--b2b-color-text-secondary);
+}
+
+.component-spec-board[data-component-id="C-04"] .b2b-button.is-icon.is-subtle:hover,
+.component-spec-board[data-component-id="C-04"] .b2b-button.is-icon.is-subtle.is-state-hover {
+  border-color: transparent;
+  background: var(--b2b-color-bg-disabled);
+  color: var(--b2b-color-text-primary);
+}
+
+.component-spec-board[data-component-id="C-04"] .b2b-button.is-icon.is-subtle:active,
+.component-spec-board[data-component-id="C-04"] .b2b-button.is-icon.is-subtle.is-state-active {
+  border-color: transparent;
+  background: var(--b2b-color-border-surface);
+  color: var(--b2b-color-text-primary);
+}
+
+.icon-confusion-card .button-column {
+  justify-items: start;
+}
+
+.icon-size-spec {
+  justify-items: center;
+  text-align: center;
+}
+
+.icon-action-row,
+.paired-icon-demo,
+.avatar-icon-row,
+.outlined-state-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--b2b-space-2);
+}
+
+.icon-action-row.is-mixed > :nth-child(2n) .b2b-icon,
+.icon-action-row.is-mixed > :nth-child(2n).b2b-button .b2b-icon {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 20;
+}
+
+.paired-icon-demo {
+  justify-content: center;
+  gap: var(--b2b-space-4);
+}
+
+.more-menu-practice .interactive-dropdown {
+  flex: 0 0 auto;
+}
+
+.interactive-dropdown.is-open .b2b-button.is-icon,
+.interactive-dropdown .b2b-button.is-icon[aria-expanded="true"] {
+  border-color: transparent;
+  background: var(--b2b-color-bg-disabled);
+  color: var(--b2b-color-text-primary);
+}
+
+.icon-more-dropdown > .demo-menu[data-popup-panel] {
+  min-width: 168px;
+}
+
+.outlined-icon-scene {
+  width: min(100%, calc(var(--b2b-control-height-lg) * 12));
+}
+
+.avatar-icon-row {
+  padding: var(--b2b-space-4);
+  border-bottom: var(--b2b-border-width) solid var(--b2b-color-border-surface);
+}
+
+.outlined-state-row {
+  justify-content: space-between;
+  gap: var(--b2b-space-4);
+}
+
+.outlined-state-row > span {
+  display: grid;
+  justify-items: center;
+  gap: var(--b2b-space-2);
+  color: var(--b2b-color-text-secondary);
+  font-size: var(--b2b-font-size-12);
+}
+
+.b2b-button.is-icon.is-outlined-round {
+  border-color: var(--b2b-color-border-control);
+  border-radius: var(--b2b-radius-pill);
+  background: var(--b2b-color-bg-surface);
+  color: var(--b2b-color-text-secondary);
+}
+
+.b2b-button.is-icon.is-outlined-round:hover,
+.b2b-button.is-icon.is-outlined-round.is-state-hover {
+  border-color: var(--b2b-color-border-control);
+  background: var(--b2b-color-bg-disabled);
+  color: var(--b2b-color-text-primary);
+}
+
+.b2b-button.is-icon.is-outlined-round:active,
+.b2b-button.is-icon.is-outlined-round.is-state-active {
+  border-color: var(--b2b-color-border-control);
+  background: var(--b2b-color-border-surface);
+  color: var(--b2b-color-text-primary);
+}
+
+.b2b-button.is-icon.is-outlined-round:disabled {
+  border-color: var(--b2b-color-border-surface);
+  background: var(--b2b-color-bg-surface);
+  color: var(--b2b-color-text-disabled);
+}
+
+/* Production C-04 keeps the source icon/Tooltip anatomy. */
+.b2b-icon-control-source { display: inline-flex; max-width: 100%; align-items: center; gap: var(--b2b-space-2); }
+.b2b-icon-control-source .demo-menu.is-component-menu {
+  border: var(--b2b-border-width) solid var(--b2b-color-border-surface) !important;
+  border-radius: var(--b2b-radius-surface) !important;
+  box-shadow: var(--b2b-shadow-float) !important;
+  clip-path: none !important;
+}
+.b2b-button.is-icon.is-h24 { width: 24px; height: 24px; --b2b-icon-size: 14px; }
+.b2b-button.is-icon.is-h28 { width: 28px; height: 28px; --b2b-icon-size: 16px; }
+.b2b-button.is-icon.is-h32 { width: 32px; height: 32px; --b2b-icon-size: 18px; }
+.b2b-button.is-icon.is-h36 { width: 36px; height: 36px; --b2b-icon-size: 20px; }
+.b2b-button.is-icon.is-h40 { width: 40px; height: 40px; --b2b-icon-size: 22px; }
+
+.b2b-button.is-icon > .b2b-icon {
+  font-size: var(--b2b-icon-size);
+  line-height: var(--b2b-icon-size);
+}
+
+/* Icon-group selection must survive the more specific generic subtle-icon rule. */
+.b2b-icon-control-source[data-icon-variant="icon group"] .b2b-button.is-selected:not(:disabled) {
+  border-color: transparent;
+  color: var(--b2b-color-action-primary);
+  background: var(--b2b-color-action-primary-subtle);
+}
+.b2b-icon-control-source[data-icon-variant="icon group"] .b2b-button.is-selected:not(:disabled):hover {
+  background: color-mix(in srgb, var(--b2b-color-action-primary) 12%, var(--b2b-color-action-primary-subtle));
+}
+.b2b-icon-control-source[data-icon-variant="icon group"] .b2b-button.is-selected:not(:disabled):active {
+  background: color-mix(in srgb, var(--b2b-color-action-primary) 20%, var(--b2b-color-action-primary-subtle));
+}

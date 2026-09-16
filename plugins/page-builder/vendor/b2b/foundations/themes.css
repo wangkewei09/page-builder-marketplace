@@ -1,0 +1,242 @@
+/*
+ * Alternate color theme: Orange Red / 晚秋红
+ *
+ * The default blue token set remains the source of truth in tokens.css.
+ * This file only remaps color primitives and semantic colors when the
+ * document opts into data-theme="autumn-red".
+ */
+
+:root {
+  --b2b-color-on-primary: var(--b2b-neutral-0);
+  --b2b-color-on-primary-active: var(--b2b-neutral-0);
+  --b2b-information-blue-600: #1456f0;
+  --b2b-avatar-color-1: var(--b2b-blue-500);
+  --b2b-avatar-color-2: var(--b2b-cyan-500);
+  --b2b-avatar-color-3: var(--b2b-purple-500);
+  --b2b-avatar-color-4: var(--b2b-orange-500);
+  --b2b-avatar-color-5: var(--b2b-green-500);
+  --b2b-avatar-color-6: var(--b2b-yellow-500);
+  --b2b-avatar-color-7: var(--b2b-red-500);
+  --b2b-avatar-color-8: var(--b2b-color-extended-carmine);
+  --b2b-theme-swatch-current: var(--b2b-blue-600);
+  --b2b-theme-swatch-next: #f77234;
+}
+
+:root[data-theme="autumn-red"] {
+  /* Arco Orange Red / 晚秋红 palette */
+  --b2b-orangred-1: #fff3e8;
+  --b2b-orangred-2: #fdddc3;
+  --b2b-orangred-3: #fcc59f;
+  --b2b-orangred-4: #faac7b;
+  --b2b-orangred-5: #f99057;
+  --b2b-orangred-6: #f77234;
+  --b2b-orangred-7: #cc5120;
+  --b2b-orangred-8: #a23511;
+  --b2b-orangred-9: #771f06;
+  --b2b-orangred-10: #4d0e00;
+
+  /* Remap the existing brand ladder without changing component contracts. */
+  --b2b-blue-900: var(--b2b-orangred-10);
+  --b2b-blue-800: var(--b2b-orangred-9);
+  --b2b-blue-700: var(--b2b-orangred-7);
+  --b2b-blue-600: var(--b2b-orangred-6);
+  --b2b-blue-500: var(--b2b-orangred-5);
+  --b2b-blue-400: var(--b2b-orangred-4);
+  --b2b-blue-300: var(--b2b-orangred-3);
+  --b2b-blue-200: var(--b2b-orangred-2);
+  --b2b-blue-100: var(--b2b-orangred-1);
+  --b2b-blue-50: #fff8f3;
+
+  /* Keep functional and auxiliary colors bright and easy to distinguish. */
+  --b2b-green-600: #32a645;
+  --b2b-green-500: #35bd4b;
+  --b2b-orange-600: #ed6d0c;
+  --b2b-orange-500: #ff811a;
+  --b2b-red-700: #d83931;
+  --b2b-red-600: #f54a45;
+  --b2b-red-500: #f76964;
+  --b2b-purple-600: #8c55ec;
+  --b2b-purple-500: #9f6ff1;
+  --b2b-cyan-600: #14c0ff;
+  --b2b-cyan-500: #25b0e7;
+  --b2b-yellow-500: #ffc60a;
+  --b2b-turquoise-600: #1fa18f;
+
+  /* Extended colors retain the vivid source palette. */
+  --b2b-color-extended-indigo: #5b65f5;
+  --b2b-color-extended-purple: #8c55ec;
+  --b2b-color-extended-wathet: #25b0e7;
+  --b2b-color-extended-lime: #91ad00;
+  --b2b-color-extended-green: #35bd4b;
+  --b2b-color-extended-turquoise: #1fa18f;
+  --b2b-color-extended-orange: #db7018;
+  --b2b-color-extended-yellow: #ffc60a;
+  --b2b-color-extended-sunflower: #ffe928;
+  --b2b-color-extended-red: #f54a45;
+  --b2b-color-extended-violet: #bf3dbf;
+  --b2b-color-extended-carmine: #df58a5;
+
+  /* The first chart color follows the brand; the rest stay vivid. */
+  --b2b-chart-1: #f77234;
+  --b2b-chart-2: #25b2e5;
+  --b2b-chart-3: #1bcebf;
+  --b2b-chart-4: #27ad8e;
+  --b2b-chart-5: #f08f35;
+  --b2b-chart-6: #bf78e9;
+  --b2b-chart-7: #8f61d1;
+  --b2b-chart-8: #68c486;
+  --b2b-chart-funnel-1: #4d0e00;
+  --b2b-chart-funnel-2: #771f06;
+  --b2b-chart-funnel-3: #a23511;
+  --b2b-chart-funnel-4: #cc5120;
+  --b2b-chart-funnel-5: #f99057;
+  --b2b-chart-nested-1: #27ad8e;
+  --b2b-chart-nested-2: #bf78e9;
+  --b2b-chart-nested-3: #8f61d1;
+  --b2b-chart-nested-4: #dca1e4;
+  --b2b-chart-nested-5: #6dcdeb;
+  --b2b-chart-nested-6: #288fcb;
+  --b2b-chart-nested-7: #008280;
+  --b2b-chart-nested-8: #7bc335;
+
+  /* Only the brand gradient changes; auxiliary gradients stay bright. */
+  --b2b-gradient-blue: linear-gradient(90deg, #f99057, #f77234);
+  --b2b-gradient-indigo: linear-gradient(90deg, #757df0, #5b65f5);
+  --b2b-gradient-purple: linear-gradient(90deg, #9f6ff1, #8d55ed);
+  --b2b-gradient-wathet: linear-gradient(90deg, #3ec3f7, #25b0e7);
+  --b2b-gradient-lime: linear-gradient(90deg, #c8dd5f, #a2c10b);
+  --b2b-gradient-green: linear-gradient(90deg, #5cd168, #35bd4b);
+  --b2b-gradient-turquoise: linear-gradient(90deg, #6fe8d8, #33d6c0);
+  --b2b-gradient-orange: linear-gradient(90deg, #ff9d4c, #ff811a);
+  --b2b-gradient-yellow: linear-gradient(90deg, #ffc60a, #d99904);
+  --b2b-gradient-red: linear-gradient(90deg, #ff7570, #f54a45);
+  --b2b-gradient-violet: linear-gradient(90deg, #de81de, #cf5ecf);
+  --b2b-gradient-carmine: linear-gradient(90deg, #df58a5, #cc398c);
+
+  /* Semantic colors */
+  --b2b-color-action-primary: var(--b2b-orangred-6);
+  --b2b-color-action-primary-hover: var(--b2b-orangred-5);
+  --b2b-color-action-primary-active: var(--b2b-orangred-7);
+  --b2b-color-action-primary-pressed: var(--b2b-orangred-7);
+  --b2b-color-action-primary-subtle: var(--b2b-orangred-1);
+  --b2b-color-focus-ring: var(--b2b-orangred-2);
+  --b2b-color-success: var(--b2b-green-600);
+  --b2b-color-success-content: var(--b2b-green-500);
+  --b2b-color-warning: var(--b2b-orange-600);
+  --b2b-color-warning-content: var(--b2b-orange-500);
+  --b2b-color-danger: var(--b2b-red-600);
+  --b2b-color-danger-hover: var(--b2b-red-500);
+  --b2b-color-danger-active: var(--b2b-red-700);
+  --b2b-color-danger-content: var(--b2b-red-600);
+  --b2b-color-information: var(--b2b-information-blue-600);
+  --b2b-color-information-content: var(--b2b-information-blue-600);
+  --b2b-color-success-foreground: #217a31;
+  --b2b-color-warning-foreground: #a94d08;
+  --b2b-color-provisional-foreground: #6e39c5;
+  --b2b-color-danger-foreground: #bf2f2b;
+
+  /* The late-autumn neutrals intentionally preserve the existing hierarchy. */
+  --b2b-neutral-1000: #000000;
+  --b2b-neutral-950: #0f1114;
+  --b2b-neutral-900: #1f2329;
+  --b2b-neutral-800: #2b2f36;
+  --b2b-neutral-700: #373c43;
+  --b2b-neutral-600: #51565d;
+  --b2b-neutral-500: #646a73;
+  --b2b-neutral-400: #8f959e;
+  --b2b-neutral-300: #bbbfc4;
+  --b2b-neutral-250: #d0d3d6;
+  --b2b-neutral-200: #dee0e3;
+  --b2b-neutral-150: #eff0f1;
+  --b2b-neutral-100: #f2f3f5;
+  --b2b-neutral-75: #f5f6f7;
+  --b2b-neutral-50: #f8f9fa;
+  --b2b-neutral-0: #ffffff;
+
+  /* Filled brand controls keep the established white foreground. */
+  --b2b-color-on-primary: var(--b2b-neutral-0);
+  --b2b-color-on-primary-active: var(--b2b-neutral-0);
+  --b2b-avatar-color-1: #f77234;
+  --b2b-avatar-color-2: #f78d36;
+  --b2b-avatar-color-3: #ffc60a;
+  --b2b-avatar-color-4: #35bd4b;
+  --b2b-avatar-color-5: #25b0e7;
+  --b2b-avatar-color-6: #1456f0;
+  --b2b-avatar-color-7: #9f6ff1;
+  --b2b-avatar-color-8: #df58a5;
+  --b2b-theme-swatch-current: var(--b2b-orangred-6);
+  --b2b-theme-swatch-next: #e60023;
+
+  /* Brand-colored elevation */
+  --b2b-shadow-primary-down-1: 0 1px 2px -2px rgba(247, 114, 52, 0.14), 0 2px 4px 0 rgba(247, 114, 52, 0.05), 0 2px 8px 2px rgba(247, 114, 52, 0.03);
+  --b2b-shadow-primary-down-2: 0 2px 4px -4px rgba(247, 114, 52, 0.14), 0 4px 8px 0 rgba(247, 114, 52, 0.06), 0 4px 16px 4px rgba(247, 114, 52, 0.04);
+  --b2b-shadow-primary-down-3: 0 3px 6px -6px rgba(247, 114, 52, 0.16), 0 4px 8px 0 rgba(247, 114, 52, 0.08), 0 6px 18px 6px rgba(247, 114, 52, 0.05);
+  --b2b-shadow-primary-down-4: 0 4px 8px -4px rgba(247, 114, 52, 0.18), 0 6px 12px 0 rgba(247, 114, 52, 0.1), 0 8px 24px 8px rgba(247, 114, 52, 0.07);
+  --b2b-shadow-primary-down-5: 0 10px 12px -10px rgba(247, 114, 52, 0.2), 0 8px 24px 0 rgba(247, 114, 52, 0.12), 0 10px 36px 10px rgba(247, 114, 52, 0.08);
+}
+
+:root[data-theme="crimson-red"] {
+  /* Bright crimson palette, centered on the requested #E60023 brand color. */
+  --b2b-crimson-1: #fff0f2;
+  --b2b-crimson-2: #ffd6dc;
+  --b2b-crimson-3: #ffabb7;
+  --b2b-crimson-4: #ff7a8e;
+  --b2b-crimson-5: #f53d58;
+  --b2b-crimson-6: #e60023;
+  --b2b-crimson-7: #bd001d;
+  --b2b-crimson-8: #930017;
+  --b2b-crimson-9: #690010;
+  --b2b-crimson-10: #40000a;
+
+  /* Remap the existing brand ladder without changing component contracts. */
+  --b2b-blue-900: var(--b2b-crimson-10);
+  --b2b-blue-800: var(--b2b-crimson-9);
+  --b2b-blue-700: var(--b2b-crimson-7);
+  --b2b-blue-600: var(--b2b-crimson-6);
+  --b2b-blue-500: var(--b2b-crimson-5);
+  --b2b-blue-400: var(--b2b-crimson-4);
+  --b2b-blue-300: var(--b2b-crimson-3);
+  --b2b-blue-200: var(--b2b-crimson-2);
+  --b2b-blue-100: var(--b2b-crimson-1);
+  --b2b-blue-50: #fff7f8;
+
+  /* Primary interaction follows crimson; semantic information remains blue. */
+  --b2b-color-action-primary: var(--b2b-crimson-6);
+  --b2b-color-action-primary-hover: var(--b2b-crimson-5);
+  --b2b-color-action-primary-active: var(--b2b-crimson-7);
+  --b2b-color-action-primary-pressed: var(--b2b-crimson-7);
+  --b2b-color-action-primary-subtle: var(--b2b-crimson-1);
+  --b2b-color-focus-ring: var(--b2b-crimson-2);
+  --b2b-color-information: var(--b2b-information-blue-600);
+  --b2b-color-information-content: var(--b2b-information-blue-600);
+
+  /* Charts and gradients retain vivid auxiliary hues. */
+  --b2b-chart-1: #e60023;
+  --b2b-chart-funnel-1: #40000a;
+  --b2b-chart-funnel-2: #690010;
+  --b2b-chart-funnel-3: #930017;
+  --b2b-chart-funnel-4: #bd001d;
+  --b2b-chart-funnel-5: #f53d58;
+  --b2b-gradient-blue: linear-gradient(90deg, #f53d58, #e60023);
+
+  /* Filled controls use white text; avatar groups include a green contrast hue. */
+  --b2b-color-on-primary: var(--b2b-neutral-0);
+  --b2b-color-on-primary-active: var(--b2b-neutral-0);
+  --b2b-avatar-color-1: #e60023;
+  --b2b-avatar-color-2: #f02646;
+  --b2b-avatar-color-3: #ffc60a;
+  --b2b-avatar-color-4: #35bd4b;
+  --b2b-avatar-color-5: #25b0e7;
+  --b2b-avatar-color-6: #1456f0;
+  --b2b-avatar-color-7: #9f6ff1;
+  --b2b-avatar-color-8: #df58a5;
+  --b2b-theme-swatch-current: var(--b2b-crimson-6);
+  --b2b-theme-swatch-next: #1456f0;
+
+  /* Brand-colored elevation */
+  --b2b-shadow-primary-down-1: 0 1px 2px -2px rgba(230, 0, 35, 0.14), 0 2px 4px 0 rgba(230, 0, 35, 0.05), 0 2px 8px 2px rgba(230, 0, 35, 0.03);
+  --b2b-shadow-primary-down-2: 0 2px 4px -4px rgba(230, 0, 35, 0.14), 0 4px 8px 0 rgba(230, 0, 35, 0.06), 0 4px 16px 4px rgba(230, 0, 35, 0.04);
+  --b2b-shadow-primary-down-3: 0 3px 6px -6px rgba(230, 0, 35, 0.16), 0 4px 8px 0 rgba(230, 0, 35, 0.08), 0 6px 18px 6px rgba(230, 0, 35, 0.05);
+  --b2b-shadow-primary-down-4: 0 4px 8px -4px rgba(230, 0, 35, 0.18), 0 6px 12px 0 rgba(230, 0, 35, 0.1), 0 8px 24px 8px rgba(230, 0, 35, 0.07);
+  --b2b-shadow-primary-down-5: 0 10px 12px -10px rgba(230, 0, 35, 0.2), 0 8px 24px 0 rgba(230, 0, 35, 0.12), 0 10px 36px 10px rgba(230, 0, 35, 0.08);
+}

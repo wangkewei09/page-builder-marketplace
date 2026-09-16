@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>页面搭建器</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">P</span><span>页面搭建器</span></div>
+      <label class="page-name-label"><span class="sr-only">页面名称</span><input id="page-name" class="page-name" maxlength="80" aria-label="页面名称"></label>
+      <div class="save-state" id="save-state"><span class="status-dot"></span><span>已保存</span></div>
+      <div class="toolbar" role="toolbar" aria-label="页面操作">
+        <button id="undo" class="icon-control" title="撤销" aria-label="撤销">↶</button>
+        <button id="redo" class="icon-control" title="重做" aria-label="重做">↷</button>
+        <div class="segmented" aria-label="视口">
+          <button data-viewport="desktop" class="is-active">桌面</button><button data-viewport="mobile">窄屏</button>
+        </div>
+        <button id="preview" class="toolbar-button">预览</button>
+        <button id="export" class="toolbar-button primary">导出</button>
+      </div>
+    </header>
+    <aside class="left-panel panel">
+      <div class="tabs" role="tablist"><button class="tab is-active" data-tab="components" role="tab">组件</button><button class="tab" data-tab="structure" role="tab">页面结构</button></div>
+      <div id="components-panel" class="panel-content">
+        <label class="search"><span aria-hidden="true">⌕</span><input id="component-search" placeholder="搜索组件" aria-label="搜索组件"></label>
+        <div class="section-label">已适配组件</div><div id="component-list" class="component-list"></div>
+        <div class="section-label">布局</div><div id="layout-list" class="component-list"></div>
+      </div>
+      <div id="structure-panel" class="panel-content is-hidden"><div id="tree" class="tree"></div></div>
+    </aside>
+    <main class="workspace">
+      <div class="canvas-toolbar"><span id="breadcrumb">页面</span><span id="revision-badge">Revision 0</span></div>
+      <div class="canvas-scroll"><div id="canvas-frame" class="canvas-frame"><div id="canvas" class="canvas" aria-label="页面画布"></div></div></div>
+      <div class="statusbar"><span id="provider-status">正在连接真实组件…</span><span id="node-count">0 个节点</span></div>
+    </main>
+    <aside class="right-panel panel">
+      <div class="inspector-heading"><div><strong>属性</strong><span id="selection-type">未选择</span></div></div>
+      <div id="inspector" class="inspector"><div class="empty-inspector"><span class="empty-icon">◇</span><p>选择画布中的组件</p><small>在这里修改内容、变体和状态</small></div></div>
+    </aside>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./vendor/b2b/components/runtime/loader.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

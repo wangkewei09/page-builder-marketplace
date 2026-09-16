@@ -1,0 +1,5 @@
+.DS_Store
+node_modules/
+plugins/page-builder/node_modules/
+plugins/page-builder/dist/
+plugins/page-builder/.page-builder-data/
