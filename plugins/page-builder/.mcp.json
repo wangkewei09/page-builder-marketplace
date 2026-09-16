@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "pageBuilder": {
+      "title": "页面搭建器",
+      "description": "Open the editor in Codex's split workspace or MCP Apps UI, or read and mutate the authoritative Page Schema headlessly.",
+      "cwd": ".",
+      "command": "node",
+      "args": ["./dist/server.js"]
+    }
+  }
+}

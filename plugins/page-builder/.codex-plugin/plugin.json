@@ -1,0 +1,28 @@
+{
+  "name": "page-builder",
+  "version": "0.1.0+codex.20260907025217",
+  "description": "Page editor with declared Codex global and current-task UI entries, shared Page Schema, and a browser fallback.",
+  "author": {
+    "name": "Local Page Builder Team"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "\u9875\u9762\u642d\u5efa\u5668",
+    "shortDescription": "\u9875\u9762\u7f16\u8f91\u5668\uff1a\u8282\u70b9\u9009\u62e9\u3001\u6587\u5b57\u4fee\u6539\u4e0e AI \u5171\u7528\u9875\u9762\u72b6\u6001\u3002",
+    "longDescription": "\u6ce8\u518c\u72ec\u7acb\u63d2\u4ef6\u754c\u9762\u53ca\u5f53\u524d\u4efb\u52a1\u9762\u677f\u5165\u53e3\uff0c\u76f4\u63a5\u52a0\u8f7d\u7f16\u8f91\u5668\uff1b\u4ecd\u4fdd\u7559\u6d4f\u89c8\u5668\u5165\u53e3\u3002\u5f53\u524d\u4e3a\u6a21\u62df\u7ec4\u4ef6\u539f\u578b\uff0c\u5c1a\u4e0d\u652f\u6301\u62d6\u62fd\u751f\u6210\u4e0e\u5bfc\u51fa\u3002",
+    "developerName": "Local Page Builder Team",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "\u642d\u5efa\u4e00\u4e2a\u6210\u5458\u7ba1\u7406\u9875\u9762",
+      "\u5728\u53f3\u4fa7\u5de5\u4f5c\u53f0\u7f16\u8f91\u5f53\u524d\u9875\u9762",
+      "\u628a\u65b0\u5efa\u6210\u5458\u6309\u94ae\u6587\u5b57\u6539\u4e3a\u9080\u8bf7\u6210\u5458"
+    ],
+    "brandColor": "#1456F0"
+  },
+  "mcpServers": "./.mcp.json"
+}

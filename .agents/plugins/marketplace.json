@@ -1,0 +1,20 @@
+{
+  "name": "page-builder-marketplace",
+  "interface": {
+    "displayName": "页面搭建器 Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "page-builder",
+      "source": {
+        "source": "local",
+        "path": "./plugins/page-builder"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

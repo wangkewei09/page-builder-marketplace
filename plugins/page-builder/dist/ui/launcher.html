@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>选择项目或模板</title>
+  <style id="page-builder-launcher-styles">:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+  color: #1f2329;
+  background: #ffffff;
+  --blue: #1456f0;
+  --blue-soft: #f1f5ff;
+  --border: #d8dde6;
+  --muted: #646a73;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { padding: 4px; background: #fff; }
+button, a { font: inherit; }
+
+.launcher { width: 100%; max-width: 760px; margin: 0 auto; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: #fff; box-shadow: 0 8px 24px rgba(31, 35, 41, .06); }
+.launcher-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 20px 22px 16px; }
+h1, p { margin: 0; }
+h1 { font-size: 18px; line-height: 1.45; }
+.launcher-header p { margin-top: 5px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.revision { flex: none; padding: 5px 8px; border-radius: 5px; color: var(--blue); background: var(--blue-soft); font-size: 11px; }
+
+.tabs { display: flex; gap: 22px; height: 40px; padding: 0 22px; border-bottom: 1px solid #edf0f3; }
+.tabs button { position: relative; padding: 0; border: 0; color: var(--muted); background: transparent; cursor: pointer; font-size: 13px; }
+.tabs button.active { color: #1f2329; font-weight: 600; }
+.tabs button.active::after { content: ""; position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--blue); }
+
+.panel { padding: 16px 22px 20px; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.section-heading strong { font-size: 12px; }
+.section-heading span { color: var(--muted); font-size: 11px; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+.launch-card { position: relative; display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 14px; min-height: 116px; padding: 12px; border: 1px solid var(--border); border-radius: 9px; color: inherit; background: #fff; text-decoration: none; transition: border-color .14s, box-shadow .14s, transform .14s; }
+.launch-card[data-open-editor] { width: 100%; text-align: left; cursor: pointer; }
+.launch-card[data-open-editor]:hover { transform: translateY(-1px); border-color: #9db5ff; box-shadow: 0 8px 18px rgba(20, 86, 240, .09); }
+.launch-card[data-open-editor]:focus-visible { outline: 3px solid rgba(20, 86, 240, .18); outline-offset: 2px; }
+.launch-card.disabled { opacity: .62; cursor: not-allowed; }
+.preview { position: relative; overflow: hidden; border: 1px solid #e4e8ee; border-radius: 6px; background: #f7f8fa; }
+.preview::before { content: ""; position: absolute; inset: 8px 7px auto; height: 8px; border-radius: 2px; background: #dfe5ee; box-shadow: 0 15px #e8ebf0, 0 30px #e8ebf0, 0 45px #e8ebf0; }
+.preview.table::after { content: ""; position: absolute; right: 7px; bottom: 8px; left: 7px; height: 42px; border: 1px solid #cfd6e1; background: repeating-linear-gradient(to bottom, #fff 0 9px, #e7ebf0 9px 10px); }
+.preview.blank::before { inset: 50% auto auto 50%; width: 22px; height: 2px; transform: translate(-50%, -50%); box-shadow: none; background: #9aa2ad; }
+.preview.blank::after { content: ""; position: absolute; top: 50%; left: 50%; width: 2px; height: 22px; transform: translate(-50%, -50%); background: #9aa2ad; }
+.card-copy { min-width: 0; display: flex; flex-direction: column; }
+.card-copy strong { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.card-copy p { margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 10px; color: var(--muted); font-size: 10px; }
+.card-meta b { color: var(--blue); font-weight: 500; }
+.badge { position: absolute; top: 9px; right: 9px; padding: 3px 6px; border-radius: 4px; color: var(--blue); background: var(--blue-soft); font-size: 9px; }
+.skeleton { height: 116px; border-radius: 9px; background: linear-gradient(90deg, #f5f6f8 25%, #eceff3 37%, #f5f6f8 63%); background-size: 400% 100%; animation: shimmer 1.2s infinite; }
+
+.launcher-footer { min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 22px; border-top: 1px solid #edf0f3; color: var(--muted); background: #fafbfc; font-size: 10px; }
+.connection { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.connection i { width: 7px; height: 7px; border-radius: 50%; background: #8f959e; }
+.connection.ready { color: #16834a; }
+.connection.ready i { background: #22a55b; box-shadow: 0 0 0 3px #e6f6ed; }
+
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+@media (max-width: 620px) {
+  body { padding: 0; }
+  .launcher { border-radius: 0; box-shadow: none; }
+  .launcher-header { padding: 16px; }
+  .revision { display: none; }
+  .tabs { padding: 0 16px; }
+  .panel { padding: 14px 16px 16px; }
+  .cards { grid-template-columns: 1fr; }
+  .launcher-footer { align-items: flex-start; flex-direction: column; gap: 4px; padding: 10px 16px; }
+}
+</style>
+</head>
+<body>
+  <main class="launcher" data-launcher aria-label="页面搭建器项目选择">
+    <header class="launcher-header">
+      <div>
+        <h1>选择从哪里开始</h1>
+        <p>打开最近项目，或从已验证模板继续搭建。</p>
+      </div>
+      <span class="revision" data-revision>Revision —</span>
+    </header>
+
+    <nav class="tabs" aria-label="选择类型">
+      <button type="button" class="active" data-tab="projects" aria-selected="true">最近项目</button>
+      <button type="button" data-tab="templates" aria-selected="false">页面模板</button>
+    </nav>
+
+    <section class="panel" data-panel="projects">
+      <div class="section-heading">
+        <strong>继续编辑</strong>
+        <span>1 个项目</span>
+      </div>
+      <div class="cards" data-projects>
+        <div class="skeleton" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="templates" hidden>
+      <div class="section-heading">
+        <strong>当前可用</strong>
+        <span>Mock 能力</span>
+      </div>
+      <div class="cards" data-templates></div>
+    </section>
+
+    <footer class="launcher-footer">
+      <span class="connection" data-connection><i></i><span>正在连接 Page Schema</span></span>
+      <span data-hint role="status">点击项目卡片展开编辑器</span>
+    </footer>
+  </main>
+  <template id="page-builder-editor-template"><style>:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+  color: #1f2329;
+  background: #eef1f5;
+  --blue: #1456f0;
+  --blue-soft: #e8efff;
+  --border: #d8dde6;
+  --muted: #646a73;
+  --panel: #fff;
+  --canvas: #f1f3f6;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { min-width: 920px; background: #eef1f5; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+
+.editor { min-height: 720px; height: min(860px, 100vh); display: grid; grid-template-rows: 56px minmax(0, 1fr); overflow: hidden; background: var(--panel); }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 16px; border-bottom: 1px solid var(--border); background: #fff; }
+.brand, .top-actions, .connection { display: flex; align-items: center; gap: 10px; }
+.brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; color: #fff; background: linear-gradient(135deg, #1456f0, #8b5cf6); font-size: 11px; font-weight: 800; }
+.divider { height: 20px; width: 1px; background: var(--border); }
+.brand > span:last-child { color: var(--muted); font-size: 13px; }
+.connection { color: #8f959e; font-size: 12px; }
+.connection i { width: 8px; height: 8px; border-radius: 50%; background: #8f959e; }
+.connection.ready { color: #16834a; }
+.connection.ready i { background: #22a55b; box-shadow: 0 0 0 3px #e6f6ed; }
+.button { height: 32px; padding: 0 14px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: #1f2329; }
+.button.primary { border-color: var(--blue); background: var(--blue); color: #fff; }
+
+.workspace { min-height: 0; display: grid; grid-template-columns: 230px minmax(460px, 1fr) 280px; }
+.palette, .inspector { min-height: 0; overflow: auto; background: #fff; }
+.palette { border-right: 1px solid var(--border); padding: 16px 12px; }
+.inspector { border-left: 1px solid var(--border); }
+.panel-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+h2, h3, p { margin: 0; }
+.panel-heading h2 { font-size: 15px; }
+.panel-heading p { margin-top: 3px; color: var(--muted); font-size: 11px; }
+.count { display: grid; place-items: center; min-width: 24px; height: 22px; padding: 0 7px; border-radius: 11px; color: var(--blue); background: var(--blue-soft); font-size: 11px; }
+.search { display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); }
+.search:focus-within { border-color: var(--blue); box-shadow: 0 0 0 2px #dbe6ff; }
+.search input { width: 100%; border: 0; outline: 0; }
+.palette-list { display: grid; gap: 7px; margin-top: 12px; }
+.palette-item { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px; border: 1px solid transparent; border-radius: 7px; background: #fff; text-align: left; }
+.palette-item:hover, .palette-item.selected { border-color: #b8caff; background: #f4f7ff; }
+.palette-item .glyph { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 7px; background: #f0f2f5; color: #4e5969; font-size: 12px; font-weight: 800; }
+.palette-item strong, .palette-item small { display: block; }
+.palette-item strong { font-size: 12px; }
+.palette-item small { margin-top: 2px; color: var(--muted); font-size: 10px; }
+.structure { margin-top: 22px; padding-top: 15px; border-top: 1px solid #edf0f3; }
+.structure h3, .property-section h3, .transaction h3 { margin-bottom: 10px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.structure div { display: flex; justify-content: space-between; padding: 8px 6px; font-size: 11px; }
+.structure span { color: var(--muted); }
+
+.canvas-column { min-width: 0; min-height: 0; display: grid; grid-template-rows: 38px minmax(0, 1fr) 34px; background: var(--canvas); }
+.canvas-tools, .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; color: var(--muted); background: #fafbfc; font-size: 11px; }
+.canvas-tools { border-bottom: 1px solid var(--border); }
+.statusbar { border-top: 1px solid var(--border); }
+.synced { color: #16834a; }
+.canvas-scroll { overflow: auto; padding: 24px; }
+.artboard { width: min(860px, 100%); min-height: 570px; margin: 0 auto; padding: 28px; border: 1px solid #d8dde6; border-radius: 4px; background: #fff; box-shadow: 0 12px 30px rgba(31, 35, 41, .09); }
+.page-heading { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.page-heading h1 { margin: 0 0 6px; font-size: 23px; }
+.page-heading p { color: var(--muted); font-size: 13px; }
+.schema-chip { padding: 5px 8px; border-radius: 5px; color: var(--blue); background: var(--blue-soft); font-size: 10px; }
+.toolbar-preview { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.canvas-node { position: relative; border: 1px solid transparent; border-radius: 6px; transition: border-color .12s, box-shadow .12s; }
+.canvas-node:hover { border-color: #a9bffe; }
+.canvas-node.selected { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(20, 86, 240, .16); }
+.canvas-node::before { content: attr(data-node-label); position: absolute; z-index: 3; left: -1px; top: -21px; display: none; padding: 3px 6px; border-radius: 4px 4px 0 0; color: #fff; background: var(--blue); font-size: 9px; }
+.canvas-node.selected::before { display: block; }
+.preview-input { flex: 1; min-width: 180px; height: 32px; display: flex; align-items: center; padding: 0 10px; border: 1px solid var(--border); color: #8f959e; font-size: 12px; }
+.preview-button { min-width: 84px; height: 32px; padding: 0 13px; border: 0; border-radius: 4px; color: #fff; background: var(--blue); }
+.inline-editor { width: 150px; height: 30px; padding: 0 8px; border: 2px solid var(--blue); border-radius: 4px; outline: 0; }
+.table-node { padding: 0; }
+.preview-table { width: 100%; border-spacing: 0; border-collapse: separate; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; font-size: 11px; }
+.preview-table th, .preview-table td { height: 40px; padding: 0 11px; border-bottom: 1px solid #edf0f3; text-align: left; }
+.preview-table th { height: 36px; color: #4e5969; background: #f7f8fa; font-weight: 600; }
+.preview-table tr:last-child td { border-bottom: 0; }
+.status-tag { display: inline-flex; align-items: center; min-height: 22px; padding: 0 7px; border-radius: 4px; color: #16834a; background: #e6f6ed; }
+.status-tag.pending { color: #b76e00; background: #fff4dc; }
+
+.inspector-tabs { display: flex; height: 42px; border-bottom: 1px solid var(--border); }
+.inspector-tabs button { flex: 1; border: 0; background: #fff; color: var(--muted); }
+.inspector-tabs button.active { color: var(--blue); box-shadow: inset 0 -2px var(--blue); }
+.selection-card { display: flex; align-items: center; gap: 10px; margin: 14px; padding: 11px; border: 1px solid var(--border); border-radius: 7px; }
+.selection-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 7px; color: var(--blue); background: var(--blue-soft); }
+.selection-card strong, .selection-card small { display: block; }
+.selection-card strong { font-size: 12px; }
+.selection-card small { margin-top: 3px; color: var(--muted); font-size: 10px; }
+.property-section, .transaction, .conflict { margin: 0 14px; padding: 15px 0; border-top: 1px solid #edf0f3; }
+.property-field { display: grid; gap: 6px; margin-bottom: 11px; color: var(--muted); font-size: 11px; }
+.property-field input { height: 32px; padding: 0 9px; border: 1px solid var(--border); border-radius: 5px; outline: 0; }
+.property-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px #dbe6ff; }
+.field-help, .muted { color: var(--muted); font-size: 10px; }
+.facts div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 9px 0; font-size: 11px; }
+code { max-width: 170px; overflow: hidden; color: #4e5969; text-overflow: ellipsis; white-space: nowrap; }
+.transaction p { color: #4e5969; font-size: 11px; line-height: 1.6; }
+.conflict { margin-top: 12px; padding: 12px; border: 1px solid #f0b55d; border-radius: 7px; background: #fff8e8; }
+.conflict strong { color: #a65f00; font-size: 12px; }
+.conflict p { margin: 6px 0 10px; color: #6b4e24; font-size: 10px; line-height: 1.5; }
+.conflict button { border: 0; padding: 0; color: var(--blue); background: transparent; font-size: 10px; }
+.toast { position: fixed; z-index: 20; left: 50%; bottom: 22px; transform: translateX(-50%); max-width: 420px; padding: 10px 14px; border-radius: 7px; color: #fff; background: #1f2329; box-shadow: 0 10px 24px rgba(0, 0, 0, .18); font-size: 12px; }
+
+@media (max-width: 1080px) {
+  .workspace { grid-template-columns: 190px minmax(420px, 1fr) 240px; }
+  .canvas-scroll { padding: 16px; }
+  .artboard { padding: 20px; }
+}
+</style>
+  <main class="editor" data-editor aria-label="页面搭建器">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">PB</span>
+        <strong>页面搭建器</strong>
+        <span class="divider" aria-hidden="true"></span>
+        <span data-page-title>成员管理页面</span>
+      </div>
+      <div class="connection" data-connection><i></i><span>正在连接 Page Schema</span></div>
+      <div class="top-actions">
+        <button type="button" class="button">预览</button>
+        <button type="button" class="button primary">导出页面</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="palette" aria-label="组件库">
+        <div class="panel-heading">
+          <div><h2>组件库</h2><p>当前页面组件</p></div>
+          <span class="count" data-component-count>0</span>
+        </div>
+        <label class="search"><span aria-hidden="true">⌕</span><input type="search" placeholder="搜索组件" data-search></label>
+        <div class="palette-list" data-palette-list></div>
+        <section class="structure">
+          <h3>页面结构</h3>
+          <div><b>响应式网格</b><span>L-01</span></div>
+          <div><b>列表管理</b><span>T-02</span></div>
+        </section>
+      </aside>
+
+      <section class="canvas-column" aria-label="画布">
+        <div class="canvas-tools"><span>桌面端 · 1440</span><span>100%</span></div>
+        <div class="canvas-scroll">
+          <div class="artboard">
+            <header class="page-heading">
+              <div><h1>成员管理</h1><p>管理组织成员与角色权限</p></div>
+              <span class="schema-chip">Schema 驱动画布</span>
+            </header>
+            <div class="toolbar-preview" data-toolbar-preview></div>
+            <div data-table-preview></div>
+          </div>
+        </div>
+        <footer class="statusbar">
+          <span class="synced">✓ Page Schema 已同步</span>
+          <span>Revision <b data-status-revision>—</b></span>
+        </footer>
+      </section>
+
+      <aside class="inspector" aria-label="属性面板">
+        <nav class="inspector-tabs" aria-label="右侧面板"><button class="active" type="button">属性</button><button type="button">AI 任务</button></nav>
+        <section class="selection-card">
+          <span class="selection-icon" aria-hidden="true">◇</span>
+          <div><strong data-selected-name>等待数据</strong><small data-selected-code>—</small></div>
+        </section>
+        <section class="property-section">
+          <h3>组件属性</h3>
+          <div data-property-fields><p class="muted">工具结果到达后显示可编辑属性。</p></div>
+        </section>
+        <section class="property-section facts">
+          <h3>页面信息</h3>
+          <div><span>节点 ID</span><code data-selected-id>—</code></div>
+          <div><span>Revision</span><b data-revision>—</b></div>
+          <div><span>Provider</span><code data-provider>—</code></div>
+        </section>
+        <section class="transaction" data-transaction hidden>
+          <h3>最近提交</h3>
+          <p data-transaction-copy></p>
+        </section>
+        <section class="conflict" data-conflict hidden role="alert">
+          <strong>同属性冲突</strong>
+          <p data-conflict-copy></p>
+          <button type="button" data-refresh>读取最新 Revision</button>
+        </section>
+      </aside>
+    </div>
+    <div class="toast" data-toast hidden role="status"></div>
+  </main>
+  
+</template>
+  <script>function initializePageBuilderUi(bridge) {
+  "use strict";
+
+  var state = {
+    snapshot: null,
+    selectedNodeId: null,
+    initialized: false,
+    hostCapabilities: {},
+    hostContext: {},
+    pending: new Map(),
+    requestId: 1,
+    editing: null,
+    transport: bridge || window.parent !== window ? "mcp" : "standalone"
+  };
+  var elements = {
+    connection: document.querySelector("[data-connection]"),
+    palette: document.querySelector("[data-palette-list]"),
+    count: document.querySelector("[data-component-count]"),
+    toolbar: document.querySelector("[data-toolbar-preview]"),
+    table: document.querySelector("[data-table-preview]"),
+    selectedName: document.querySelector("[data-selected-name]"),
+    selectedCode: document.querySelector("[data-selected-code]"),
+    selectedId: document.querySelector("[data-selected-id]"),
+    revision: document.querySelector("[data-revision]"),
+    statusRevision: document.querySelector("[data-status-revision]"),
+    provider: document.querySelector("[data-provider]"),
+    properties: document.querySelector("[data-property-fields]"),
+    transaction: document.querySelector("[data-transaction]"),
+    transactionCopy: document.querySelector("[data-transaction-copy]"),
+    conflict: document.querySelector("[data-conflict]"),
+    conflictCopy: document.querySelector("[data-conflict-copy]"),
+    toast: document.querySelector("[data-toast]"),
+    search: document.querySelector("[data-search]"),
+    pageTitle: document.querySelector("[data-page-title]")
+  };
+
+  function post(message) { window.parent.postMessage(message, "*"); }
+
+  function request(method, params) {
+    if (bridge) return bridge.request(method, params);
+    var id = state.requestId++;
+    post({ jsonrpc: "2.0", id: id, method: method, params: params || {} });
+    return new Promise(function (resolve, reject) { state.pending.set(id, { resolve: resolve, reject: reject }); });
+  }
+
+  function toolResult(result) {
+    return result && result.structuredContent ? result.structuredContent : result;
+  }
+
+  function standaloneUrl(path) {
+    var token = new URL(window.location.href).searchParams.get("token") || "";
+    return path + "?token=" + encodeURIComponent(token);
+  }
+
+  function callTool(name, args) {
+    if (state.transport === "mcp") return request("tools/call", { name: name, arguments: args || {} });
+    return fetch(standaloneUrl("/api/tool"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: name, arguments: args || {} })
+    }).then(function (response) { return response.json(); });
+  }
+
+  function applyHostContext(context) {
+    state.hostContext = Object.assign({}, state.hostContext, context || {});
+    document.documentElement.dataset.displayMode = state.hostContext.displayMode || "inline";
+  }
+
+  function connectMcpApp() {
+    request("ui/initialize", {
+      protocolVersion: "2026-01-26",
+      appInfo: {
+        name: "page-builder",
+        title: "页面搭建器",
+        version: "0.1.0",
+        description: "Edit the authoritative Page Schema in a visual canvas."
+      },
+      appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] }
+    }).then(function (result) {
+      state.initialized = true;
+      state.hostCapabilities = result.hostCapabilities || {};
+      applyHostContext(result.hostContext);
+      elements.connection.classList.add("ready");
+      elements.connection.querySelector("span").textContent = "MCP UI 已初始化";
+      post({ jsonrpc: "2.0", method: "ui/notifications/initialized" });
+
+      var modes = state.hostContext.availableDisplayModes || [];
+      if (modes.includes("fullscreen") && state.hostContext.displayMode !== "fullscreen") {
+        request("ui/request-display-mode", { mode: "fullscreen" }).then(function (display) {
+          applyHostContext({ displayMode: display.mode });
+        }).catch(function () {});
+      }
+    }).catch(function () {
+      elements.connection.querySelector("span").textContent = "MCP UI 初始化失败";
+    });
+  }
+
+  function connectStandalone() {
+    document.documentElement.dataset.displayMode = "standalone";
+    fetch(standaloneUrl("/api/snapshot"), { cache: "no-store" })
+      .then(function (response) { return response.json(); })
+      .then(function (payload) {
+        state.initialized = true;
+        elements.connection.classList.add("ready");
+        elements.connection.querySelector("span").textContent = "右侧工作台已连接";
+        applyStructuredContent(payload);
+      })
+      .catch(function () { elements.connection.querySelector("span").textContent = "右侧工作台连接失败"; });
+  }
+
+  function showToast(copy) {
+    elements.toast.textContent = copy;
+    elements.toast.hidden = false;
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(function () { elements.toast.hidden = true; }, 2600);
+  }
+
+  function glyph(node) {
+    return node.previewKind === "button" ? "BTN" : node.previewKind === "input" ? "IN" : node.previewKind === "table" ? "TB" : "TAG";
+  }
+
+  function findNode(nodeId) {
+    return state.snapshot && state.snapshot.nodes.find(function (node) { return node.nodeId === nodeId; });
+  }
+
+  function escapeText(value) {
+    return String(value == null ? "" : value).replace(/[&<>\"]/g, function (character) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[character];
+    });
+  }
+
+  function canvasNode(node, content, extraClass) {
+    var selected = state.selectedNodeId === node.nodeId;
+    return '<div tabindex="0" class="canvas-node ' + (extraClass || "") + (selected ? " selected" : "") + '" data-node-id="' + escapeText(node.nodeId) + '" data-node-label="' + escapeText(node.name + " · " + node.componentId) + '">' + content + "</div>";
+  }
+
+  function renderCanvas() {
+    var inputNode = state.snapshot.nodes.find(function (node) { return node.previewKind === "input"; });
+    var buttonNode = state.snapshot.nodes.find(function (node) { return node.previewKind === "button"; });
+    var tableNode = state.snapshot.nodes.find(function (node) { return node.previewKind === "table"; });
+    var toolbar = "";
+    if (inputNode) toolbar += canvasNode(inputNode, '<div class="preview-input">⌕&nbsp; ' + escapeText(inputNode.props.placeholder) + "</div>");
+    if (buttonNode) {
+      var buttonCopy = state.editing && state.editing.nodeId === buttonNode.nodeId
+        ? '<input class="inline-editor" data-inline-editor value="' + escapeText(state.editing.value) + '" aria-label="编辑按钮文字">'
+        : '<button class="preview-button" type="button" data-inline-text>' + escapeText(buttonNode.props.label) + "</button>";
+      toolbar += canvasNode(buttonNode, buttonCopy);
+    }
+    elements.toolbar.innerHTML = toolbar;
+
+    if (!tableNode) { elements.table.innerHTML = ""; return; }
+    var columns = Array.isArray(tableNode.props.columns) ? tableNode.props.columns : [];
+    var rows = Array.isArray(tableNode.props.rows) ? tableNode.props.rows : [];
+    var head = columns.map(function (column) { return "<th>" + escapeText(column) + "</th>"; }).join("");
+    var body = rows.map(function (row) {
+      return "<tr>" + columns.map(function (_, index) {
+        var value = row[index] || (index === columns.length - 1 ? "•••" : "");
+        if (index === 2) return '<td><span class="status-tag ' + (value === "待邀请" ? "pending" : "") + '">' + escapeText(value) + "</span></td>";
+        return "<td>" + escapeText(value) + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+    elements.table.innerHTML = canvasNode(tableNode, '<table class="preview-table"><thead><tr>' + head + "</tr></thead><tbody>" + body + "</tbody></table>", "table-node");
+  }
+
+  function renderPalette() {
+    var query = elements.search.value.trim().toLowerCase();
+    var nodes = state.snapshot.nodes.filter(function (node) {
+      return !query || node.name.toLowerCase().includes(query) || String(node.componentId).toLowerCase().includes(query);
+    });
+    elements.count.textContent = String(state.snapshot.nodes.length);
+    elements.palette.innerHTML = nodes.map(function (node) {
+      return '<button type="button" class="palette-item ' + (node.nodeId === state.selectedNodeId ? "selected" : "") + '" data-select-node="' + escapeText(node.nodeId) + '"><span class="glyph">' + glyph(node) + "</span><span><strong>" + escapeText(node.name) + "</strong><small>" + escapeText(node.componentId) + "</small></span></button>";
+    }).join("");
+  }
+
+  function renderInspector() {
+    var node = findNode(state.selectedNodeId) || state.snapshot.selectedNode;
+    elements.selectedName.textContent = node.name;
+    elements.selectedCode.textContent = (node.componentId || node.type) + (node.canonicalSize ? " · " + node.canonicalSize : "");
+    elements.selectedId.textContent = node.nodeId;
+    elements.revision.textContent = String(state.snapshot.revision);
+    elements.statusRevision.textContent = String(state.snapshot.revision);
+    elements.provider.textContent = state.snapshot.provider.id + (state.snapshot.provider.mode === "mock" ? " (mock)" : "");
+    elements.properties.innerHTML = node.editableTextProps.length ? node.editableTextProps.map(function (contract) {
+      var value = node.props[contract.prop];
+      return '<label class="property-field"><span>' + escapeText(contract.label) + '</span><input data-property-input data-node-id="' + escapeText(node.nodeId) + '" data-prop="' + escapeText(contract.prop) + '" maxlength="' + contract.maxLength + '" value="' + escapeText(value) + '"><small class="field-help">已登记 text prop · ' + escapeText(contract.prop) + "</small></label>";
+    }).join("") : '<p class="muted">此节点没有已登记的文字属性。</p>';
+
+    var transaction = state.snapshot.recentTransaction;
+    elements.transaction.hidden = !transaction;
+    if (transaction) {
+      var operation = transaction.operations[0];
+      elements.transactionCopy.textContent = operation.nodeId + operation.path + "：" + operation.previousValue + " → " + operation.value + " · Revision " + transaction.revision;
+    }
+  }
+
+  function render() {
+    if (!state.snapshot) return;
+    state.selectedNodeId = state.selectedNodeId || state.snapshot.selectedNodeId;
+    elements.pageTitle.textContent = state.snapshot.title;
+    renderPalette();
+    renderCanvas();
+    renderInspector();
+    var editor = document.querySelector("[data-inline-editor]");
+    if (editor) { editor.focus(); editor.select(); }
+  }
+
+  function applyStructuredContent(content) {
+    var payload = toolResult(content);
+    if (!payload) return;
+    if (payload.ok === false && payload.error) { showConflict(payload.error); return; }
+    if (payload.snapshot) {
+      if (state.snapshot && payload.snapshot.revision < state.snapshot.revision) return;
+      state.snapshot = payload.snapshot;
+      state.selectedNodeId = payload.snapshot.selectedNodeId;
+      elements.conflict.hidden = true;
+      render();
+    }
+  }
+
+  function showConflict(error) {
+    if (error.code === "REVISION_CONFLICT") {
+      elements.conflict.hidden = false;
+      elements.conflictCopy.textContent = error.message;
+    } else showToast(error.code + "：" + error.message);
+  }
+
+  function updateModelContext(reason) {
+    if (!state.snapshot || !state.hostCapabilities.updateModelContext) return;
+    var node = findNode(state.selectedNodeId);
+    request("ui/update-model-context", {
+      content: [{ type: "text", text: reason + "；节点 " + node.nodeId + "；props " + JSON.stringify(node.props) + "；Revision " + state.snapshot.revision }]
+    }).catch(function () {});
+  }
+
+  function selectNode(nodeId) {
+    state.selectedNodeId = nodeId;
+    render();
+    callTool("page_select_node", { nodeId: nodeId }).then(function (result) {
+      applyStructuredContent(result);
+      updateModelContext("用户选择了页面节点");
+    }).catch(function (error) { showToast(error.message || "选择节点失败"); });
+  }
+
+  function beginInlineEdit(nodeId) {
+    var node = findNode(nodeId);
+    var textProp = node && node.editableTextProps[0];
+    if (!textProp) return;
+    state.selectedNodeId = nodeId;
+    state.editing = { nodeId: nodeId, prop: textProp.prop, value: String(node.props[textProp.prop]) };
+    render();
+  }
+
+  function commitText(nodeId, prop, value) {
+    var baseRevision = state.snapshot.revision;
+    callTool("page_update_text", { nodeId: nodeId, prop: prop, value: value, baseRevision: baseRevision, actor: "user" }).then(function (result) {
+      var payload = toolResult(result);
+      if (payload && payload.ok === false) {
+        state.editing = null;
+        showConflict(payload.error);
+        callTool("page_get_selection", {}).then(applyStructuredContent).catch(function () {});
+        return;
+      }
+      state.editing = null;
+      applyStructuredContent(result);
+      showToast("文字已提交，Revision +1");
+      updateModelContext("用户已提交文字修改");
+    }).catch(function (error) { showToast(error.message || "文字提交失败"); });
+  }
+
+  window.addEventListener("message", function (event) {
+    if (event.source !== window.parent) return;
+    var message = event.data;
+    if (!message || message.jsonrpc !== "2.0") return;
+    if (message.id !== undefined && state.pending.has(message.id)) {
+      var pending = state.pending.get(message.id);
+      state.pending.delete(message.id);
+      if (message.error) pending.reject(message.error); else pending.resolve(message.result);
+      return;
+    }
+    if (message.method === "ui/notifications/tool-result") applyStructuredContent(message.params && message.params.structuredContent);
+    if (message.method === "ui/notifications/host-context-changed") applyHostContext(message.params);
+  }, { passive: true });
+
+  document.addEventListener("click", function (event) {
+    var selectTarget = event.target.closest("[data-select-node], [data-node-id]");
+    if (selectTarget && !event.target.matches("[data-inline-editor]")) selectNode(selectTarget.dataset.selectNode || selectTarget.dataset.nodeId);
+    if (event.target.matches("[data-refresh]")) callTool("page_get_selection", {}).then(applyStructuredContent);
+  });
+
+  document.addEventListener("dblclick", function (event) {
+    var text = event.target.closest("[data-inline-text]");
+    if (text) beginInlineEdit(text.closest("[data-node-id]").dataset.nodeId);
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.target.matches("[data-inline-editor]")) {
+      if (event.key === "Enter" && !event.isComposing) {
+        event.preventDefault();
+        commitText(state.editing.nodeId, state.editing.prop, event.target.value);
+      } else if (event.key === "Escape") { state.editing = null; render(); }
+      return;
+    }
+    var node = event.target.closest("[data-node-id]");
+    if (node && event.key === "Enter") { event.preventDefault(); beginInlineEdit(node.dataset.nodeId); }
+  });
+
+  document.addEventListener("change", function (event) {
+    if (event.target.matches("[data-property-input]")) commitText(event.target.dataset.nodeId, event.target.dataset.prop, event.target.value);
+  });
+
+  document.addEventListener("input", function (event) {
+    if (state.editing && event.target.matches("[data-inline-editor]")) {
+      state.editing.value = event.target.value;
+    }
+  });
+
+  elements.search.addEventListener("input", renderPalette);
+  if (bridge) {
+    state.initialized = true;
+    state.hostCapabilities = bridge.hostCapabilities;
+    applyHostContext(bridge.hostContext);
+    elements.connection.classList.add("ready");
+    elements.connection.querySelector("span").textContent = "页面编辑器已连接";
+    applyStructuredContent({ snapshot: bridge.snapshot });
+  } else if (state.transport === "standalone") connectStandalone(); else connectMcpApp();
+}
+
+window.mountPageBuilderEditor = initializePageBuilderUi;
+if (document.querySelector("[data-editor]")) initializePageBuilderUi();
+</script>
+  <script>(function initializePageBuilderLauncher() {
+  "use strict";
+
+  var state = { pending: new Map(), requestId: 1, hostCapabilities: {}, hostContext: {}, payload: null, opening: false, mounted: false };
+  var elements = {
+    connection: document.querySelector("[data-connection]"),
+    revision: document.querySelector("[data-revision]"),
+    projects: document.querySelector("[data-projects]"),
+    templates: document.querySelector("[data-templates]"),
+    hint: document.querySelector("[data-hint]")
+  };
+
+  function post(message) { window.parent.postMessage(message, "*"); }
+  function request(method, params) {
+    var id = state.requestId++;
+    return new Promise(function (resolve, reject) {
+      var timer = window.setTimeout(function () {
+        state.pending.delete(id);
+        reject(new Error("宿主响应超时"));
+      }, 10000);
+      state.pending.set(id, { resolve: resolve, reject: reject, timer: timer });
+      post({ jsonrpc: "2.0", id: id, method: method, params: params || {} });
+    });
+  }
+  function escapeText(value) {
+    return String(value == null ? "" : value).replace(/[&<>\"]/g, function (character) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[character];
+    });
+  }
+  function toolResult(result) {
+    return result && result.structuredContent ? result.structuredContent : result;
+  }
+  function callTool(name, args) {
+    return request("tools/call", { name: name, arguments: args || {} });
+  }
+  function card(item) {
+    var available = Boolean(item.editorUrl);
+    var tag = available ? "button" : "div";
+    var action = available ? ' type="button" data-open-editor data-editor-url="' + escapeText(item.editorUrl) + '"' : "";
+    return "<" + tag + action + ' class="launch-card ' + (available ? "" : "disabled") + '" data-card-id="' + escapeText(item.id) + '">' +
+      '<div class="preview ' + escapeText(item.preview || "table") + '" aria-hidden="true"></div>' +
+      '<div class="card-copy"><strong>' + escapeText(item.title) + "</strong><p>" + escapeText(item.description) + "</p>" +
+      '<div class="card-meta"><span>' + escapeText(item.meta) + "</span><b>" + escapeText(available ? "打开搭建器 →" : "后续接入") + "</b></div></div>" +
+      (item.badge ? '<span class="badge">' + escapeText(item.badge) + "</span>" : "") + "</" + tag + ">";
+  }
+  function render(payload) {
+    state.payload = payload;
+    if (state.mounted) return;
+    elements.revision.textContent = "Revision " + payload.snapshot.revision;
+    elements.projects.innerHTML = payload.launcher.projects.map(card).join("");
+    elements.templates.innerHTML = payload.launcher.templates.map(card).join("");
+  }
+  function applyToolResult(params) {
+    var payload = toolResult(params);
+    if (payload && payload.launcher && payload.snapshot) render(payload);
+  }
+  function loadLauncher() {
+    return callTool("page_get_launcher", {}).then(function (result) {
+      applyToolResult(result);
+      if (!state.payload) throw new Error("Launcher tool returned no renderable data.");
+    });
+  }
+  function openEditor() {
+    if (state.opening || state.mounted || !state.payload) return;
+    if (!(state.hostContext.availableDisplayModes || []).includes("fullscreen")) {
+      elements.hint.textContent = "当前宿主不支持展开编辑器，页面尚未打开";
+      return;
+    }
+    state.opening = true;
+    elements.hint.textContent = "正在展开编辑器…";
+    document.querySelectorAll("[data-open-editor]").forEach(function (button) { button.disabled = true; });
+    // This moves the same MCP App into the host's expanded surface. An open-link
+    // acknowledgement does not request a split panel or prove that one opened.
+    request("ui/request-display-mode", { mode: "fullscreen" }).then(function (result) {
+      if (!result || result.mode !== "fullscreen") throw new Error("宿主未展开编辑器");
+      state.hostContext.displayMode = result.mode;
+      return callTool("page_get_selection", {});
+    }).then(function (result) {
+      var latest = toolResult(result);
+      if (!latest || !latest.snapshot) throw new Error("读取页面失败");
+      var template = document.getElementById("page-builder-editor-template");
+      if (!template || typeof window.mountPageBuilderEditor !== "function") throw new Error("编辑器未打包");
+      state.mounted = true;
+      document.getElementById("page-builder-launcher-styles").remove();
+      document.body.replaceChildren(template.content.cloneNode(true));
+      document.title = state.payload.snapshot.title + " · 页面搭建器";
+      window.mountPageBuilderEditor({
+        request: request,
+        hostCapabilities: state.hostCapabilities,
+        hostContext: state.hostContext,
+        snapshot: latest.snapshot
+      });
+    }).catch(function () {
+      elements.hint.textContent = "编辑器未展开，请重试";
+    }).finally(function () {
+      state.opening = false;
+      document.querySelectorAll("[data-open-editor]").forEach(function (button) { button.disabled = false; });
+    });
+  }
+
+  window.addEventListener("message", function (event) {
+    if (event.source !== window.parent) return;
+    var message = event.data;
+    if (!message || message.jsonrpc !== "2.0") return;
+    if (message.id !== undefined && state.pending.has(message.id)) {
+      var pending = state.pending.get(message.id);
+      state.pending.delete(message.id);
+      window.clearTimeout(pending.timer);
+      if (message.error) pending.reject(message.error); else pending.resolve(message.result);
+      return;
+    }
+    if (message.method === "ui/notifications/tool-result") applyToolResult(message.params);
+    if (message.method === "ui/notifications/host-context-changed") {
+      state.hostContext = Object.assign({}, state.hostContext, message.params || {});
+    }
+  }, { passive: true });
+
+  document.addEventListener("click", function (event) {
+    var tab = event.target.closest("[data-tab]");
+    if (tab) {
+      document.querySelectorAll("[data-tab]").forEach(function (button) {
+        var active = button === tab;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+      });
+      document.querySelectorAll("[data-panel]").forEach(function (panel) { panel.hidden = panel.dataset.panel !== tab.dataset.tab; });
+      return;
+    }
+    var link = event.target.closest("[data-open-editor]");
+    if (link) {
+      event.preventDefault();
+      openEditor();
+    }
+  });
+
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "page-builder-launcher", title: "选择项目或模板", version: "0.1.0" },
+    appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] }
+  }).then(function (result) {
+    state.hostCapabilities = result.hostCapabilities || {};
+    state.hostContext = result.hostContext || {};
+    elements.connection.classList.add("ready");
+    elements.connection.querySelector("span").textContent = "Page Schema 已连接";
+    post({ jsonrpc: "2.0", method: "ui/notifications/initialized" });
+    window.setTimeout(function () {
+      if (!state.payload) loadLauncher().catch(function () {
+        elements.connection.classList.remove("ready");
+        elements.connection.querySelector("span").textContent = "项目数据加载失败";
+        elements.hint.textContent = "请重新运行页面搭建器";
+      });
+    }, 0);
+  }).catch(function () {
+    elements.connection.querySelector("span").textContent = "卡片初始化失败";
+  });
+})();
+</script>
+</body>
+</html>
