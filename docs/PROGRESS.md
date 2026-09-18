@@ -166,3 +166,9 @@
 - 增加插件 CHANGELOG，明确完整编辑描述协议尚未实现、原生上下文附件展开错误仍待实际证据，不把讨论方案记作已完成能力。
 - 归档检查：build、typecheck、18 项单测、1 项 MCP 集成、官方插件校验、版本一致性与 diff 空白检查通过。本轮未修改运行逻辑，不重复此前已通过的浏览器流程。
 - 本次为源码提交，不重装插件或触发宿主重启；现有安装仍为 0.2.0+codex.20260918033444。用户页面与独立源库保持原状态。
+
+## 2026-09-18 / GitHub 发布打包补充
+
+- 用户明确要求推送 GitHub。目标 wangkewei09/page-builder-marketplace，已连接 origin；在隔离 release/0.1.1 工作树合并远端 v0.1.0 历史并携带构建产物。生产 Marketplace 名称保留 page-builder-marketplace，当前开发目录名称不变。
+- 发布包独立启动验证发现缺 playwright-core；构建改为将该运行依赖及许可证复制到 dist/node_modules，增加隔离安装回归，Node 要求同步为 20+。独立复制 dist 后启动、真实组件校验/添加通过；不依赖开发目录 node_modules。
+- 发布源码与安装产物的最终提交位于 release/0.1.1；GitHub 是否已更新需以远程分支和标签读回为准，不以本地提交代替。

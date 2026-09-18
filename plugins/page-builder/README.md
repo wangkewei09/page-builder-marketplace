@@ -4,6 +4,8 @@
 
 当前源码版本：**0.1.1**。变更与已知边界见 [版本记录](CHANGELOG.md)。
 
+运行要求：Node.js 20+ 和 Google Chrome，或通过 `CHROME_PATH` 指定兼容浏览器。GitHub 发布包已包含组件校验驱动，无需在安装目录执行 npm install。
+
 ## 开发
 
 ```bash
