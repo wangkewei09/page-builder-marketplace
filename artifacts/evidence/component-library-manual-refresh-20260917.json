@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-17T07:04:55.884Z",
+  "version": "0.2.0+codex.20260917070359",
+  "manualRefreshOnly": true,
+  "noAutomaticTool": true,
+  "legacyAutoSettingRemoved": true,
+  "sourcePath": "/Users/wangkewei/Desktop/ai-design-system/design-source",
+  "currentSnapshotId": "b2b-7a13fb7f6e235b6b",
+  "installedMatchesSource": true,
+  "browserValidation": {
+    "noAutomaticLibraryRequests": true,
+    "multipleManualSourceChanges": true,
+    "unchangedVersionReload": true,
+    "unappliedDraftPreserved": true,
+    "incompatibleSourcePreserved": true,
+    "contentAndLayoutPreserved": true,
+    "noPluginRebuildDuringLibraryChanges": true
+  },
+  "currentHostReload": "pending"
+}

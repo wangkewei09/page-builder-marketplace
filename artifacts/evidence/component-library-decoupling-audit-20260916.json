@@ -1,0 +1,19 @@
+{
+  "root": "/var/folders/8s/jrvr4t450qxgvccn_47kky380000gn/T/page-builder-decoupling-audit-M3PWhY",
+  "styleUpdate": {
+    "old": {
+      "valid": true,
+      "borderColor": "rgb(222, 224, 227)"
+    },
+    "new": {
+      "valid": true,
+      "borderColor": "rgb(123, 45, 67)"
+    },
+    "existingPageOnlyChangesAfterExplicitUpgrade": true,
+    "pluginBuildUnchanged": true
+  },
+  "nativeTransportCoupling": {
+    "semanticsPreservingWhitespacePassesLibraryCheck": true,
+    "nativeError": "Native resource adapter no longer matches components/runtime/loader.js"
+  }
+}

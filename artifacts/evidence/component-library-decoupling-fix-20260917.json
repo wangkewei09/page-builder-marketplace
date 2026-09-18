@@ -1,0 +1,37 @@
+{
+  "date": "2026-09-17T02:41:01.683Z",
+  "pluginVersion": "0.2.0+codex.20260917024416",
+  "backup": "/Users/wangkewei/Documents/Page Builder Backups/decoupling-20260917-103829",
+  "pageId": "page_04d2d625961f",
+  "revision": 153,
+  "pageContentUnchanged": true,
+  "oldResolvedSnapshotPinned": "b2b-d660e63477b64707",
+  "configuredSource": "/Users/wangkewei/Desktop/ai-design-system/design-source",
+  "newDefaultSnapshot": "b2b-7a13fb7f6e235b6b",
+  "sourceDigest": "7a13fb7f6e235b6b46fa627f6fc0af0256d353c05df26d92920d2f59c0f7d695",
+  "files": 283,
+  "automaticRefreshOnNewEditor": true,
+  "currentNativeHostReload": "pending",
+  "validation": {
+    "typecheck": "pass",
+    "unitTests": 17,
+    "mcpTests": 1,
+    "sourceNativeVariants": {
+      "C-02": 5,
+      "C-21": 6,
+      "C-23": 9,
+      "C-34": 10,
+      "C-42": 7
+    },
+    "tagTypes": 4,
+    "nativeHttpRequests": 0,
+    "cardStyleComparisons": 10,
+    "dragEditUndoPreview": "pass",
+    "crossProcessRevisionProtection": "pass",
+    "standaloneExportInstances": 5,
+    "nativeResourceChunks": 25,
+    "sourceSourceFiles": 283,
+    "unappliedPropertyDraftPreserved": true,
+    "manualAndTwoAutomaticSourceUpdates": "pass"
+  }
+}

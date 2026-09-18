@@ -1,6 +1,6 @@
 {
   "name": "page-builder-mcp-plugin",
-  "version": "0.2.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -11,10 +11,11 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts && node --test tests/mcp.test.mjs",
-    "test:browser": "node tests/browser.test.mjs && node tests/standalone-export.test.mjs",
+    "test:browser": "node tests/browser.test.mjs && node tests/host-bridge.test.mjs && node tests/native-resource.test.mjs && node tests/native-refresh.test.mjs && node tests/library-refresh.test.mjs && node tests/cross-process.test.mjs && node tests/standalone-export.test.mjs",
     "verify": "npm run clean && npm run build && npm run typecheck && npm test && npm run test:browser"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
     "@modelcontextprotocol/sdk": "1.30.0",
     "fflate": "0.8.3",
     "zod": "3.25.76"

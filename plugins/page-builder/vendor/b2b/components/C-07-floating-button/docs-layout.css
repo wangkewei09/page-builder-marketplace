@@ -1,0 +1,24 @@
+.component-card[data-component-card="C-07"] > .component-preview[hidden] { display: none; }
+
+.component-api-docs[data-component-api-docs-id="C-07"] .component-api-docs-preview {
+  min-height: 184px;
+  overflow: visible;
+}
+
+.component-api-docs[data-component-api-docs-id="C-07"] [data-component-docs-mount] {
+  min-width: 0;
+}
+
+.floating-source-reference {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 32px;
+}
+
+@media (max-width: 600px) {
+  .component-api-docs[data-component-api-docs-id="C-07"] .component-api-docs-preview {
+    min-height: 220px;
+  }
+}

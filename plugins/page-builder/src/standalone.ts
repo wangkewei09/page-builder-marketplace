@@ -2,14 +2,18 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
 import { createEditorServer } from "./http.js";
 import { FilePersistence, PageStore } from "./store.js";
+import { ComponentLibraryManager } from "./library.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
+const build = JSON.parse(await readFile(path.join(root, "build.json"), "utf8")) as { pluginVersion: string };
 const dataDirectory = process.env.PAGE_BUILDER_DATA_DIR || await mkdtemp(path.join(tmpdir(), "page-builder-data-"));
 const exportDirectory = process.env.PAGE_BUILDER_EXPORT_DIR || await mkdtemp(path.join(tmpdir(), "page-builder-export-"));
-const store = new PageStore(new FilePersistence(dataDirectory)); await store.load();
-const server = createEditorServer(store, path.join(root, "ui"), exportDirectory);
+const libraryCacheDirectory = process.env.PAGE_BUILDER_LIBRARY_DIR || await mkdtemp(path.join(tmpdir(), "page-builder-libraries-"));
+const libraries = new ComponentLibraryManager(libraryCacheDirectory, path.join(root, "ui", "vendor/b2b")); await libraries.initialize();
+const store = new PageStore(new FilePersistence(dataDirectory), () => libraries.binding(), libraries); await store.load();
+const server = createEditorServer(store, path.join(root, "ui"), exportDirectory, { pluginVersion: build.pluginVersion, provider: "b2b-production", serverName: "page-builder-development-standalone" }, libraries);
 const url = await server.start(); console.log(url);
-for (const signal of ["SIGTERM", "SIGINT"] as const) process.once(signal, () => server.close().finally(() => process.exit(0)));
-
+for (const signal of ["SIGTERM", "SIGINT"] as const) process.once(signal, () => Promise.all([server.close(), libraries.close()]).finally(() => process.exit(0)));

@@ -17,13 +17,18 @@ const app = `const page=await fetch('./page.json').then(r=>r.json());const root=
 const business = `// Add business event listeners here. Generated rendering stays isolated in app.js.\n`;
 const readme = `# 导出的页面工程\n\n本工程固定到导出时的 Page Schema revision。\n\n启动：在本目录运行 \`python3 -m http.server 4173\`，然后打开 http://127.0.0.1:4173。\n\n- \`page.json\`：可重新导入页面搭建器的页面描述\n- \`app.js\`：生成的真实 Renderer 调用\n- \`business.js\`：独立业务逻辑入口\n- \`vendor/b2b\`：固定的组件运行资源\n`;
 
-export async function exportPage(page: PageSchema, uiDirectory: string, outputRoot: string) {
+export async function exportPage(page: PageSchema, libraryDirectory: string, outputRoot: string) {
   const stamp = new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-");
   const directory = path.join(outputRoot, page.pageId, `r${page.revision}-${stamp}`); await mkdir(directory, { recursive: true });
   const files: Record<string, Uint8Array> = {
     "index.html": strToU8(indexHtml), "styles.css": strToU8(styles), "app.js": strToU8(app), "business.js": strToU8(business), "README.md": strToU8(readme), "page.json": strToU8(JSON.stringify(page, null, 2))
   };
-  await collect(path.join(uiDirectory, "vendor/b2b"), "vendor/b2b/", files);
+  await collect(libraryDirectory, "vendor/b2b/", files);
+  if (files["vendor/b2b/manifest.json"]) {
+    const manifest = JSON.parse(new TextDecoder().decode(files["vendor/b2b/manifest.json"]));
+    delete manifest.sourcePath;
+    files["vendor/b2b/manifest.json"] = strToU8(JSON.stringify(manifest, null, 2));
+  }
   const zip = zipSync(files, { level: 6 }); const zipPath = path.join(directory, `page-builder-${page.pageId}-r${page.revision}.zip`);
   await writeFile(zipPath, zip); await writeFile(path.join(directory, "page.json"), JSON.stringify(page, null, 2));
   return { pageId: page.pageId, revision: page.revision, zipPath, directory, fileCount: Object.keys(files).length, bytes: zip.length };

@@ -1,0 +1,171 @@
+
+.component-spec-board[data-component-id="C-05"] .specimen-row:nth-child(2) .specimen-matrix,
+.component-spec-board[data-component-id="C-05"] .specimen-row:nth-child(4) .specimen-matrix {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.component-spec-board[data-component-id="C-05"] .specimen-row:nth-child(4) .specimen-stage {
+  place-items: stretch;
+}
+
+.round-scene,
+.round-confusion,
+.round-practice {
+  display: grid;
+  width: 100%;
+  gap: var(--b2b-space-3);
+}
+
+.round-scene {
+  justify-items: start;
+}
+
+.round-scene p,
+.round-confusion p,
+.round-practice p {
+  margin: 0;
+  color: var(--b2b-color-text-secondary);
+  font-size: var(--b2b-font-size-12);
+  line-height: var(--b2b-line-height-20);
+}
+
+.round-confusion .button-column {
+  justify-items: start;
+}
+
+.marketing-strip {
+  display: flex;
+  min-height: calc(var(--b2b-control-height-lg) * 3);
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--b2b-space-4);
+  padding: var(--b2b-space-4);
+  background: var(--b2b-color-bg-section);
+}
+
+.login-flow {
+  display: grid;
+  width: min(100%, calc(var(--b2b-control-height-lg) * 7));
+  justify-self: center;
+  gap: var(--b2b-space-3);
+  padding: var(--b2b-space-4);
+  border: var(--b2b-border-width) solid var(--b2b-color-border-surface);
+  border-radius: var(--b2b-radius-md);
+  background: var(--b2b-color-bg-surface);
+  box-shadow: var(--b2b-shadow-control);
+}
+
+.login-flow label {
+  display: grid;
+  gap: var(--b2b-space-1);
+  color: var(--b2b-color-text-secondary);
+  font-size: var(--b2b-font-size-12);
+}
+
+.login-flow .b2b-input {
+  width: 100%;
+}
+
+.login-flow small {
+  color: var(--b2b-color-text-secondary);
+}
+
+/* Canonical production geometry for C-05. The button box is the interaction target. */
+.b2b-button[data-source-rounded-button] {
+  box-sizing: border-box;
+  border-radius: var(--b2b-radius-pill);
+  white-space: nowrap;
+}
+
+.b2b-button[data-source-rounded-button].is-h24 {
+  height: 24px;
+  min-width: 24px;
+  gap: 4px;
+  padding-inline: 7px;
+  font-size: var(--b2b-font-size-12);
+}
+
+.b2b-button[data-source-rounded-button].is-h28 {
+  height: 28px;
+  min-width: 28px;
+  gap: 4px;
+  padding-inline: 9px;
+  font-size: var(--b2b-font-size-14);
+}
+
+.b2b-button[data-source-rounded-button].is-h32 {
+  height: 32px;
+  min-width: 64px;
+  gap: 4px;
+  padding-inline: 12px;
+  font-size: var(--b2b-font-size-14);
+}
+
+.b2b-button[data-source-rounded-button].is-h36 {
+  height: 36px;
+  min-width: 36px;
+  gap: 4px;
+  padding-inline: 14px;
+  font-size: var(--b2b-font-size-14);
+}
+
+.b2b-button[data-source-rounded-button].is-h40 {
+  height: 40px;
+  min-width: 40px;
+  gap: 4px;
+  padding-inline: 16px;
+  font-size: var(--b2b-font-size-16);
+}
+
+/* C-05 functional icons use the canonical C-03 20px visual box and 4px text gap at every pill height. */
+.b2b-button[data-source-rounded-button] > .b2b-icon:not(.button-spinner) { --b2b-icon-size: 20px; }
+.b2b-button[data-source-rounded-button].is-h24 > .button-spinner { --b2b-icon-size: 12px; }
+.b2b-button[data-source-rounded-button].is-h28 > .button-spinner { --b2b-icon-size: 14px; }
+.b2b-button[data-source-rounded-button].is-h32 > .button-spinner { --b2b-icon-size: 16px; }
+.b2b-button[data-source-rounded-button].is-h36 > .button-spinner { --b2b-icon-size: 18px; }
+.b2b-button[data-source-rounded-button].is-h40 > .button-spinner { --b2b-icon-size: 20px; }
+
+.b2b-button[data-source-rounded-button].is-long {
+  width: 100%;
+  min-width: 0;
+}
+
+.b2b-button[data-source-rounded-button].is-width-default {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.b2b-button[data-source-rounded-button].is-rounded-outlined {
+  border-color: var(--b2b-color-border-control);
+  background: var(--b2b-color-bg-surface);
+  color: var(--b2b-color-text-primary);
+}
+
+.b2b-button[data-source-rounded-button].is-rounded-outlined:not(:disabled):hover {
+  border-color: var(--b2b-neutral-400);
+  background: var(--b2b-color-bg-subtle);
+  color: var(--b2b-color-text-primary);
+}
+
+.b2b-button[data-source-rounded-button].is-rounded-outlined:not(:disabled):active {
+  border-color: var(--b2b-neutral-500);
+  background: var(--b2b-color-bg-disabled);
+  color: var(--b2b-color-text-primary);
+  transition-duration: 0s;
+}
+
+.b2b-button[data-source-rounded-button].is-rounded-outlined:not(:disabled):focus-visible {
+  border-color: var(--b2b-neutral-400);
+  box-shadow: 0 0 0 2px var(--b2b-color-focus-ring);
+}
+
+.b2b-button[data-source-rounded-button].is-rounded-outlined:disabled {
+  border-color: var(--b2b-color-border-surface);
+  background: var(--b2b-color-bg-disabled);
+  color: var(--b2b-color-text-disabled);
+}
+
+.component-api-docs[data-component-api-docs-id="C-05"] .component-api-docs-preview > [data-component-docs-mount] {
+  width: 100%;
+  min-width: 0;
+}

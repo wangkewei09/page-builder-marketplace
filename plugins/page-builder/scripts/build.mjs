@@ -22,6 +22,16 @@ await build({
 });
 
 await cp(path.join(root, "src/ui"), path.join(dist, "ui"), { recursive: true });
+await build({
+  entryPoints: [path.join(root, "src/ui/app.js")],
+  outfile: path.join(dist, "ui/app.js"),
+  bundle: true,
+  platform: "browser",
+  format: "esm",
+  target: "es2022",
+  sourcemap: true
+});
+await build({ entryPoints: [path.join(root, "src/ui/library-transport.js")], outfile: path.join(dist, "ui/library-transport.bundle.js"), bundle: true, platform: "browser", format: "iife", globalName: "PageBuilderResources", target: "es2022" });
 await cp(path.join(root, "vendor/b2b"), path.join(dist, "ui/vendor/b2b"), { recursive: true });
 const manifest = JSON.parse(await readFile(path.join(root, ".codex-plugin/plugin.json"), "utf8"));
 await writeFile(path.join(dist, "build.json"), JSON.stringify({ pluginVersion: manifest.version, builtAt: new Date().toISOString() }, null, 2));

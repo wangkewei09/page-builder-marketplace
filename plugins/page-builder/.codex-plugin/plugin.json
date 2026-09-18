@@ -1,6 +1,6 @@
 {
   "name": "page-builder",
-  "version": "0.2.0+codex.20260916082103",
+  "version": "0.1.1",
   "description": "A visual page builder backed by the production B2B component renderers and a versioned Page Schema.",
   "author": {
     "name": "Local Page Builder Team"
@@ -8,10 +8,10 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "\u9875\u9762\u642d\u5efa\u5668",
+    "displayName": "\u9875\u9762\u642d\u5efa\u5668\uff08\u5f00\u53d1\u7248\uff09",
     "shortDescription": "\u62d6\u62fd\u771f\u5b9e\u7ec4\u4ef6\u3001\u7f16\u8f91\u9875\u9762\uff0c\u5e76\u8ba9 AI \u4f7f\u7528\u540c\u4e00\u4efd\u7248\u672c\u5316\u9875\u9762\u6570\u636e\u3002",
     "longDescription": "\u5728 Codex \u53f3\u4fa7\u5de5\u4f5c\u533a\u4e2d\u642d\u5efa\u3001\u4fdd\u5b58\u3001\u9884\u89c8\u548c\u5bfc\u51fa\u9875\u9762\u3002\u624b\u52a8\u7f16\u8f91\u4e0e AI \u64cd\u4f5c\u5171\u4eab\u539f\u5b50\u547d\u4ee4\u3001\u7248\u672c\u51b2\u7a81\u4fdd\u62a4\u548c\u771f\u5b9e B2B Renderer\u3002",
-    "developerName": "Local Page Builder Team",
+    "developerName": "Local Page Builder Development",
     "category": "Productivity",
     "capabilities": [
       "Interactive",

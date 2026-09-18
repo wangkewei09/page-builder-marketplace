@@ -1,0 +1,65 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, cp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { ComponentLibraryManager } from '../../plugins/page-builder/src/library.ts';
+import { FilePersistence, PageStore } from '../../plugins/page-builder/src/store.ts';
+import { nativeAssets } from '../../plugins/page-builder/src/native-resource.ts';
+const base=fileURLToPath(new URL('../../plugins/page-builder/',import.meta.url));
+const require=createRequire(base+'/package.json');
+const { chromium }=require('playwright-core');
+const root=await mkdtemp(path.join(tmpdir(),'page-builder-decoupling-audit-'));
+const source=path.join(root,'source');
+const baseline=path.join(base,'dist/ui/vendor/b2b');
+const buildFile=path.join(base,'dist/server.js');
+const hash=async()=>createHash('sha256').update(await readFile(buildFile)).digest('hex');
+const before=await hash();
+await cp(baseline,source,{recursive:true});
+const manager=new ComponentLibraryManager(path.join(root,'cache'),baseline);
+const initial=await manager.initialize();
+const store=new PageStore(new FilePersistence(path.join(root,'pages')),()=>manager.binding());
+let oldPage=await store.create('audit-old');
+oldPage=await store.apply(oldPage.pageId,oldPage.revision,[{type:'add',parentId:oldPage.root.id,node:{kind:'component',componentId:'C-34',props:{}}}]);
+const cssFile=path.join(source,'components/C-34-card/styles.css');
+const css=await readFile(cssFile,'utf8');
+const nextCss=css.replace('border: var(--b2b-border-width) solid var(--b2b-color-border-surface);','border: var(--b2b-border-width) solid rgb(123, 45, 67);');
+assert.notEqual(nextCss,css);await writeFile(cssFile,nextCss);
+const checked=await manager.check(source);
+assert.equal((await manager.current()).snapshotId,initial.snapshotId);
+await manager.apply(checked.candidate.snapshotId,source);
+let newPage=await store.create('audit-new');
+newPage=await store.apply(newPage.pageId,newPage.revision,[{type:'add',parentId:newPage.root.id,node:{kind:'component',componentId:'C-34',props:{}}}]);
+const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+async function render(pageSchema){
+ const dir=await manager.directoryForPage(pageSchema);
+ const file=path.join(root,`${pageSchema.pageId}-${pageSchema.revision}.html`);
+ await writeFile(file,`<!doctype html><script src="${pathToFileURL(path.join(dir,'components/runtime/loader.js')).href}"></script><div id="root"></div>`);
+ const tab=await browser.newPage();await tab.goto(pathToFileURL(file).href);
+ await tab.waitForFunction(()=>Boolean(window.B2B?.renderComponent));
+ const result=await tab.evaluate(async props=>{const r=await window.B2B.renderComponent({component:'C-34',props},document.querySelector('#root')); const card=document.querySelector('#root .source-design-card,#root .source-card');return {valid:r.audit.valid,borderColor:getComputedStyle(card).borderTopColor};},pageSchema.root.children[0].props);
+ await tab.waitForFunction(()=>Array.from(document.querySelectorAll('link[rel=stylesheet]')).every(el=>Boolean(el.sheet)) && getComputedStyle(document.querySelector('#root .source-design-card,#root .source-card')).borderTopStyle==='solid');
+ result.borderColor=await tab.evaluate(()=>getComputedStyle(document.querySelector('#root .source-design-card,#root .source-card')).borderTopColor);
+ await tab.close();return result;
+}
+try {
+ const oldRender=await render(oldPage),newRender=await render(newPage);
+ assert.equal(oldRender.valid,true);assert.equal(newRender.valid,true);
+ assert.notEqual(oldRender.borderColor,newRender.borderColor);assert.equal(newRender.borderColor,'rgb(123, 45, 67)');
+ const upgraded=await store.setLibrary(oldPage.pageId,oldPage.revision,await manager.binding(checked.candidate.snapshotId));
+ assert.equal((await render(upgraded)).borderColor,newRender.borderColor);
+ assert.equal(await hash(),before);
+ await nativeAssets(manager,checked.candidate.snapshotId);
+ const loaderFile=path.join(source,'components/runtime/loader.js');
+ const loader=await readFile(loaderFile,'utf8');
+ assert.ok(loader.includes('function loadScript(url) {'));
+ await writeFile(loaderFile,loader.replace('function loadScript(url) {','function loadScript (url) {'));
+ const harmlessChange=await manager.check(source);
+ let nativeError='';try{await nativeAssets(manager,harmlessChange.candidate.snapshotId);}catch(e){nativeError=e.message;}
+ assert.match(nativeError,/adapter no longer matches/);
+ const result={root,styleUpdate:{old:oldRender,new:newRender,existingPageOnlyChangesAfterExplicitUpgrade:true,pluginBuildUnchanged:before===await hash()},nativeTransportCoupling:{semanticsPreservingWhitespacePassesLibraryCheck:true,nativeError}};
+ await writeFile(path.join(root,'result.json'),JSON.stringify(result,null,2));
+ console.log(JSON.stringify(result,null,2));
+}finally{await browser.close();}

@@ -1,6 +1,10 @@
 export type PropRule = {
-  type: "string" | "number" | "boolean" | "array" | "object" | "string|number" | "string|null" | "object|null";
+  type: string;
+  description?: string;
+  item?: any;
+  fields?: any;
   values?: readonly (string | number)[];
+  editorValues?: readonly (string | number)[];
   default?: unknown;
   required?: boolean;
 };
@@ -14,6 +18,7 @@ export type ComponentDefinition = {
   editable: readonly string[];
   props: Record<string, PropRule>;
   defaults: Record<string, unknown>;
+  variantDefaults?: Record<string, Record<string, unknown>>;
 };
 
 export const COMPONENTS: Record<string, ComponentDefinition> = {
@@ -43,16 +48,16 @@ export const COMPONENTS: Record<string, ComponentDefinition> = {
     id: "C-23", name: "select", label: "选择器", description: "从候选项中选择一项。", rendererName: "select",
     editable: ["placeholder", "variant", "size", "state", "items", "selected"],
     props: {
-      variant: { type: "string", values: ["基础单选", "基础多选", "自定义选项", "分组选项", "无边框", "下划线", "可搜索", "可创建", "复杂内容"], default: "基础单选" },
+      variant: { type: "string", values: ["基础单选", "基础多选", "自定义选项", "分组选项", "无边框", "下划线", "可搜索", "可创建", "复杂内容"], editorValues: ["基础单选", "无边框", "下划线"], default: "基础单选" },
       items: { type: "array", default: ["选项一", "选项二", "选项三"] }, selected: { type: "array", default: [] }, multiple: { type: "boolean", default: false }, open: { type: "boolean", default: false },
       placeholder: { type: "string", default: "请选择" }, clearable: { type: "boolean", default: true }, searchable: { type: "boolean", default: false }, creatable: { type: "boolean", default: false }, query: { type: "string", default: "" },
-      size: { type: "string", values: ["small", "medium", "large"], default: "medium" }, state: { type: "string", values: ["default", "disabled", "readonly", "error", "loading", "no-result"], default: "default" }, position: { type: "string", values: ["bottom-left", "top", "right", "left"], default: "bottom-left" }
+      size: { type: "string", values: ["small", "medium", "large"], default: "medium" }, state: { type: "string", values: ["default", "disabled", "readonly", "error", "loading", "no-result"], editorValues: ["default", "disabled", "readonly", "error"], default: "default" }, position: { type: "string", values: ["bottom-left", "top", "right", "left"], default: "bottom-left" }
     },
     defaults: { variant: "基础单选", items: ["选项一", "选项二", "选项三"], selected: [], multiple: false, open: false, placeholder: "请选择", clearable: true, searchable: false, creatable: false, query: "", size: "medium", state: "default", position: "bottom-left" }
   },
   "C-42": {
     id: "C-42", name: "tag", label: "标签", description: "展示状态、分类或筛选条件。", rendererName: "tag",
-    editable: ["text", "variant", "type", "size", "color", "closable", "checkable", "checked"],
+    editable: ["text", "variant", "type", "avatar", "size", "color", "closable", "checkable", "checked"],
     props: {
       variant: { type: "string", values: ["status", "category", "filter", "closable", "checkable", "loading", "bordered"], default: "status" }, type: { type: "string", values: ["property", "option", "status", "avatar"], default: "property" },
       size: { type: "string", values: ["extra-small", "small", "medium", "large"], default: "medium" }, color: { type: "string", values: ["neutral", "blue", "green", "red", "orange", "purple", "cyan", "yellow"], default: "neutral" },
@@ -74,4 +79,3 @@ export const COMPONENTS: Record<string, ComponentDefinition> = {
 export function catalogList() {
   return Object.values(COMPONENTS).map(({ props, ...definition }) => ({ ...definition, props }));
 }
-

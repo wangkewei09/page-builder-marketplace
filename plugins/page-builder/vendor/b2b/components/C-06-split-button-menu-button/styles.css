@@ -1,0 +1,286 @@
+
+.component-spec-board[data-component-id="C-06"] .specimen-row,
+.component-spec-board[data-component-id="C-06"] .specimen-cell,
+.component-spec-board[data-component-id="C-06"] .specimen-stage {
+  overflow: visible;
+}
+
+.component-spec-board[data-component-id="C-06"] .specimen-row:nth-child(3) .specimen-matrix,
+.component-spec-board[data-component-id="C-06"] .specimen-row:nth-child(4) .specimen-matrix,
+.component-spec-board[data-component-id="C-06"] .specimen-row:nth-child(5) .specimen-matrix,
+.component-spec-board[data-component-id="C-06"] .specimen-row:nth-child(6) .specimen-matrix {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.component-spec-board[data-component-id="C-06"] .specimen-row:nth-child(3) .specimen-stage,
+.component-spec-board[data-component-id="C-06"] .specimen-row:nth-child(4) .specimen-stage,
+.component-spec-board[data-component-id="C-06"] .specimen-row:nth-child(5) .specimen-stage,
+.component-spec-board[data-component-id="C-06"] .specimen-row:nth-child(6) .specimen-stage,
+.component-spec-board[data-component-id="C-06"] .specimen-row:nth-child(8) .specimen-stage {
+  place-items: stretch;
+}
+
+.split-variant-card,
+.split-interaction-demo,
+.split-reason-list,
+.split-practice,
+.fixed-main-demo,
+.split-card-demo,
+.split-adapt-note {
+  display: grid;
+  width: 100%;
+  gap: var(--b2b-space-3);
+}
+
+.split-variant-card,
+.split-interaction-demo,
+.fixed-main-demo {
+  justify-items: start;
+}
+
+.component-spec-board[data-component-id="C-06"] :is(.split-variant-card, .split-interaction-demo, .split-practice) > .interactive-dropdown {
+  width: max-content;
+  max-width: 100%;
+  align-self: start;
+  justify-self: start;
+}
+
+.split-variant-card p,
+.split-interaction-demo p,
+.split-reason-list p,
+.split-practice p,
+.fixed-main-demo p,
+.split-adapt-note p {
+  margin: 0;
+  color: var(--b2b-color-text-secondary);
+  font-size: var(--b2b-font-size-12);
+  line-height: var(--b2b-line-height-20);
+}
+
+.split-reason-list {
+  align-content: center;
+  min-height: calc(var(--b2b-control-height-lg) * 3);
+}
+
+.split-reason-list strong {
+  display: inline-grid;
+  width: var(--b2b-control-height-sm);
+  height: var(--b2b-control-height-sm);
+  margin-right: var(--b2b-space-2);
+  place-items: center;
+  border-radius: var(--b2b-radius-pill);
+  background: var(--b2b-color-action-primary-subtle);
+  color: var(--b2b-color-action-primary);
+}
+
+.toolbar-split-demo {
+  display: flex;
+  min-height: calc(var(--b2b-control-height-lg) + var(--b2b-space-4));
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--b2b-space-2);
+  padding: var(--b2b-space-2) var(--b2b-space-3);
+  border: var(--b2b-border-width) solid var(--b2b-color-border-surface);
+  background: var(--b2b-color-bg-surface);
+}
+
+.split-button.is-no-divider .b2b-button:last-child {
+  border-left-color: var(--b2b-color-action-primary);
+}
+
+.fake-popover-example {
+  position: relative;
+  min-height: calc(var(--b2b-control-height-lg) * 4);
+}
+
+.fake-popover-panel {
+  position: absolute;
+  top: calc(var(--b2b-control-height-md) + var(--b2b-space-2));
+  left: 0;
+  display: grid;
+  width: calc(var(--b2b-control-height-lg) * 6);
+  gap: var(--b2b-space-3);
+  padding: var(--b2b-space-4);
+  border: var(--b2b-border-width) solid var(--b2b-color-border-surface);
+  border-radius: var(--b2b-radius-md);
+  background: var(--b2b-color-bg-surface);
+  box-shadow: var(--b2b-shadow-float);
+}
+
+.fake-popover-panel .b2b-input {
+  width: 100%;
+}
+
+.fixed-main-demo {
+  width: min(100%, calc(var(--b2b-control-height-lg) * 10));
+}
+
+.split-card-demo {
+  width: min(100%, calc(var(--b2b-control-height-lg) * 8));
+  padding: var(--b2b-space-4);
+  border: var(--b2b-border-width) solid var(--b2b-color-border-surface);
+  border-radius: var(--b2b-radius-md);
+  background: var(--b2b-color-bg-surface);
+  box-shadow: var(--b2b-shadow-control);
+}
+
+.split-card-demo > span {
+  display: flex;
+  align-items: center;
+  gap: var(--b2b-space-2);
+  color: var(--b2b-color-text-secondary);
+}
+
+.split-card-demo > .interactive-dropdown {
+  width: 100%;
+}
+
+.split-card-demo > .interactive-dropdown > .split-button {
+  display: flex;
+  width: 100%;
+}
+
+.split-card-demo > .interactive-dropdown > .split-button > .b2b-button:first-child {
+  flex: 1;
+}
+
+.split-adapt-note {
+  align-content: center;
+  min-height: calc(var(--b2b-control-height-lg) * 3);
+  padding: var(--b2b-space-4);
+  background: var(--b2b-color-bg-section);
+}
+
+.split-adapt-note.is-warning {
+  border-left: var(--b2b-space-1) solid var(--b2b-color-warning);
+}
+
+/* Production API wrapper only; component anatomy and visuals stay source-owned. */
+.b2b-menu-button-source {
+  --c06-control-radius: var(--b2b-radius-control);
+  --c06-icon-size: 16px;
+  --c06-inline-padding: 12px;
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.b2b-menu-button-source[data-menu-size="24"] { --c06-control-radius: 4px; --c06-icon-size: 12px; --c06-inline-padding: 7px; }
+.b2b-menu-button-source[data-menu-size="28"] { --c06-control-radius: 5px; --c06-icon-size: 14px; --c06-inline-padding: 9px; }
+.b2b-menu-button-source[data-menu-size="32"] { --c06-control-radius: var(--b2b-radius-control); --c06-icon-size: 16px; --c06-inline-padding: 12px; }
+.b2b-menu-button-source[data-menu-size="36"] { --c06-control-radius: var(--b2b-radius-control); --c06-icon-size: 18px; --c06-inline-padding: 14px; }
+.b2b-menu-button-source[data-menu-size="40"] { --c06-control-radius: var(--b2b-radius-control); --c06-icon-size: 20px; --c06-inline-padding: 16px; }
+
+.b2b-menu-button-source .b2b-button {
+  padding-inline: var(--c06-inline-padding);
+  border-radius: var(--c06-control-radius);
+}
+
+.b2b-menu-button-source .b2b-button > .b2b-icon {
+  --b2b-icon-size: var(--c06-icon-size);
+}
+
+.b2b-menu-button-source .b2b-button.is-h24 { height: 24px; min-width: 24px; font-size: var(--b2b-font-size-12); }
+.b2b-menu-button-source .b2b-button.is-h28 { height: 28px; min-width: 28px; }
+.b2b-menu-button-source .b2b-button.is-h32 { height: 32px; min-width: 32px; }
+.b2b-menu-button-source .b2b-button.is-h36 { height: 36px; min-width: 36px; }
+.b2b-menu-button-source .b2b-button.is-h40 { height: 40px; min-width: 40px; }
+
+.b2b-menu-button-source .split-button > .b2b-button:first-child {
+  border-radius: var(--c06-control-radius) 0 0 var(--c06-control-radius);
+}
+
+.b2b-menu-button-source .split-button > .b2b-button:last-child {
+  padding: 0;
+  border-radius: 0 var(--c06-control-radius) var(--c06-control-radius) 0;
+}
+
+.b2b-menu-button-source .demo-menu.is-component-menu {
+  border: var(--b2b-border-width) solid var(--b2b-color-border-surface) !important;
+  border-radius: var(--b2b-radius-surface) !important;
+  box-shadow: var(--b2b-shadow-float) !important;
+  clip-path: none !important;
+}
+
+/* The split trigger remains a square hit area at every declared control size. */
+.b2b-menu-button-source .split-button > .b2b-button.is-h24:last-child { width: 24px; min-width: 24px; }
+.b2b-menu-button-source .split-button > .b2b-button.is-h28:last-child { width: 28px; min-width: 28px; }
+.b2b-menu-button-source .split-button > .b2b-button.is-h32:last-child { width: 32px; min-width: 32px; }
+.b2b-menu-button-source .split-button > .b2b-button.is-h36:last-child { width: 36px; min-width: 36px; }
+.b2b-menu-button-source .split-button > .b2b-button.is-h40:last-child { width: 40px; min-width: 40px; }
+
+/*
+ * C-06 owns two independent hit areas. C-04 also styles generic open icon
+ * dropdowns; keep that rule from removing the split trigger border or applying
+ * a neutral selected surface here.
+ */
+.b2b-menu-button-source[data-menu-appearance="secondary-blue"] .interactive-dropdown [data-popup-trigger].b2b-button:is(.is-expanded, [aria-expanded="true"]) {
+  border-color: var(--b2b-color-action-primary-active);
+  background: color-mix(in srgb, var(--b2b-color-action-primary) 12%, var(--b2b-color-bg-surface));
+  color: var(--b2b-color-action-primary-active);
+}
+
+.b2b-menu-button-source[data-menu-appearance="secondary-gray"] .interactive-dropdown [data-popup-trigger].b2b-button:is(.is-expanded, [aria-expanded="true"]) {
+  border-color: var(--b2b-color-action-primary-active);
+  background: var(--b2b-color-action-primary-subtle);
+  color: var(--b2b-color-action-primary-active);
+}
+
+/*
+ * Secondary Gray is one compound control only at its outside edge. Hover or
+ * keyboard focus on either independent hit area paints a continuous outline;
+ * the two buttons still own their background, pressed/focus ring and events.
+ */
+.b2b-menu-button-source[data-menu-appearance="secondary-gray"] .split-button {
+  position: relative;
+}
+
+.b2b-menu-button-source[data-menu-appearance="secondary-gray"] .split-button:has(> .b2b-button:not(:disabled):hover)::after,
+.b2b-menu-button-source[data-menu-appearance="secondary-gray"] .split-button:has(> .b2b-button:focus-visible)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border: var(--b2b-border-width) solid var(--b2b-color-action-primary-hover);
+  border-radius: var(--c06-control-radius);
+  pointer-events: none;
+}
+
+/* Open/pressed styling belongs only to the menu trigger, never the primary hit area. */
+.b2b-menu-button-source[data-menu-appearance="primary"] .interactive-dropdown [data-popup-trigger].b2b-button:is(.is-expanded, [aria-expanded="true"]) {
+  border-color: var(--b2b-color-action-primary-active);
+  background: var(--b2b-color-action-primary-active);
+  color: var(--b2b-color-on-primary-active);
+}
+
+/* Preserve the visible internal divider while the right trigger owns open state. */
+.b2b-menu-button-source[data-menu-appearance="primary"] .split-button > [data-popup-trigger].b2b-button:is(.is-expanded, [aria-expanded="true"]) {
+  border-left-color: color-mix(in srgb, var(--b2b-neutral-0) 34%, transparent);
+}
+
+.floating-action {
+  cursor: pointer;
+  transition: background var(--b2b-motion-fast), color var(--b2b-motion-fast), box-shadow var(--b2b-motion-fast);
+}
+
+.floating-action:hover {
+  background: var(--b2b-color-bg-disabled);
+}
+
+.floating-action.is-primary:hover {
+  background: var(--b2b-color-action-primary-hover);
+}
+
+.floating-action:active {
+  background: var(--b2b-color-border-surface);
+  transition-duration: 0s;
+}
+
+.floating-action.is-primary:active {
+  background: var(--b2b-color-action-primary-active);
+}
+
+.floating-tooltip-anchor .floating-action,
+.floating-action.is-size-48 { min-width: 48px; width: 48px; padding: 0; }
+.floating-action.is-size-40 { min-width: 40px; width: 40px; height: 40px; padding: 0; }
+.floating-action.is-size-36 { min-width: 36px; width: 36px; height: 36px; padding: 0; }
