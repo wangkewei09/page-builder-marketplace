@@ -9,6 +9,12 @@ import { chromium } from 'playwright-core';
 const data = await mkdtemp(path.join(tmpdir(), 'page-builder-native-refresh-'));
 const source = path.join(data, 'source');
 await cp(process.env.PAGE_BUILDER_TEST_SOURCE || 'dist/ui/vendor/b2b', source, { recursive: true });
+const contractFile = path.join(source, 'components/runtime/builder-contract.json');
+const sourceContract = await readFile(contractFile, 'utf8').then(JSON.parse).catch(error => { if (error.code === 'ENOENT') return { schemaVersion: 1, libraryId: 'b2b', components: {} }; throw error; });
+const builtBefore = await readFile('dist/ui/app.js');
+let cardTitleLabel = sourceContract.components['C-34']?.fields?.title?.label || '卡片标题';
+const cardVariantLabel = sourceContract.components['C-34']?.fields?.variant?.label || '变体';
+const compactLabel = sourceContract.components['C-34']?.fields?.variant?.options?.find(item => item.value === 'compact')?.label || '简洁卡片';
 const client = new Client({ name: 'native-refresh-test', version: '1' });
 await client.connect(new StdioClientTransport({ command: process.execPath, args: ['dist/server.js'], env: { ...process.env, PAGE_BUILDER_DATA_DIR: path.join(data, 'pages'), PAGE_BUILDER_LIBRARY_DIR: path.join(data, 'libraries'), PAGE_BUILDER_EXPORT_DIR: path.join(data, 'exports') } }));
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
@@ -80,7 +86,15 @@ try {
   const beforeUnchanged = await getPage();
   await refresh();
   assert.deepEqual(await getPage(), beforeUnchanged, 'same-source reload must not change the page revision');
-  await frame.getByRole('group', { name: '卡片标题', exact: true }).locator('input').fill('刷新后继续编辑');
+  sourceContract.components['C-34'] ||= { fields: {} };
+  sourceContract.components['C-34'].fields ||= {};
+  sourceContract.components['C-34'].fields.title = { ...sourceContract.components['C-34'].fields.title, label: '协议更新后的卡片标题' };
+  await writeFile(contractFile, JSON.stringify(sourceContract));
+  await refresh(); cardTitleLabel = '协议更新后的卡片标题';
+  await frame.getByRole('group', { name: cardTitleLabel, exact: true }).waitFor();
+  assert.deepEqual((await getPage()).root, beforeUnchanged.root, 'native metadata reload must preserve node content');
+  assert.deepEqual(await readFile('dist/ui/app.js'), builtBefore, 'native metadata changes must not rebuild the plugin');
+  await frame.getByRole('group', { name: cardTitleLabel, exact: true }).locator('input').fill('刷新后继续编辑');
   await frame.locator('#canvas').getByText('刷新后继续编辑', { exact: true }).waitFor();
   await frame.getByText('已保存', { exact: true }).waitFor();
   const edited = await getPage(); assert.equal(edited.root.children[0].props.title, '刷新后继续编辑');
@@ -106,9 +120,9 @@ try {
   await frame.locator('.component-shell').click();
   await page.waitForFunction(count => window.contexts.length > count && window.contexts.at(-1)?.structuredContent?.pageBuilderSelection?.props?.title === '刷新后继续编辑', contextCount);
   await frame.getByRole('button', { name: '删除节点', exact: true }).waitFor();
-  await frame.getByRole('group', { name: '变体', exact: true }).locator('[data-select-trigger]').click();
-  await frame.getByRole('option', { name: '简洁卡片', exact: true }).click({ timeout: 5000 }).catch(async error => {
-    console.error(JSON.stringify({ inspector: await frame.locator('#inspector').innerText(), variant: await frame.getByRole('group', { name: '变体', exact: true }).innerHTML(), errors }));
+  await frame.getByRole('group', { name: cardVariantLabel, exact: true }).locator('[data-select-trigger]').click();
+  await frame.getByRole('option', { name: compactLabel, exact: true }).click({ timeout: 5000 }).catch(async error => {
+    console.error(JSON.stringify({ inspector: await frame.locator('#inspector').innerText(), variant: await frame.getByRole('group', { name: cardVariantLabel, exact: true }).innerHTML(), errors }));
     await page.screenshot({ path: '/tmp/page-builder-native-refresh-variant.png' }); throw error;
   });
   await page.waitForFunction(() => window.contexts.at(-1)?.structuredContent?.pageBuilderSelection?.props?.variant === 'compact');
@@ -116,5 +130,5 @@ try {
   assert.equal(await page.evaluate(() => window.initializations), 1, 'refresh must retain the same host connection');
   await page.screenshot({ path: '/tmp/page-builder-native-refresh-fixed.png' });
   assert.deepEqual(errors, []); assert.deepEqual(requests, []);
-  console.log(JSON.stringify({ nativeRefresh: 'pass', injectedDocumentPreserved: true, repeatedSourceReload: true, sourceJavaScriptAndCssChanged: true, contentAndSelectionPreserved: true, noRuntimeNodeGrowth: true, sameHostConnection: true, sameSourceRevisionPreserved: true, editingAfterReload: true, failurePreservesDisplayAndRetry: true, failedReplacementRestoresRuntime: true, noHttpRequests: true, screenshot: '/tmp/page-builder-native-refresh-fixed.png' }));
+  console.log(JSON.stringify({ nativeRefresh: 'pass', injectedDocumentPreserved: true, repeatedSourceReload: true, sourceMetadataReloaded: true, pluginBuildUnchanged: true, sourceJavaScriptAndCssChanged: true, contentAndSelectionPreserved: true, noRuntimeNodeGrowth: true, sameHostConnection: true, sameSourceRevisionPreserved: true, editingAfterReload: true, failurePreservesDisplayAndRetry: true, failedReplacementRestoresRuntime: true, noHttpRequests: true, screenshot: '/tmp/page-builder-native-refresh-fixed.png' }));
 } finally { await browser.close(); await client.close(); }

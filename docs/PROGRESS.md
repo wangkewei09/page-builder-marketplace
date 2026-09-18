@@ -172,3 +172,17 @@
 - 用户明确要求推送 GitHub。目标 wangkewei09/page-builder-marketplace，已连接 origin；在隔离 release/0.1.1 工作树合并远端 v0.1.0 历史并携带构建产物。生产 Marketplace 名称保留 page-builder-marketplace，当前开发目录名称不变。
 - 发布包独立启动验证发现缺 playwright-core；构建改为将该运行依赖及许可证复制到 dist/node_modules，增加隔离安装回归，Node 要求同步为 20+。独立复制 dist 后启动、真实组件校验/添加通过；不依赖开发目录 node_modules。
 - 发布源码与安装产物的最终提交位于 release/0.1.1；GitHub 是否已更新需以远程分支和标签读回为准，不以本地提交代替。
+
+## 2026-09-18 / 编辑协议 v1 两端落地
+
+- 前次 GitHub 发布已完成：main 与 v0.1.1 远程读回均指向 `7d5d156eebc3878846fea327678d93fc2e8ae89c`。本节为后续本地开发增量，不移动已发布标签。
+- 用户明确要求插件端实施，同时在 ai-design-system 新起任务。已创建任务 `01a0b3d2-57f6-7191-9448-a7d8b6737cde`（实现组件库搭建器编辑协议 v1），两边依据 BUILDER_PROTOCOL.md 协作，写入目录分离。
+- 插件新增纯 JSON 解析/版本与字段/枚举/控件/条件校验，源元数据生成分组、中文、条件字段、图片与嵌套编辑；未知新 API 字段仍可见。显式转换先校验条件，再在一次页面操作里写入。布局仍由 LayoutNode 管理，未来 node.editor 只预留命名边界，不创建未使用持久化字段。
+- 组件库任务已完成：五组件 76 个字段、10 条简单转换；独立 JSON SHA256 `f271ef3447fffec4e33702cb03002791a21440fcfc3b4ce91abffaf38cdeab7d`。80 项库端测试与浏览器专项通过，386 个原有源文件哈希不变。库端维护说明位于 `/Users/wangkewei/Desktop/ai-design-system/docs/BUILDER_CONTRACT_MAINTENANCE.md`，验收见该库 docs/builder-protocol/DELIVERY.md；其本地目录无 Git，未发布。
+- 实际联调纠正：C34 图片需要在切换媒体变体前可填写；C21 union 值需要 controlWhen；reset 使用 presets 加载后的有效默认值，C34 loading 清空操作文案使用 set:null；compact/tabs 等不消费的 body/meta 按源规则隐藏。源 API 缺嵌套类型时不猜类型。
+- 插件验证：build/typecheck、23 项单测、MCP 集成与独立安装包测试通过；真实源 builder-source 的 37 变体/4 类型、数字/空值、图片上传、嵌套中文编辑、保存重开/导出通过；builder-inspector 覆盖只改源元数据/新属性、中文原值、条件、失败保留、草稿取消；library-refresh 通过无自动检查/草稿保护/可见 CSS 更新；native-refresh 通过严格无 HTTP 动态注入元数据更新、同宿主连接/内容/失败恢复；旧库 native-resource 全变体/十卡片样式对照/两面板上下文/窄屏通过。
+- 自审覆盖协议两端、有效默认值、缺文件与坏文件区别、元数据 HTML 注入、条件规则重叠、原值与中文映射、草稿/失败 UI 恢复、同快照导出、原生重载生命周期。组件库任务负责库端检查，不把本端自审称为独立代码评审。
+- 边界：复杂输入/选择器/卡片内容转换和头像文字补齐仍有插件兼容适配器。C42 avatar 与 checkable 的组合在旧 bundled Renderer 可被真实校验拒绝，此轮未改组件算法或放宽校验；已验证的四类型切换不等于所有属性笛卡尔组合都合法。当前真实 Codex 面板加载需单独确认，不以原生沙箱代替。
+- 开发安装版本 `0.1.1+codex.20260918094616`。安装前备份真实 pages 与库设置到 `/Users/wangkewei/Documents/Page Builder Backups/editor-protocol-20260918-175001`；测试没有升级真实页面的组件库，仍需用户手动点刷新。最终安装一致性和用户数据摘要核对在本节追加。
+- 最终安装核对：manifest、MCP、build、server、UI、CSS、transport、Playwright 包与 Skill 共 9 项与源码构建逐字节一致；备份中的 289 个页面/历史/设置文件摘要无变化。官方 CLI 安装成功，当前已打开的旧面板没有被操作或重启。
+- 安装包独立启动验证：从最终缓存启动 MCP，pages/library/exports 指向临时目录；真实源候选检查与应用、component_get 返回 controlWhen/图片描述、原生 UI 资源版本正确。此检查不等于当前 Codex 已打开面板加载新版。

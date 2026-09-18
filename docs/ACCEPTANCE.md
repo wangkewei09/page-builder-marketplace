@@ -85,3 +85,18 @@ A09/A17：桥接与严格原生资源模拟通过零空附件、同源双面板�
 - `inspector-options.test.ts` 验证未知值、数值类型和标签重名；`native-refresh.test.mjs` 验证连续原生重载后中文变体仍可切换。build/typecheck、官方插件校验通过。
 - Browser plugin not available，采用已有 Playwright/Chrome。桌面 1440×900 及窄面板 520×440、320×360，控制台和 HTTP 错误为 0。截图 `/tmp/page-builder-property-labels.png`、`/tmp/page-builder-native-refresh-fixed.png`。原生 Codex 当前面板加载本次安装单独待确认。
 - 未完成：常用字段布局、中文词典和复杂变体转换仍由插件维护，完整编辑元数据解耦不能标为通过，边界见 COMPONENT_LIBRARY_LIFECYCLE。
+
+## 2026-09-18 / 编辑协议 v1（P01–P06）
+
+| 编号 | 可观察结果 | 验证与状态 |
+|---|---|---|
+| P01 | 五组件的中文字段、枚举、分组、条件与控件来自源 JSON | 真实源 76 字段、37 变体、4 标签类型，builder-source：通过 |
+| P02 | 仅源协议改动即可手动更新属性栏，当前节点内容不重置 | builder-inspector / native-refresh：HTTP 与原生动态注入路径均通过，插件构建字节未变 |
+| P03 | 无协议的旧库兼容，错误协议拒绝候选 | parser 单测、旧库 native-resource、未知版本 UI 拒绝且页/默认快照保留：通过 |
+| P04 | 数字分支与空值、禁用/显隐、简单伴随更新、图片、嵌套中文编辑可用 | builder-source / builder-inspector：通过；复杂转换继续走兼容适配器 |
+| P05 | 草稿、保存恢复与导出不丢数据，布局设置不进入 props | 草稿阻止其他写入并可取消、library-refresh、保存重开/导出、既有领域与存储测试：通过 |
+| P06 | 安装包有效、当前真实 Codex 面板已加载 | 官方插件/Skill 校验通过，安装逐字节核对见 PROGRESS；真实 Codex 已打开面板加载：待验证 |
+
+环境：Browser plugin not available（本会话未提供 browser skill），采用项目已有 Playwright Core 与 Google Chrome。HTTP 1440×1000/1500×1000 与 520×760；原生注入 1440×1000，旧库窄面板 520×440/320×360。页面身份正确、非空、无错误覆盖层、非预期控制台错误 0。注入错误协议时预期出现一条 400 拒绝请求，有独立断言，不算正常流程成功。
+
+截图已目视：`/tmp/page-builder-real-protocol.png`、`/tmp/page-builder-protocol-desktop.png`、`/tmp/page-builder-protocol-narrow.png`、`/tmp/page-builder-native-refresh-fixed.png`。浏览器测试均使用隔离页面/缓存/导出目录，不修改真实用户页面。代码测试比对源实际有效 schema，未把测试替身当组件库实现。

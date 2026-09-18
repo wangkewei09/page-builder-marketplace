@@ -1,5 +1,6 @@
 import { selectVariantPatch } from "../select-variants.ts";
 import { inspectorOptions } from "./inspector-options.js";
+import { contractPatch, editorControl, editorFields, matchesConditions } from "../editor-contract.ts";
 import { installLibraryTransport } from "./library-transport.js";
 import { App } from "@modelcontextprotocol/ext-apps";
 import { EmptyResultSchema } from "@modelcontextprotocol/sdk/types.js";
@@ -8,6 +9,7 @@ import { inputVariantPatch } from "../input-variants.ts";
 import { cardVariantPatch } from "../card-variants.ts";
 
 const $ = (selector, root = document) => root.querySelector(selector);
+const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 const state = { page: null, library: null, loadedLibraryId: null, catalog: [], selection: null, preview: false, instances: new Map(), uiSlots: new Map(), editTimers: new Map(), fullPropsDirty: false, dragging: null, searchQuery: "", leftTab: "components", viewport: "desktop", inspectorOpen: false, lastCommittedAt: 0, renderEpoch: 0, selectionEpoch: 0, mutating: 0, polling: false, runtime: null };
 let mutationQueue = Promise.resolve();
 let selectionQueue = Promise.resolve();
@@ -313,7 +315,7 @@ function renderLibrary() {
 }
 
 function libraryItem(id, label, description, kind) {
-  const item = document.createElement("div"); item.className = "library-item"; item.draggable = true; item.tabIndex = 0; item.setAttribute("role", "button"); item.setAttribute("aria-label", `${label}，${description}`); item.innerHTML = `<span class="library-icon">${kind === "layout" ? "▦" : id.slice(2)}</span><span class="library-copy"><strong>${label}</strong><small>${description}</small></span><span class="library-add ui-control"></span>`;
+  const item = document.createElement("div"); item.className = "library-item"; item.draggable = true; item.tabIndex = 0; item.setAttribute("role", "button"); item.setAttribute("aria-label", `${label}，${description}`); item.innerHTML = `<span class="library-icon">${kind === "layout" ? "▦" : escapeHtml(id.slice(2))}</span><span class="library-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(description)}</small></span><span class="library-add ui-control"></span>`;
   item.addEventListener("dragstart", (event) => { state.dragging = { kind, id }; event.dataTransfer.effectAllowed = "copy"; event.dataTransfer.setData("text/plain", `${kind}:${id}`); });
   const addHost = $(".library-add", item); addHost.addEventListener("click", (event) => event.stopPropagation()); void mountUi(`library-${kind}-${id}`, addHost, "C-04", iconProps("add", `添加${label}`), { "b2b:icon-activate": (event) => { event.stopPropagation(); addNode(kind, id, state.selection); } });
   item.addEventListener("keydown", (event) => { if (event.key === "Enter") addNode(kind, id, state.selection); }); return item;
@@ -325,20 +327,22 @@ async function addNode(kind, id, selectedId) {
   await commit([{ type: "add", parentId, node }], `${kind === "layout" ? labels[id] : definition(id).label}已添加`);
 }
 
-function commit(operations, success) {
+function commit(operations, success, applyDraft = false) {
+  if (state.fullPropsDirty && !applyDraft) { toast("请先应用或取消全部组件属性的修改。", "error"); return Promise.resolve(); }
   mutationQueue = mutationQueue.then(() => commitNow(operations, success));
   return mutationQueue;
 }
 async function commitNow(operations, success) {
   state.mutating += 1;
   try { setSaving("saving", "正在保存"); const result = await api(`./api/pages/${state.page.pageId}/operations`, { method: "POST", body: JSON.stringify({ expectedRevision: state.page.revision, operations }) }); state.page = result.page; state.selection = result.selection?.nodeId ?? (state.selection && findNode(result.page.root, state.selection) ? state.selection : null); state.selectionEpoch += 1; state.lastCommittedAt = Date.now(); await renderAll(); await syncModelContext(state.selectionEpoch); setSaving("", "已保存"); if (success) toast(success); }
-  catch (error) { if (error.code === "REVISION_CONFLICT") await loadPage(state.page.pageId); fail(error); }
+  catch (error) { if (error.code === "REVISION_CONFLICT") await loadPage(state.page.pageId); else if (!state.fullPropsDirty) await renderSelection(); fail(error); }
   finally { state.mutating -= 1; }
 }
-async function history(direction) { state.mutating += 1; try { const result = await api(`./api/pages/${state.page.pageId}/${direction}`, { method: "POST", body: JSON.stringify({ expectedRevision: state.page.revision }) }); state.page = result.page; state.selection = result.selection?.nodeId ?? null; state.selectionEpoch += 1; await renderAll(); await syncModelContext(state.selectionEpoch); toast(direction === "undo" ? "已撤销" : "已重做"); } catch (error) { fail(error); } finally { state.mutating -= 1; } }
+async function history(direction) { if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性的修改。", "error"); return; } state.mutating += 1; try { const result = await api(`./api/pages/${state.page.pageId}/${direction}`, { method: "POST", body: JSON.stringify({ expectedRevision: state.page.revision }) }); state.page = result.page; state.selection = result.selection?.nodeId ?? null; state.selectionEpoch += 1; await renderAll(); await syncModelContext(state.selectionEpoch); toast(direction === "undo" ? "已撤销" : "已重做"); } catch (error) { fail(error); } finally { state.mutating -= 1; } }
 function fail(error) { setSaving("error", "保存失败"); toast(error.message, "error"); console.error(error); }
 
 function select(nodeId) {
+  if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性，再选择组件。", "error"); return Promise.resolve(); }
   contextLease?.claim();
   const epoch = ++state.selectionEpoch; state.selection = nodeId; renderSelection();
   selectionQueue = selectionQueue.then(async () => {
@@ -411,31 +415,82 @@ async function renderSelectionNow() {
 
 async function field(parent, scope, label, key, value, rule, onChange) {
   const wrapper = document.createElement("div"); wrapper.className = rule?.type === "boolean" ? "check-field" : "field"; const control = document.createElement("div"); control.className = "field-control"; wrapper.append(control); parent.append(wrapper);
+  wrapper.dataset.property = rule.propertyKey || key;
+  if (rule.description) { const hint = document.createElement("small"); hint.textContent = rule.description; wrapper.append(hint); }
+  const change = onChange; onChange = next => { if (!rule.disabled) return change(next); };
   const slot = `field-${scope}-${key}`;
   if (rule?.type === "boolean") {
-    await mountUi(slot, control, "C-11", { variant: "standalone", label, value: key, description: null, selectAllLabel: "全选", items: [], checked: Boolean(value), mixed: false, disabled: false, error: false, errorMessage: null, orientation: "vertical", compact: true }, { "b2b:checkbox-change": (event) => onChange(Boolean(event.detail?.checked)) });
+    await mountUi(slot, control, "C-11", { variant: "standalone", label, value: key, description: null, selectAllLabel: "全选", items: [], checked: Boolean(value), mixed: false, disabled: Boolean(rule.disabled), error: false, errorMessage: null, orientation: "vertical", compact: true }, { "b2b:checkbox-change": (event) => onChange(Boolean(event.detail?.checked)) });
     return wrapper;
   }
   const title = document.createElement("span"); title.className = "field-label"; title.id = `${slot}-label`; title.textContent = label; wrapper.prepend(title);
   control.setAttribute("role", "group"); control.setAttribute("aria-labelledby", title.id);
   if (rule?.editorValues || rule?.values) {
     const values = rule.values || rule.editorValues;
-    const options = inspectorOptions(rule.componentId, rule.propertyKey || key, values);
+    const options = inspectorOptions(rule.componentId, rule.propertyKey || key, values, rule.options);
     const items = options.map(option => ({ label: option.label, disabled: Boolean(rule.editorValues && !rule.editorValues.includes(option.value) && option.value !== value) }));
     const selected = options.find(option => option.value === value)?.label;
     // C-23 selects by label, so translate back through this exact list, never by
     // sending translated text (or coercing numeric enum values) to the component.
-    await mountUi(slot, control, "C-23", selectProps(items, selected, label), { "b2b:select-change": (event) => { const next = options.find(option => option.label === event.detail?.selected?.[0]); if (next && next.value !== value) onChange(next.value); } });
+    await mountUi(slot, control, "C-23", { ...selectProps(items, selected, label), state: rule.disabled ? "disabled" : "default" }, { "b2b:select-change": (event) => { const next = options.find(option => option.label === event.detail?.selected?.[0]); if (next && next.value !== value) onChange(next.value); } });
     if (rule.editorValues && rule.editorValues.length < values.length) { const hint = document.createElement("small"); hint.textContent = "按当前组件库列出；灰显项的配套属性尚未适配。"; wrapper.append(hint); }
     return wrapper;
   }
-  const serialized = Array.isArray(value) ? value.join("\n") : value ?? ""; const variant = rule?.type === "number" ? "数字输入框" : (key === "body" || rule?.multiline || rule?.type === "array" ? "长文本输入框" : "基础输入框");
-  await mountUi(slot, control, "C-21", inputProps(label, serialized, variant), { "b2b:input-change": (event) => { let next = event.detail?.value ?? ""; if (rule?.type === "number") next = Number(next); if (rule?.type === "array") next = String(next).split("\n").map((item) => item.trim()).filter(Boolean); if (rule?.immediate) onChange(next); else scheduleEdit(slot, () => onChange(next), 420); } });
+  const variant = rule?.type === "number" ? "数字输入框" : (key === "body" && (!rule.control || rule.control === "auto") || rule?.multiline || rule?.type === "array" ? "长文本输入框" : "基础输入框");
+  const serialized = Array.isArray(value) ? value.join("\n") : variant === "数字输入框" ? value ?? "" : String(value ?? "");
+  await mountUi(slot, control, "C-21", { ...inputProps(label, serialized, variant), ...(rule?.type === "number" ? { min: -Number.MAX_SAFE_INTEGER, max: Number.MAX_SAFE_INTEGER } : {}), state: rule.disabled ? "disabled" : "default" }, { "b2b:input-change": (event) => { let next = event.detail?.value ?? ""; if (rule?.type === "number" && (next !== "" || !rule.sourceType?.includes("string"))) next = Number(next); if (rule?.type === "array") next = String(next).split("\n").map((item) => item.trim()).filter(Boolean); if (rule?.immediate) onChange(next); else scheduleEdit(slot, () => onChange(next), 420); } });
+  if (rule.control === "image") {
+    const upload = document.createElement("div"), file = document.createElement("input"); file.type = "file"; file.accept = "image/png,image/jpeg,image/webp"; file.hidden = true; wrapper.append(upload, file);
+    file.addEventListener("change", async () => {
+      const image = file.files?.[0]; if (!image) return;
+      try {
+        if (!["image/png", "image/jpeg", "image/webp"].includes(image.type) || image.size > 1024 * 1024) throw new Error("请选择 1 MB 以内的 PNG、JPEG 或 WebP 图片。");
+        const data = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error("图片读取失败")); reader.readAsDataURL(image); });
+        await onChange(data);
+      } catch (error) { fail(error); }
+    });
+    await mountUi(`${slot}-upload`, upload, "C-02", { ...buttonProps(`上传${label}`), disabled: Boolean(rule.disabled) }, { "b2b:button-activate": () => file.click() });
+  }
   return wrapper;
+}
+
+function editorRule(rule, editor, props, value) {
+  const control = editorControl(editor, props);
+  const type = control === "number" || control === "auto" && typeof value === "number" && rule.type?.includes("number") ? "number" : control === "switch" ? "boolean" : rule.type;
+  return { ...rule, ...editor, sourceType: rule.type, control, type, multiline: control === "textarea", disabled: !matchesConditions(editor.enabledWhen, props) };
+}
+async function renderContractInspector(node, inspector, def) {
+  const builder = def.builder;
+  const groups = [...(builder.groups || []), { id: undefined, label: "其他属性" }];
+  const entries = editorFields(def.props, builder.fields, { ...def.defaults, ...node.props });
+  for (const group of groups) {
+    const fields = entries.filter(item => item.editor.group === group.id); if (!fields.length) continue;
+    const section = document.createElement("section"), title = document.createElement("h3");
+    section.className = "inspector-group"; title.textContent = group.label; section.append(title); inspector.append(section);
+    for (const { key, rule, editor } of fields) {
+      const label = editor.label || componentPropLabel(node.componentId, key);
+      const value = Object.hasOwn(node.props, key) ? node.props[key] : rule.default;
+      if (rule.type.includes("object") || rule.type.includes("array")) {
+        const target = document.createElement("div"); target.className = "structured-field-link"; section.append(target);
+        await mountUi(`field-${node.id}-structured-${key}`, target, "C-02", { ...buttonProps(`编辑${label}`), disabled: !matchesConditions(editor.enabledWhen, { ...def.defaults, ...node.props }) }, { "b2b:button-activate": () => { const details = inspector.querySelector("details"); if (details) { details.open = true; details.scrollIntoView({ block: "nearest" }); } } });
+        continue;
+      }
+      await field(section, node.id, label, key, value, { ...editorRule(rule, editor, { ...def.defaults, ...node.props }, value), componentId: node.componentId, propertyKey: key }, next => {
+        try {
+          if (state.fullPropsDirty) throw new Error("请先应用全部组件属性，再修改单个属性。");
+          if (editor.control === "image" && native && next && !String(next).startsWith("data:image/")) throw new Error("原生面板不能加载外部图片地址，请使用上传图片。");
+          return commit([{ type: "updateProps", nodeId: node.id, props: componentPatch(node, key, next === "" && rule.type.includes("null") ? null : next) }], "属性已更新");
+        } catch (error) { fail(error); }
+      });
+    }
+  }
+  await renderFullProperties(node, inspector, def.props);
+  inspector.append(divider(), deleteButton(node.id));
 }
 
 async function renderComponentInspector(node, inspector) {
   const def = definition(node.componentId);
+  if (def.builder) return renderContractInspector(node, inspector, def);
   const actual = await window.B2B.describeComponent(node.componentId);
   for (const key of def.editable) { const rule = def.props[key]; if (!rule) continue;
     const sourceRule = actual.api.props[key];
@@ -470,49 +525,66 @@ async function renderComponentInspector(node, inspector) {
   await renderFullProperties(node, inspector, actual.api.props);
   inspector.append(divider(), deleteButton(node.id));
 }
-async function renderFullProperties(node, inspector, rules) {
+async function renderFullProperties(node, inspector, rules, settings = {}) {
   const details = document.createElement("details"), summary = document.createElement("summary");
-  summary.textContent = "全部组件属性"; details.append(summary); inspector.append(details);
+  const prefix = settings.slotPrefix || "full";
+  const builder = definition(node.componentId).builder;
+  summary.textContent = settings.title || "全部组件属性"; details.append(summary); inspector.append(details);
   let draft = structuredClone({ ...definition(node.componentId).defaults, ...node.props });
+  const conditionKeys = new Set();
+  function collectConditions(fields) { for (const editor of Object.values(fields || {})) { for (const condition of [...(editor.visibleWhen || []), ...(editor.enabledWhen || []), ...(editor.controlWhen || []).flatMap(item => item.when)]) conditionKeys.add(condition.property); collectConditions(editor.fields); if (editor.item) collectConditions({ item: editor.item }); } }
+  collectConditions(builder?.fields);
   const body = document.createElement("div"); details.append(body); let built = false;
-  const seed = rule => "default" in rule ? structuredClone(rule.default) : rule.values?.[0] ?? (rule.type?.includes("array") ? [] : rule.type?.includes("object") ? {} : rule.type === "boolean" ? false : rule.type === "number" ? 0 : "");
-  async function build(container, name, value, rule, write, depth = 0, propertyKey = "") {
+  const seed = rule => "default" in rule ? structuredClone(rule.default) : rule.values?.[0] ?? (rule.type?.includes("array") ? [] : rule.fields || rule.type?.includes("object") ? {} : rule.type === "boolean" ? false : rule.type === "number" ? 0 : "");
+  async function build(container, name, value, rule, write, depth = 0, propertyKey = "", editor = {}) {
     if (depth > 8) return;
+    if (!matchesConditions(editor.visibleWhen, draft)) return;
+    const disabled = !matchesConditions(editor.enabledWhen, draft);
     const type = rule.type || (Array.isArray(value) ? "array" : value && typeof value === "object" ? "object" : typeof value);
     if (type.includes("object") || type.includes("array")) {
-      const box = document.createElement("fieldset"), title = document.createElement("legend"); title.textContent = name; box.append(title); container.append(box);
+      const box = document.createElement("fieldset"), title = document.createElement("legend"); title.textContent = name; box.disabled = disabled; box.append(title); container.append(box);
+      if (editor.description || rule.description) { const hint = document.createElement("small"); hint.textContent = editor.description || rule.description; box.append(hint); }
       if (value === null || value === undefined) {
         const target = document.createElement("div"); box.append(target);
-        await mountUi(`field-${node.id}-full-${name}-enable`, target, "C-02", buttonProps(`配置${name}`), { "b2b:button-activate": async () => { const next = type.includes("array") ? [] : {}; write(next); box.remove(); await build(container, name, next, rule, write, depth, propertyKey); } }); return;
+        await mountUi(`field-${node.id}-${prefix}-${propertyKey}-enable`, target, "C-02", { ...buttonProps(`配置${name}`), disabled }, { "b2b:button-activate": async () => { if (disabled) return; const next = type.includes("array") ? [] : {}; write(next); await rebuild(); } }); return;
       }
       if (Array.isArray(value)) {
         for (const [index, item] of value.entries()) {
-          await build(box, `${name} ${index + 1}`, item, rule.item || { type: typeof item === "object" ? "object" : typeof item }, next => { value[index] = next; write(value); }, depth + 1);
+          await build(box, `${name} ${index + 1}`, item, rule.item || { type: typeof item === "object" ? "object" : typeof item }, next => { if (!disabled) { value[index] = next; write(value); } }, depth + 1, `${propertyKey}.${index}`, editor.item || {});
           const remove = document.createElement("div"); box.append(remove);
-          await mountUi(`field-${node.id}-full-${name}-${index}-remove`, remove, "C-02", buttonProps(`删除 ${name} ${index + 1}`), { "b2b:button-activate": async () => { value.splice(index, 1); write(value); await rebuild(); } });
+          await mountUi(`field-${node.id}-${prefix}-${propertyKey}-${index}-remove`, remove, "C-02", { ...buttonProps(`删除 ${name} ${index + 1}`), disabled }, { "b2b:button-activate": async () => { if (disabled) return; value.splice(index, 1); write(value); await rebuild(); } });
         }
         const add = document.createElement("div"); box.append(add);
-        await mountUi(`field-${node.id}-full-${name}-add`, add, "C-02", buttonProps(`添加${name}`), { "b2b:button-activate": async () => { value.push(seed(rule.item || { type: "string" })); write(value); await rebuild(); } });
+        await mountUi(`field-${node.id}-${prefix}-${propertyKey}-add`, add, "C-02", { ...buttonProps(`添加${name}`), disabled }, { "b2b:button-activate": async () => { if (disabled) return; value.push(seed(rule.item || { type: "string" })); write(value); await rebuild(); } });
       } else {
         const declared = rule.item?.fields || rule.fields || {};
         const names = [...new Set([...Object.keys(value), ...(Array.isArray(declared) ? declared : Object.keys(declared))])];
+        names.sort((a, b) => (editor.fields?.[a]?.order ?? 0) - (editor.fields?.[b]?.order ?? 0));
         for (const key of names) {
           const child = !Array.isArray(declared) && declared[key] || { type: typeof value[key] === "boolean" ? "boolean" : typeof value[key] === "number" ? "number" : typeof value[key] === "object" && value[key] ? "object" : "string" };
-          await build(box, `${name} · ${propLabel(key)}`, value[key], child, next => { value[key] = next; write(value); }, depth + 1);
+          await build(box, `${name} · ${editor.fields?.[key]?.label || propLabel(key)}`, value[key], child, next => { if (!disabled) { value[key] = next; write(value); } }, depth + 1, `${propertyKey}.${key}`, editor.fields?.[key] || {});
         }
       }
-      if (type.includes("null")) { const target = document.createElement("div"); box.append(target); await mountUi(`field-${node.id}-full-${name}-clear`, target, "C-02", buttonProps(`清空${name}`), { "b2b:button-activate": async () => { write(null); await rebuild(); } }); }
+      if (type.includes("null")) { const target = document.createElement("div"); box.append(target); await mountUi(`field-${node.id}-${prefix}-${propertyKey}-clear`, target, "C-02", { ...buttonProps(`清空${name}`), disabled }, { "b2b:button-activate": async () => { if (disabled) return; write(null); await rebuild(); } }); }
       return;
     }
-    const scalarRule = typeof value === "number" && type.includes("number") ? { ...rule, type: "number" } : rule;
-    await field(container, node.id, name, `full-${name}`, value, { ...scalarRule, componentId: node.componentId, propertyKey, immediate: true }, next => write(next === "" && type.includes("null") ? null : next));
+    const scalarRule = { ...rule, type: typeof value === "number" && type.includes("number") ? "number" : type };
+    await field(container, node.id, name, `${prefix}-${propertyKey || name}`, value, { ...editorRule(scalarRule, editor, draft), componentId: node.componentId, propertyKey, immediate: true }, next => write(next === "" && type.includes("null") ? null : next));
   }
   async function rebuild() {
-    clearUiPrefix(`field-${node.id}-full-`); body.replaceChildren();
+    clearUiPrefix(`field-${node.id}-${prefix}-`); body.replaceChildren();
     const hint = document.createElement("p"); hint.textContent = "这里列出组件库公开的全部属性。组合修改后点击应用；无效组合不会保存。"; body.append(hint);
-    for (const [key, rule] of Object.entries(rules)) await build(body, componentPropLabel(node.componentId, key), draft[key], rule, value => { draft[key] = value; state.fullPropsDirty = true; }, 0, key);
+    for (const { key, rule, editor } of editorFields(rules, builder?.fields, draft)) await build(body, editor.label || componentPropLabel(node.componentId, key), draft[key], rule, value => {
+      try {
+        const patch = contractPatch(definition(node.componentId), draft, key, value);
+        Object.assign(draft, patch || { [key]: value }); state.fullPropsDirty = true;
+        if (patch || conditionKeys.has(key)) void rebuild();
+      } catch (error) { fail(error); }
+    }, 0, key, editor);
     const target = document.createElement("div"); body.append(target);
-    await mountUi(`field-${node.id}-full-apply`, target, "C-02", buttonProps("应用全部属性", "primary"), { "b2b:button-activate": () => { for (const timer of state.editTimers.values()) clearTimeout(timer); state.editTimers.clear(); return commit([{ type: "updateProps", nodeId: node.id, props: draft }], "属性已更新"); } });
+    await mountUi(`field-${node.id}-${prefix}-apply`, target, "C-02", buttonProps("应用全部属性", "primary"), { "b2b:button-activate": () => { for (const timer of state.editTimers.values()) clearTimeout(timer); state.editTimers.clear(); return commit([{ type: "updateProps", nodeId: node.id, props: Object.fromEntries(Object.keys(rules).map(key => [key, draft[key]])) }], "属性已更新", true); } });
+    const cancel = document.createElement("div"); body.append(cancel);
+    await mountUi(`field-${node.id}-${prefix}-cancel`, cancel, "C-02", buttonProps("取消修改"), { "b2b:button-activate": () => { state.fullPropsDirty = false; return renderSelection(); } });
   }
   details.addEventListener("toggle", () => { if (details.open && !built) { built = true; void rebuild(); } });
 }
@@ -558,10 +630,14 @@ async function renderCardFields(node, inspector) {
   if (listKey === "tabs") await field(inspector, node.id, "默认页签（标识）", "activeTabId", p.activeTabId, { values: entries.map(item => item.id) }, value => save({ activeTabId: value }));
 }
 function componentPropLabel(componentId, key) {
+  const declared = definition(componentId)?.builder?.fields?.[key]?.label;
+  if (declared) return declared;
   const labels = { "C-34": { title: "卡片标题", body: "卡片正文", meta: "辅助信息", selected: "选中状态" }, "C-21": { label: "输入框名称", value: "输入内容", placeholder: "占位提示" } };
   return labels[componentId]?.[key] || propLabel(key);
 }
 function componentPatch(node, key, value) {
+  const patch = contractPatch(definition(node.componentId), { ...definition(node.componentId).defaults, ...node.props }, key, value);
+  if (patch) return patch;
   if (key === "variant") {
     const def = definition(node.componentId), variants = def.variantDefaults || {};
     const keys = [...new Set(Object.values(variants).flatMap(Object.keys))];
@@ -591,7 +667,7 @@ function propLabel(key) { return ({ label: "文案", value: "当前值", placeho
 function divider() { const el = document.createElement("div"); el.className = "inspector-divider"; return el; }
 function deleteButton(nodeId) { const hostElement = document.createElement("div"); hostElement.className = "delete-control"; void mountUi(`delete-${nodeId}`, hostElement, "C-02", buttonProps("删除节点", "secondary-danger", "delete", "long"), { "b2b:button-activate": () => commit([{ type: "remove", nodeId }], "已删除") }); return hostElement; }
 
-function renderTree() { const tree = $("#tree"); tree.replaceChildren(); const visit = (node, depth) => { const item = document.createElement("div"); item.className = `tree-item${node.id === state.selection ? " is-selected" : ""}`; item.tabIndex = 0; item.setAttribute("role", "button"); item.style.setProperty("--depth", depth); item.innerHTML = `<span class="tree-indent"></span><span>${node.kind === "layout" ? "▦" : "◇"}</span><span>${node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label}</span>`; item.addEventListener("click", () => select(node.id)); item.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(node.id); } }); tree.append(item); if (node.kind === "layout") node.children.forEach((child) => visit(child, depth + 1)); }; visit(state.page.root, 0); }
+function renderTree() { const tree = $("#tree"); tree.replaceChildren(); const visit = (node, depth) => { const item = document.createElement("div"); item.className = `tree-item${node.id === state.selection ? " is-selected" : ""}`; item.tabIndex = 0; item.setAttribute("role", "button"); item.style.setProperty("--depth", depth); item.innerHTML = `<span class="tree-indent"></span><span>${node.kind === "layout" ? "▦" : "◇"}</span><span>${escapeHtml(node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label)}</span>`; item.addEventListener("click", () => select(node.id)); item.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(node.id); } }); tree.append(item); if (node.kind === "layout") node.children.forEach((child) => visit(child, depth + 1)); }; visit(state.page.root, 0); }
 
 window.addEventListener("error", event => { if (!state.page) startup(`启动失败：${event.message}`); });
 // Register the editor lifecycle before the source-library transport takes ownership of its listeners.

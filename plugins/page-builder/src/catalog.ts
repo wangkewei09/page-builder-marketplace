@@ -1,3 +1,4 @@
+import type { ComponentEditor } from "./builder-protocol.js";
 export type PropRule = {
   type: string;
   description?: string;
@@ -19,6 +20,7 @@ export type ComponentDefinition = {
   props: Record<string, PropRule>;
   defaults: Record<string, unknown>;
   variantDefaults?: Record<string, Record<string, unknown>>;
+  builder?: ComponentEditor;
 };
 
 export const COMPONENTS: Record<string, ComponentDefinition> = {

@@ -1,6 +1,6 @@
 {
   "name": "page-builder-mcp-plugin",
-  "version": "0.1.1",
+  "version": "0.1.1+codex.20260918094616",
   "private": true,
   "type": "module",
   "engines": {
@@ -11,8 +11,9 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts && node --test tests/mcp.test.mjs tests/package.test.mjs",
-    "test:browser": "node tests/browser.test.mjs && node tests/host-bridge.test.mjs && node tests/native-resource.test.mjs && node tests/native-refresh.test.mjs && node tests/library-refresh.test.mjs && node tests/cross-process.test.mjs && node tests/standalone-export.test.mjs",
-    "verify": "npm run clean && npm run build && npm run typecheck && npm test && npm run test:browser"
+    "test:browser": "node tests/browser.test.mjs && node tests/host-bridge.test.mjs && node tests/native-resource.test.mjs && node tests/native-refresh.test.mjs && node tests/library-refresh.test.mjs && node tests/cross-process.test.mjs && node tests/standalone-export.test.mjs && node tests/builder-inspector.test.mjs",
+    "verify": "npm run clean && npm run build && npm run typecheck && npm test && npm run test:browser",
+    "test:protocol": "node --import tsx --test tests/builder-protocol.test.ts && node tests/builder-inspector.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "1.7.5",

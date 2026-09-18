@@ -2,7 +2,7 @@
 
 本地 Codex 插件：在右侧工作区用真实 B2B Renderer 搭建页面，并让手动编辑、AI 修改、保存、撤销和导出共享同一份版本化 Page Schema。
 
-当前源码版本：**0.1.1**。变更与已知边界见 [版本记录](CHANGELOG.md)。
+当前开发构建：**0.1.1+codex.20260918094616**。变更与已知边界见 [版本记录](CHANGELOG.md)。
 
 运行要求：Node.js 20+ 和 Google Chrome，或通过 `CHROME_PATH` 指定兼容浏览器。GitHub 发布包已包含组件校验驱动，无需在安装目录执行 npm install。
 
@@ -46,3 +46,5 @@ node dist/standalone.js
 ## 独立更新组件库
 
 在编辑器左侧展开「组件库来源与更新」，填写独立 `design-source` 目录，点「刷新并重载组件」。兼容更新无需构建或重装插件。组件库没有自动检查或自动更新，点击按钮才读取源目录。未应用的属性修改与保存期间会提示先完成编辑；其他页面不受影响。完整机制和验收见仓库 `docs/COMPONENT_LIBRARY_LIFECYCLE.md`。
+
+开发构建支持独立编辑协议 `components/runtime/builder-contract.json`（schemaVersion 1）。组件库提供中文字段/选项、分组、控件、条件和简单伴随更新；插件按同版本公开 API 校验并生成属性栏。协议缺失使用旧适配器，协议错误拒绝更新。复杂变体转换仍保留兼容适配器；不改变源组件样式。共同契约见 [编辑协议](../../docs/BUILDER_PROTOCOL.md)。
