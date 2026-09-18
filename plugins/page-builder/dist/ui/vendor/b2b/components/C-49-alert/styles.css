@@ -1,0 +1,179 @@
+/* C-49 常驻提示：容器等宽；首行图标/关闭与 20px 文字行框对齐。 */
+.source-alert {
+  display: grid;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  box-sizing: border-box;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--b2b-radius-surface);
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+}
+.source-alert.is-dismissing { opacity: 0; transform: translateY(-6px) scale(.98); }
+.source-alert.has-close { grid-template-columns: 20px minmax(0, 1fr) 20px; }
+.source-alert.is-info { background: var(--b2b-blue-50); }
+.source-alert.is-success { background: color-mix(in srgb, var(--b2b-color-success) 14%, var(--b2b-neutral-0)); }
+.source-alert.is-error { background: color-mix(in srgb, var(--b2b-color-danger) 9%, var(--b2b-neutral-0)); }
+.source-alert.is-warning { background: color-mix(in srgb, var(--b2b-color-warning) 10%, var(--b2b-neutral-0)); }
+.source-alert > div {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 4px 8px;
+}
+/* Intrinsic text width decides line breaking: actions wrap before text is squeezed. */
+.source-alert > div > p { line-height: 20px; font-size: 14px; flex: 1 1 auto; min-width: 0; margin: 0; color: var(--b2b-color-text-primary); overflow-wrap: anywhere; }
+.source-alert > div > strong { line-height: 20px; font-size: 14px; flex-basis: 100%; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.source-alert a { color: var(--b2b-color-action-primary); cursor: pointer; }
+.source-alert > .alert-status-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  font-size: 20px;
+  line-height: 20px;
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 20;
+}
+.source-alert.is-info > .alert-status-icon { color: var(--b2b-color-information); }
+.source-alert.is-success > .alert-status-icon { color: var(--b2b-color-success); }
+.source-alert.is-error > .alert-status-icon { color: var(--b2b-color-danger); }
+.source-alert.is-warning > .alert-status-icon { color: var(--b2b-color-warning); }
+.source-alert > div > .b2b-button,
+.source-alert footer .b2b-button {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 20px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  font-size: 14px;
+  line-height: 20px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.source-alert > button[aria-label="关闭"] {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  align-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--b2b-color-text-secondary);
+  cursor: pointer;
+  transition: background var(--b2b-motion-fast), color var(--b2b-motion-fast);
+}
+.source-alert > button[aria-label="关闭"]:hover { background: color-mix(in srgb, var(--b2b-color-text-secondary) 10%, transparent); color: var(--b2b-color-text-primary); }
+.source-alert > button[aria-label="关闭"] > .b2b-icon { font-size: 16px; }
+.source-alert button:focus-visible { outline: 2px solid var(--b2b-color-action-primary); outline-offset: 2px; }
+.source-alert footer { flex-basis: 100%; display: flex; min-width: 0; margin: 0; }
+.source-alert.is-stacked > div { flex-direction: column; }
+.source-alert.is-stacked p, .source-alert.is-stacked strong { flex: 0 0 auto; width: 100%; }
+.source-alert.is-follow p { flex-grow: 0; }
+/* Centered notices remain single-line. Reserve equal side space so close never shifts the group. */
+.source-alert.is-center { display: flex; justify-content: center; }
+.source-alert.is-center.has-close { padding-inline: 40px; }
+.source-alert.is-center > .alert-status-icon { flex: 0 0 20px; }
+.source-alert.is-center > div { flex: 0 1 auto; flex-wrap: nowrap; }
+.source-alert.is-center p { flex: 0 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.source-alert.is-center > div > .b2b-button { white-space: nowrap; }
+.source-alert.is-center > button[aria-label="关闭"] { position: absolute; top: 8px; right: 12px; }
+
+.alert-site-demo,
+.alert-page-demo,
+.alert-module-demo {
+  display: grid;
+  width: 100%;
+  gap: 0;
+  border: 1px solid var(--b2b-color-border-surface);
+}
+
+.alert-site-demo > header,
+.alert-page-demo > header {
+  height: 56px;
+  padding: 16px 24px;
+  background: var(--b2b-color-bg-surface);
+  font-weight: 600;
+}
+
+.alert-site-demo > main,
+.alert-page-demo > main {
+  min-height: 100px;
+  padding: 24px;
+}
+
+.alert-page-demo h3 {
+  margin: 16px 24px;
+}
+
+.alert-page-demo > .source-alert {
+  width: calc(100% - 48px);
+  margin: 0 24px;
+}
+
+.alert-module-demo {
+  gap: 12px;
+  padding: 16px;
+}
+
+.alert-stack-demo {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+}
+
+.alert-near-demo {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.alert-near-demo section {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--b2b-color-border-surface);
+}
+
+.alert-width-demo {
+  width: 100%;
+}
+
+.alert-width-demo.is-module {
+  max-width: 560px;
+}
+
+.alert-readable-demo {
+  width: 100%;
+  padding-right: 30%;
+}
+
+.alert-practice {
+  width: 100%;
+  padding-top: 8px;
+  border-top: 4px solid var(--b2b-green-500);
+}
+
+.alert-practice.is-avoid {
+  border-color: var(--b2b-red-500);
+}
+
+@media (max-width: 600px) {
+  .alert-near-demo { grid-template-columns: 1fr; }
+  .alert-readable-demo { padding-right: 0; }
+}
+/* Documentation owns its container only; the production alert stays width:100%. */
+.component-api-docs[data-component-api-docs-id="C-49"] .component-api-docs-preview > [data-component-docs-mount] { width: 100%; min-width: 0; }

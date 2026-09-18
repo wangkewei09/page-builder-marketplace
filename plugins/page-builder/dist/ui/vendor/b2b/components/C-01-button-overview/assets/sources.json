@@ -1,0 +1,20 @@
+[
+  {
+    "file": "contact.jpg",
+    "source": "https://randomuser.me/api/portraits/men/32.jpg",
+    "purpose": "Fictional demo identity; image used only as sample avatar",
+    "sha256": "a634d4f02fe5b77804943c1d74b8d70e35ffe26454e0e9af9717432a2c72bfde"
+  },
+  {
+    "file": "member.jpg",
+    "source": "https://randomuser.me/api/portraits/women/65.jpg",
+    "purpose": "Fictional demo identity; image used only as sample avatar",
+    "sha256": "ee794ad2b1016f820a8dffbfe5602d0ef612da197096715c1b200aac385c0017"
+  },
+  {
+    "file": "colleague.jpg",
+    "source": "https://randomuser.me/api/portraits/women/44.jpg",
+    "purpose": "Fictional demo identity; image used only as sample avatar",
+    "sha256": "d8dab29a5736d5c2b0084d720d3db02c785560071609be501541922928fdf831"
+  }
+]

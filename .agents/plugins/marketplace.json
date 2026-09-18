@@ -1,7 +1,7 @@
 {
-  "name": "page-builder-development",
+  "name": "page-builder-marketplace",
   "interface": {
-    "displayName": "Page Builder Development"
+    "displayName": "页面搭建器 Marketplace"
   },
   "plugins": [
     {

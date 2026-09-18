@@ -7,6 +7,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.join(root, "dist");
 await mkdir(dist, { recursive: true });
 
+// Renderer validation runs in installed plugins too. Ship its runtime package so
+// a Marketplace checkout can start without the developer's node_modules.
+const playwrightDirectory = path.dirname(fileURLToPath(import.meta.resolve("playwright-core/package.json")));
+await cp(playwrightDirectory, path.join(dist, "node_modules/playwright-core"), { recursive: true });
+
 await build({
   entryPoints: {
     server: path.join(root, "src/server.ts"),

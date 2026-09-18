@@ -1,0 +1,6 @@
+(function registerComponentContractConfig() {
+  "use strict";
+  var D = window.B2BDesignSource;
+  D.componentContractConfigs = D.componentContractConfigs || [];
+  D.componentContractConfigs.push(["C-21", "输入框", "在页面中引导用户录入短文本、数字、属性、组合值或长文本。", "input", "容器|占位符|标签区域|输入文本|前缀/后缀 addon|前缀图标|清空/密码/信息操作|帮助/校验文本|C-44 Tooltip 浮层", "基础输入框|数字输入框|带图标输入框|带属性输入框|组合输入框|长文本输入框", "24-mini|28-small|32-medium-default|36-large|40-xlarge|240-min-recommended|600-max-recommended|92-textarea", "normal|hover|focus|inputting|input-complete|disabled|readonly|error|hover-icon|active-select", "按六类输入框组织。mini/small/medium/large/xlarge 与 24/28/32/36/40px 一一对应，默认 medium；单行控件在 Error 状态保持同档高度。基础输入可配置清空、无边框、密码或字数统计，清空只在可编辑且有值时出现，点击或键盘激活后恢复输入焦点并各派发一次 change/clear。数字输入仅接收明确范围内数值。带图标输入的右侧信息说明必须组合正式 C-44 Tooltip，支持 Hover、Focus、Escape、ARIA 与 body portal 几何。属性输入的 caller-owned 前/后 addon 可分别为固定文本或复用 canonical Select 的可选择项，也可使用已有行内标签 anatomy；标签与前后 addon 不同时使用。addon 灰色表面、边界、圆角、禁用、只读和错误态与主输入正确衔接。组合输入可为两段 caller-owned 输入，或由 canonical Select 与一段 caller-owned 输入组成；双输入支持 filled/borderless，选择与输入组合仅支持 filled。焦点只强调当前段；无背景形态仍保留 Hover、Focus、Error、Disabled、Readonly 提示。长文本支持自增高或固定 92px、字数统计与错误状态。Hover、Focus、Inputting 等瞬时状态不作为 props。", "input.*|textarea.*|input-number.*|input-affix.*|input-combination.*|select.*|tooltip.*|control.height.*|space.*|color.danger.*|focus.ring|motion.fast"]);
+})();

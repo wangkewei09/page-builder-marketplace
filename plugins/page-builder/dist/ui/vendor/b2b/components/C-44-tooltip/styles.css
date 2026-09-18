@@ -1,0 +1,320 @@
+
+/* C-44 文字提示 */
+.component-spec-board[data-component-id="C-44"] .specimen-row,
+.component-spec-board[data-component-id="C-44"] .specimen-cell,
+.component-spec-board[data-component-id="C-44"] .specimen-stage {
+  overflow: visible;
+}
+
+.source-tooltip-spec {
+  --tooltip-offset: 10px;
+  display: inline-grid;
+  position: relative;
+  min-width: 40px;
+  min-height: 32px;
+  place-items: center;
+  outline: 0;
+}
+
+.tooltip-trigger-demo {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+}
+
+.source-tooltip-spec > .source-tooltip,
+.source-tooltip.source-tooltip-portal {
+  display: block;
+  visibility: hidden;
+  position: absolute;
+  z-index: var(--b2b-z-tooltip, 80);
+  width: max-content;
+  max-width: 320px;
+  padding: 8px 12px;
+  border-radius: var(--b2b-radius-xs);
+  background: var(--b2b-neutral-900);
+  box-shadow: var(--b2b-shadow-down-4);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  opacity: 0;
+  pointer-events: none;
+  scale: .96;
+  white-space: nowrap;
+  transition:
+    opacity 100ms cubic-bezier(.34, .69, .1, 1),
+    scale 100ms cubic-bezier(.34, .69, .1, 1),
+    translate 100ms cubic-bezier(.34, .69, .1, 1),
+    visibility 0s linear 100ms;
+}
+
+.source-tooltip-spec.is-open > .source-tooltip,
+.source-tooltip.source-tooltip-portal.is-open {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  scale: 1;
+  translate: 0 0;
+  transition-delay: 0s;
+}
+
+.source-tooltip-spec > .source-tooltip > i,
+.source-tooltip.source-tooltip-portal > i {
+  position: absolute;
+  display: block;
+  background: var(--b2b-neutral-900);
+}
+
+.source-tooltip-spec.is-multiline > .source-tooltip,
+.source-tooltip.source-tooltip-portal.is-multiline {
+  width: 240px;
+  white-space: normal;
+}
+
+.source-tooltip-spec.is-max > .source-tooltip,
+.source-tooltip.source-tooltip-portal.is-max {
+  width: 320px;
+  white-space: normal;
+}
+
+.source-tooltip.source-tooltip-portal {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  right: auto;
+  bottom: auto;
+  transform: none;
+}
+
+.tooltip-truncated {
+  display: block;
+  width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tooltip-info-trigger {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: var(--b2b-color-text-secondary);
+}
+
+.source-tooltip-spec[data-tooltip-placement^="top"] > .source-tooltip {
+  bottom: calc(100% + var(--tooltip-offset));
+  translate: 0 4px;
+  transform-origin: 50% 100%;
+}
+
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="top"] {
+  translate: 0 4px;
+  transform-origin: 50% 100%;
+}
+
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="top"] > i {
+  top: 100%;
+  width: 12px;
+  height: 6px;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.source-tooltip-spec[data-tooltip-placement="top"] > .source-tooltip {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.source-tooltip-spec[data-tooltip-placement="top-left"] > .source-tooltip {
+  left: 0;
+}
+
+.source-tooltip-spec[data-tooltip-placement="top-right"] > .source-tooltip {
+  right: 0;
+}
+
+.source-tooltip-spec[data-tooltip-placement^="top"] > .source-tooltip > i,
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="top"] > i {
+  top: 100%;
+  width: 12px;
+  height: 6px;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.source-tooltip-spec[data-tooltip-placement^="top"] > .source-tooltip > i,
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="top"] > i {
+  left: var(--tooltip-arrow-x, calc(50% - 6px));
+}
+
+.source-tooltip-spec[data-tooltip-placement^="bottom"] > .source-tooltip {
+  top: calc(100% + var(--tooltip-offset));
+  translate: 0 -4px;
+  transform-origin: 50% 0;
+}
+
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="bottom"] {
+  translate: 0 -4px;
+  transform-origin: 50% 0;
+}
+
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="bottom"] > i {
+  bottom: 100%;
+  width: 12px;
+  height: 6px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.source-tooltip-spec[data-tooltip-placement="bottom"] > .source-tooltip {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.source-tooltip-spec[data-tooltip-placement="bottom-left"] > .source-tooltip {
+  left: 0;
+}
+
+.source-tooltip-spec[data-tooltip-placement="bottom-right"] > .source-tooltip {
+  right: 0;
+}
+
+.source-tooltip-spec[data-tooltip-placement^="bottom"] > .source-tooltip > i,
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="bottom"] > i {
+  bottom: 100%;
+  width: 12px;
+  height: 6px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.source-tooltip-spec[data-tooltip-placement^="bottom"] > .source-tooltip > i,
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="bottom"] > i {
+  left: var(--tooltip-arrow-x, calc(50% - 6px));
+}
+
+.source-tooltip-spec[data-tooltip-placement^="left"] > .source-tooltip {
+  right: calc(100% + var(--tooltip-offset));
+  translate: 4px 0;
+  transform-origin: 100% 50%;
+}
+
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="left"] {
+  translate: 4px 0;
+  transform-origin: 100% 50%;
+}
+
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="left"] > i {
+  left: 100%;
+  width: 6px;
+  height: 12px;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.source-tooltip-spec[data-tooltip-placement="left"] > .source-tooltip {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.source-tooltip-spec[data-tooltip-placement="left-top"] > .source-tooltip {
+  top: 0;
+}
+
+.source-tooltip-spec[data-tooltip-placement="left-bottom"] > .source-tooltip {
+  bottom: 0;
+}
+
+.source-tooltip-spec[data-tooltip-placement^="left"] > .source-tooltip > i,
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="left"] > i {
+  left: 100%;
+  width: 6px;
+  height: 12px;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.source-tooltip-spec[data-tooltip-placement^="left"] > .source-tooltip > i,
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="left"] > i {
+  top: var(--tooltip-arrow-y, calc(50% - 6px));
+}
+
+.source-tooltip-spec[data-tooltip-placement^="right"] > .source-tooltip {
+  left: calc(100% + var(--tooltip-offset));
+  translate: -4px 0;
+  transform-origin: 0 50%;
+}
+
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="right"] {
+  translate: -4px 0;
+  transform-origin: 0 50%;
+}
+
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="right"] > i {
+  right: 100%;
+  width: 6px;
+  height: 12px;
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+
+.source-tooltip-spec[data-tooltip-placement="right"] > .source-tooltip {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.source-tooltip-spec[data-tooltip-placement="right-top"] > .source-tooltip {
+  top: 0;
+}
+
+.source-tooltip-spec[data-tooltip-placement="right-bottom"] > .source-tooltip {
+  bottom: 0;
+}
+
+.source-tooltip-spec[data-tooltip-placement^="right"] > .source-tooltip > i,
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="right"] > i {
+  right: 100%;
+  width: 6px;
+  height: 12px;
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+
+.source-tooltip-spec[data-tooltip-placement^="right"] > .source-tooltip > i,
+.source-tooltip.source-tooltip-portal[data-tooltip-placement^="right"] > i {
+  top: var(--tooltip-arrow-y, calc(50% - 6px));
+}
+
+.source-tooltip-spec.is-open > .source-tooltip,
+.source-tooltip.source-tooltip-portal.is-open {
+  translate: 0 0;
+}
+
+.tooltip-edge-rule {
+  display: grid;
+  width: 100%;
+  min-height: 120px;
+  align-items: end;
+  justify-items: end;
+  padding: 8px;
+  border: 1px dashed var(--b2b-color-border-control);
+}
+
+.tooltip-nearby {
+  display: flex;
+  gap: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-tooltip-spec > .source-tooltip,
+  .source-tooltip.source-tooltip-portal {
+    transition-duration: 0s;
+  }
+}
+
+@media (max-width: 600px) {
+  .source-tooltip-spec > .source-tooltip,
+  .source-tooltip-spec.is-max > .source-tooltip,
+  .source-tooltip.source-tooltip-portal,
+  .source-tooltip.source-tooltip-portal.is-max {
+    max-width: min(260px, calc(100vw - 48px));
+  }
+
+  .component-spec-board[data-component-id="C-44"] .specimen-stage {
+    min-height: 120px;
+  }
+}
