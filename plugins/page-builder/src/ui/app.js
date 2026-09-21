@@ -13,7 +13,7 @@ import { createSelectionToolbar } from "./selection-toolbar.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
-const state = { page: null, library: null, loadedLibraryId: null, catalog: [], selection: null, preview: false, uiSlots: new Map(), editTimers: new Map(), fullPropsDirty: false, dragging: null, searchQuery: "", leftTab: "components", viewport: "desktop", inspectorOpen: false, lastCommittedAt: 0, renderEpoch: 0, selectionEpoch: 0, mutating: 0, polling: false, runtime: null };
+const state = { page: null, library: null, loadedLibraryId: null, catalog: [], selection: null, selectedIds: new Set(), preview: false, uiSlots: new Map(), editTimers: new Map(), fullPropsDirty: false, dragging: null, searchQuery: "", leftTab: "components", viewport: "desktop", inspectorOpen: false, lastCommittedAt: 0, renderEpoch: 0, selectionEpoch: 0, mutating: 0, polling: false, runtime: null };
 let mutationQueue = Promise.resolve();
 let pendingSelections = 0, inspectorRendering = false;
 let inspectorQueue = Promise.resolve();
@@ -25,13 +25,14 @@ let runtimeTransport = null, runtimeAssets = null, runtimeEpoch = 0;
 let reloadingRuntime = false, runtimeReloadFailed = false;
 let contextLease = null;
 let contextQueue = Promise.resolve();
-let contextNodeId = null, contextEpoch = 0, inspectorKey = null, renderedPageName = null;
+let contextNodeIds = [], contextEpoch = 0, inspectorKey = null, renderedPageName = null;
 let contextStatusKind = "ready";
 const uiGenerations = new Map();
 const canvasDrag = createCanvasDrag({
   canStart: () => {
     if (state.preview || !state.page || state.mutating || state.editTimers.size || reloadingRuntime || runtimeReloadFailed) return false;
     if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性的修改。", "error"); return false; }
+    if (state.selectedIds.size > 1) { toast("请先单击要移动的组件，再拖动。", "error"); return false; }
     return true;
   },
   labelFor: drag => {
@@ -47,36 +48,52 @@ const canvasDrag = createCanvasDrag({
 const canvasRenderer = createCanvasRenderer({
   renderComponent: (component, target) => window.B2B.renderComponent(component, target),
   beforeCommit: () => canvasDrag.cancel(false),
-  onSelect: id => select(id),
+  onSelect: (id, event) => select(id, event),
   onDragStart: (event, id) => canvasDrag.begin(event, { kind: "existing", id }),
   labelFor: layout => labels[layout]
 });
 const selectionToolbar = createSelectionToolbar({
   canShow: () => !state.preview && !state.dragging && !reloadingRuntime,
   clear: () => clearUiPrefix("node-action-"),
-  actions: id => [
+  actions: id => state.selectedIds.size > 1 ? [
+    { key: "count", badge: true, label: `已选 ${state.selectedIds.size} 项` },
+    ...(host.status === "connected" ? [{ key: "context", icon: "add_comment", label: `加入 AI 上下文（${state.selectedIds.size}）`, run: () => attachContext() }] : [])
+  ] : [
     { key: "up", icon: "arrow_upward", label: "上移", iconOnly: true, run: () => moveSibling(id, -1) },
     { key: "down", icon: "arrow_downward", label: "下移", iconOnly: true, run: () => moveSibling(id, 1) },
     { key: "copy", icon: "content_copy", label: "复制", run: () => commit([{ type: "duplicate", nodeId: id }], "已复制") },
     { key: "delete", icon: "delete", label: "删除", variant: "secondary-danger", run: () => commit([{ type: "remove", nodeId: id }], "已删除") },
-    ...(host.status === "connected" ? [{ key: "context", icon: "add_comment", label: "加入 AI 上下文", run: () => attachContext(id) }] : [])
+    ...(host.status === "connected" ? [{ key: "context", icon: "add_comment", label: "加入 AI 上下文", run: () => attachContext() }] : [])
   ],
-  mount: (element, action, id) => mountUi(`node-action-${id}-${action.key}`, element, action.iconOnly ? "C-04" : "C-02",
-    action.iconOnly ? iconProps(action.icon, action.label) : { ...buttonProps(action.label, action.variant || "secondary-gray", action.icon), size: "mini" },
-    { [action.iconOnly ? "b2b:icon-activate" : "b2b:button-activate"]: () => action.run() })
+  mount: (element, action, id) => action.badge
+    ? mountUi(`node-action-${id}-${action.key}`, element, "C-42", { variant: "status", type: "status", size: "small", color: "neutral", text: action.label, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: false, bordered: false, solid: false, disabled: false })
+    : mountUi(`node-action-${id}-${action.key}`, element, action.iconOnly ? "C-04" : "C-02",
+      action.iconOnly ? iconProps(action.icon, action.label) : { ...buttonProps(action.label, action.variant || "secondary-gray", action.icon), size: "mini" },
+      { [action.iconOnly ? "b2b:icon-activate" : "b2b:button-activate"]: () => action.run() })
 });
-async function attachContext(id = state.selection) {
+function validIds(ids) { return [...new Set(ids)].filter(id => id && state.page && findNode(state.page.root, id)); }
+function setSelection(nodeId, preserveGroup = false) {
+  const ids = validIds(state.selectedIds);
+  if (preserveGroup || nodeId === state.selection) {
+    state.selectedIds = new Set(ids.length ? ids : validIds([nodeId]));
+    state.selection = state.selectedIds.has(nodeId) ? nodeId : [...state.selectedIds].at(-1) || null;
+  } else { state.selection = nodeId; state.selectedIds = new Set(validIds([nodeId])); }
+}
+async function attachContext(ids = [...state.selectedIds]) {
   if (host.status === "failed" && !host.app) await connectHost();
-  contextNodeId = id; contextEpoch += 1; contextLease?.claim();
+  contextNodeIds = validIds(ids); contextEpoch += 1; contextLease?.claim();
   await syncModelContext();
 }
 function contextReadyStatus(force = false) {
   if (host.status !== "connected") return;
   if (!force && ["connecting", "failed"].includes(contextStatusKind)) return;
-  const node = contextNodeId && findNode(state.page.root, contextNodeId)?.node;
-  const label = node && (node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label);
-  setContextStatus(node ? "synced" : "ready", node ? `对话已引用：${label}` : "选中后点击按钮加入 AI 上下文", node && contextNodeId === state.selection ? "重新同步" : "加入 AI 上下文");
+  const nodes = validIds(contextNodeIds).map(id => findNode(state.page.root, id).node);
+  const label = nodes.length > 1 ? `${nodes.length} 项` : nodes[0] && (nodes[0].kind === "layout" ? labels[nodes[0].layout] : definition(nodes[0].componentId)?.label);
+  const same = nodes.length > 0 && nodes.length === state.selectedIds.size && nodes.every(node => state.selectedIds.has(node.id));
+  const action = same ? "重新同步" : state.selectedIds.size > 1 ? `加入 AI 上下文（${state.selectedIds.size}）` : "加入 AI 上下文";
+  setContextStatus(nodes.length ? "synced" : "ready", nodes.length ? `对话已引用：${label}` : "选中后点击按钮加入 AI 上下文", action);
 }
+
 function clearPublishedContext() {
   contextQueue = contextQueue.catch(() => {}).then(async () => {
     // A structuredContent object containing null still creates a Codex attachment.
@@ -147,7 +164,7 @@ function setContextStatus(kind, text, action = "加入 AI 上下文") {
   const disabled = kind === "connecting" || kind === "standalone" || kind === "unsupported" || !state.selection && kind !== "failed";
   const color = kind === "failed" ? "red" : kind === "synced" ? "green" : kind === "connecting" ? "orange" : "neutral";
   void mountUi("context-status", el, "C-42", { variant: "status", type: "status", size: "extra-small", color, text, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: kind === "connecting", bordered: false, solid: false, disabled: false });
-  void mountUi("sync-context", button, "C-02", { label: action, variant: "secondary-blue", size: "mini", icon: null, disabled, loading: kind === "connecting", width: "default" }, { "b2b:button-activate": () => attachContext() });
+  void mountUi("sync-context", button, "C-02", { label: action, variant: "secondary-blue", size: "mini", icon: null, disabled, loading: kind === "connecting", width: "default" }, { "b2b:button-activate": () => attachContext(kind === "failed" && contextNodeIds.length ? contextNodeIds : undefined) });
 }
 function nodeCount(node) { return 1 + (node.kind === "layout" ? node.children.reduce((sum, child) => sum + nodeCount(child), 0) : 0); }
 function findNode(node, id, parent = null) { if (node.id === id) return { node, parent }; if (node.kind === "layout") for (const child of node.children) { const found = findNode(child, id, node); if (found) return found; } return null; }
@@ -162,7 +179,7 @@ async function bootstrap() {
   await loadPage(pageId); await renderChrome(); await renderLibrarySettings(); setSaving("", "已保存"); renderLibrary(); $("#provider-status").textContent = `真实 B2B Renderer · ${state.catalog.length} 个已适配组件 · ${health.pluginVersion}`;
   if (!native) await connectHost();
   contextLease = contextOwner(state.page.pageId, () => {
-    contextNodeId = null; contextEpoch += 1; setContextStatus("ready", "上下文已由另一个面板接管"); return clearPublishedContext();
+    contextNodeIds = []; contextEpoch += 1; setContextStatus("ready", "上下文已由另一个面板接管"); return clearPublishedContext();
   });
   const cleared = await clearPublishedContext();
   if (cleared) contextReadyStatus(true);
@@ -200,7 +217,7 @@ async function loadRuntime(library, assets) {
   state.loadedLibraryId = snapshotId;
 }
 
-async function loadPage(pageId) { state.selectionEpoch += 1; const result = await api(`./api/pages/${pageId}`); if (native && state.loadedLibraryId && result.library?.snapshotId !== state.loadedLibraryId) return reloadNativePage(result); state.page = result.page; if (result.components) state.catalog = result.components; state.library = result.library || state.runtime?.componentLibrary || null; state.selection = result.selection.nodeId; await loadRuntime(state.library); await renderAll(); }
+async function loadPage(pageId) { state.selectionEpoch += 1; const result = await api(`./api/pages/${pageId}`); if (native && state.loadedLibraryId && result.library?.snapshotId !== state.loadedLibraryId) return reloadNativePage(result); state.page = result.page; if (result.components) state.catalog = result.components; state.library = result.library || state.runtime?.componentLibrary || null; setSelection(result.selection.nodeId); await loadRuntime(state.library); await renderAll(); }
 
 async function rebuildNativePage(result, assets) {
   runtimeEpoch += 1; state.renderEpoch += 1;
@@ -208,7 +225,7 @@ async function rebuildNativePage(result, assets) {
   runtimeTransport?.dispose(); runtimeTransport = null; state.loadedLibraryId = null;
   $("#app").innerHTML = editorTemplate;
   state.page = result.page; state.library = result.library; state.catalog = result.components;
-  state.selection = result.selection?.nodeId ?? null; state.selectionEpoch += 1;
+  setSelection(result.selection?.nodeId ?? null, true); state.selectionEpoch += 1;
   await loadRuntime(state.library, assets);
   await renderAll(); await renderChrome(); await renderLibrarySettings(); renderLibrary();
   $("#canvas-frame").classList.toggle("is-mobile", state.viewport === "mobile");
@@ -258,7 +275,7 @@ async function connectHost() {
   const app = new App({ name: "page-builder-development-ui", version: state.runtime?.pluginVersion || "development" });
   app.onteardown = async () => {
     canvasDrag.cancel(false);
-    state.selectionEpoch += 1; contextEpoch += 1; contextNodeId = null;
+    state.selectionEpoch += 1; contextEpoch += 1; contextNodeIds = [];
     selectionToolbar.reset(); canvasRenderer.reset();
     if (contextLease) await contextLease.close(); else await clearPublishedContext();
     return {};
@@ -274,12 +291,15 @@ async function connectHost() {
 }
 
 function modelContext() {
-  if (!state.page) return { content: [] };
-  const found = contextNodeId ? findNode(state.page.root, contextNodeId) : null;
-  if (!found) return { content: [] };
-  const node = found.node; const summary = { pageId: state.page.pageId, nodeId: node.id, revision: state.page.revision, kind: node.kind, ...(node.kind === "component" ? { componentId: node.componentId, props: node.props } : { layout: node.layout, gap: node.gap, columns: node.columns ?? null }) };
-  const label = node.kind === "component" ? `${node.componentId} ${definition(node.componentId)?.label || "组件"}` : labels[node.layout];
-  return { content: [{ type: "text", text: `页面搭建器引用组件：${label}；pageId=${summary.pageId}；nodeId=${summary.nodeId}；revision=${summary.revision}。` }], structuredContent: { pageBuilderSelection: summary }, presentation: { composerLabel: `页面搭建器 · ${label}` } };
+  const nodes = validIds(contextNodeIds).map(id => {
+    const { node, parent } = findNode(state.page.root, id);
+    return { nodeId: node.id, parentId: parent?.id ?? null, kind: node.kind, ...(node.kind === "component" ? { componentId: node.componentId, props: node.props } : { layout: node.layout, gap: node.gap, columns: node.columns ?? null }) };
+  });
+  if (!nodes.length) return { content: [] };
+  const summary = { pageId: state.page.pageId, revision: state.page.revision, nodeIds: nodes.map(node => node.nodeId), nodes, ...(nodes.length === 1 ? nodes[0] : {}) };
+  const label = nodes.length > 1 ? `${nodes.length} 项选中内容` : nodes[0].kind === "component" ? `${nodes[0].componentId} ${definition(nodes[0].componentId)?.label || "组件"}` : labels[nodes[0].layout];
+  const identity = nodes.length === 1 ? `nodeId=${nodes[0].nodeId}` : `nodeIds=${summary.nodeIds.join(",")}`;
+  return { content: [{ type: "text", text: `页面搭建器引用组件：${label}；pageId=${summary.pageId}；${identity}；revision=${summary.revision}。` }], structuredContent: { pageBuilderSelection: summary }, presentation: { composerLabel: `页面搭建器 · ${label}` } };
 }
 
 function syncModelContext() {
@@ -288,8 +308,8 @@ function syncModelContext() {
 }
 async function publishModelContext(epoch) {
   if (host.status !== "connected" || !host.app || !contextLease?.active || epoch !== contextEpoch) return;
-  if (contextNodeId && !findNode(state.page.root, contextNodeId)) contextNodeId = null;
-  setContextStatus("connecting", contextNodeId ? "正在同步引用组件…" : "正在清除对话引用…");
+  contextNodeIds = validIds(contextNodeIds);
+  setContextStatus("connecting", contextNodeIds.length ? "正在同步引用组件…" : "正在清除对话引用…");
   try {
     await host.app.request({ method: "ui/update-model-context", params: modelContext() }, EmptyResultSchema, { timeout: 3000 });
     if (epoch !== contextEpoch || !contextLease?.active) return;
@@ -310,7 +330,7 @@ async function refreshFromDisk() {
       if (native) await reloadNativePage(result); else location.reload(); return;
     }
     const pageChanged = result.page.revision !== state.page.revision; const selectionChanged = result.selection.nodeId !== state.selection;
-    if (pageChanged || selectionChanged) { state.page = result.page; if (result.components) state.catalog = result.components; state.library = nextLibrary; state.selection = result.selection.nodeId; state.selectionEpoch += 1; if (pageChanged) { await renderAll(); await syncModelContext(); } else renderSelection(); }
+    if (pageChanged || selectionChanged) { state.page = result.page; if (result.components) state.catalog = result.components; state.library = nextLibrary; setSelection(result.selection.nodeId); state.selectionEpoch += 1; if (pageChanged) { await renderAll(); await syncModelContext(); } else renderSelection(); }
   } catch (error) { if (runtimeReloadFailed) $("#library-update-status").textContent = `组件库重载失败，保留原显示，请重试：${error.message}`; else console.warn("页面刷新失败", error); }
   finally { state.polling = false; }
 }
@@ -407,7 +427,7 @@ function acceptSavedPage(result, epoch, keepSelection = true) {
   state.page = result.page;
   // A late save must not undo a newer click while the request was in flight.
   if (epoch === state.selectionEpoch || state.selection && !findNode(result.page.root, state.selection)) {
-    state.selection = result.selection?.nodeId ?? (keepSelection && state.selection && findNode(result.page.root, state.selection) ? state.selection : null);
+    setSelection(result.selection?.nodeId ?? (keepSelection && state.selection && findNode(result.page.root, state.selection) ? state.selection : null), keepSelection);
     state.selectionEpoch += 1;
   }
 }
@@ -441,13 +461,19 @@ function history(direction) {
 
 function fail(error) { setSaving("error", "保存失败"); toast(error.message, "error"); console.error(error); }
 
-function select(nodeId) {
+function select(nodeId, event = {}) {
   if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性，再选择组件。", "error"); return Promise.resolve(); }
+  const ids = new Set(validIds(state.selectedIds));
+  const toggle = (event.metaKey || event.ctrlKey) && nodeId !== state.page.root.id;
+  if (!toggle) { ids.clear(); if (nodeId) ids.add(nodeId); }
+  else { ids.delete(state.page.root.id); if (ids.has(nodeId)) ids.delete(nodeId); else ids.add(nodeId); }
+  state.selectedIds = ids;
+  nodeId = ids.has(nodeId) ? nodeId : [...ids].at(-1) || null;
   const epoch = ++state.selectionEpoch; state.selection = nodeId; renderSelection();
   pendingSelections += 1;
   mutationQueue = mutationQueue.then(async () => {
     const result = await api(`./api/pages/${state.page.pageId}/selection`, { method: "POST", body: JSON.stringify({ nodeId, expectedRevision: state.page.revision }) });
-    if (epoch !== state.selectionEpoch) return; state.selection = result.selection.nodeId;
+    if (epoch !== state.selectionEpoch) return; setSelection(result.selection.nodeId);
   }).catch(async (error) => { if (epoch !== state.selectionEpoch) return; if (error.code === "REVISION_CONFLICT") await loadPage(state.page.pageId); fail(error); }).finally(() => { pendingSelections -= 1; });
   return mutationQueue;
 }
@@ -472,7 +498,7 @@ async function renderAll() {
 function moveSibling(id, delta) { const found = findNode(state.page.root, id); if (!found?.parent) return; const index = found.parent.children.findIndex((child) => child.id === id); const next = Math.max(0, Math.min(found.parent.children.length - 1, index + delta)); if (next !== index) commit([{ type: "move", nodeId: id, parentId: found.parent.id, index: next }], "顺序已调整"); }
 
 function renderSelection(force = false) {
-  selectionToolbar.invalidate(state.selection && state.selection !== state.page.root.id && !state.preview ? state.selection : null);
+  selectionToolbar.invalidate(state.selection && state.selection !== state.page.root.id && !state.preview ? state.selection : null, JSON.stringify([...state.selectedIds]));
   inspectorQueue = inspectorQueue.then(async () => {
     inspectorRendering = true; lockInspector();
     try { await renderSelectionNow(force); }
@@ -482,18 +508,32 @@ function renderSelection(force = false) {
 }
 
 async function renderSelectionNow(force = false) {
-  const selectionId = state.selection;
-  document.querySelectorAll(".node-shell").forEach((el) => el.classList.toggle("is-selected", el.dataset.nodeId === state.selection));
-  await selectionToolbar.select(state.selection && state.selection !== state.page.root.id && !state.preview ? state.selection : null);
-  if (selectionId !== state.selection) return;
+  const selectionId = state.selection, selectionKey = JSON.stringify([...state.selectedIds]);
+  document.querySelectorAll(".node-shell").forEach((el) => el.classList.toggle("is-selected", state.selectedIds.has(el.dataset.nodeId)));
+  document.querySelectorAll(".tree-item").forEach(el => { const selected = state.selectedIds.has(el.dataset.treeNodeId); el.classList.toggle("is-selected", selected); el.setAttribute("aria-pressed", String(selected)); });
+  await selectionToolbar.select(state.selection && state.selection !== state.page.root.id && !state.preview ? state.selection : null, JSON.stringify([...state.selectedIds]));
+  if (selectionId !== state.selection || selectionKey !== JSON.stringify([...state.selectedIds])) return;
   const found = state.selection ? findNode(state.page.root, state.selection) : null;
   const nodeKey = found && { ...found.node, children: undefined };
-  const key = JSON.stringify([state.loadedLibraryId, nodeKey]);
+  const key = JSON.stringify([state.loadedLibraryId, nodeKey, selectionKey]);
   if (!force && (key === inspectorKey || state.fullPropsDirty)) return;
   state.fullPropsDirty = false; inspectorKey = key;
   clearUiPrefix("field-"); clearUiPrefix("delete-");
   const inspector = $("#inspector"); inspector.replaceChildren(); contextReadyStatus();
   if (!found) { $("#selection-type").textContent = "未选择"; inspector.innerHTML = `<div class="empty-inspector"><span class="empty-icon"></span><p>选择画布中的组件</p><small>在这里修改内容、变体和状态</small></div>`; $(".empty-icon", inspector).append(libraryIcon("touch_app")); return; }
+  if (state.selectedIds.size > 1) {
+    $("#selection-type").textContent = `已选 ${state.selectedIds.size} 项`;
+    const hint = document.createElement("p"); hint.textContent = "可一起加入 AI 上下文。单击组件可恢复单选，编辑属性或移动。";
+    const list = document.createElement("ul"); list.className = "selection-list";
+    for (const id of state.selectedIds) {
+      const item = findNode(state.page.root, id)?.node; if (!item) continue;
+      const row = document.createElement("li");
+      const label = item.kind === "layout" ? labels[item.layout] : definition(item.componentId)?.label || "组件";
+      const text = item.props?.label || item.props?.title || item.props?.text;
+      row.textContent = `${label}${text ? ` · ${text}` : ""}`; list.append(row);
+    }
+    inspector.append(hint, list); return;
+  }
   const node = found.node; $("#selection-type").textContent = node.kind === "layout" ? labels[node.layout] : `${node.componentId} · ${definition(node.componentId)?.label || "组件"}`;
   if (node.kind === "layout") await renderLayoutInspector(node, inspector); else await renderComponentInspector(node, inspector);
 }
@@ -752,7 +792,7 @@ function propLabel(key) { return ({ label: "文案", value: "当前值", placeho
 function divider() { const el = document.createElement("div"); el.className = "inspector-divider"; return el; }
 function deleteButton(nodeId) { const hostElement = document.createElement("div"); hostElement.className = "delete-control"; void mountUi(`delete-${nodeId}`, hostElement, "C-02", buttonProps("删除节点", "secondary-danger", "delete", "long"), { "b2b:button-activate": () => commit([{ type: "remove", nodeId }], "已删除") }); return hostElement; }
 
-function renderTree() { const tree = $("#tree"); tree.replaceChildren(); const visit = (node, depth) => { const item = document.createElement("div"); item.className = `tree-item${node.id === state.selection ? " is-selected" : ""}`; item.tabIndex = 0; item.setAttribute("role", "button"); item.style.setProperty("--depth", depth); item.innerHTML = `<span class="tree-indent"></span><span class="tree-icon"></span><span>${escapeHtml(node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label)}</span>`; item.addEventListener("click", () => select(node.id)); item.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(node.id); } }); $(".tree-icon", item).append(libraryIcon(node.kind === "layout" ? layoutIcons[node.layout] : componentIcons[node.componentId] || "widgets")); tree.append(item); if (node.kind === "layout") node.children.forEach((child) => visit(child, depth + 1)); }; visit(state.page.root, 0); }
+function renderTree() { const tree = $("#tree"); tree.replaceChildren(); const visit = (node, depth) => { const item = document.createElement("div"); item.dataset.treeNodeId = node.id; item.setAttribute("aria-pressed", String(state.selectedIds.has(node.id))); item.className = `tree-item${state.selectedIds.has(node.id) ? " is-selected" : ""}`; item.tabIndex = 0; item.setAttribute("role", "button"); item.style.setProperty("--depth", depth); item.innerHTML = `<span class="tree-indent"></span><span class="tree-icon"></span><span>${escapeHtml(node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label)}</span>`; item.addEventListener("click", event => select(node.id, event)); item.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(node.id, event); } }); $(".tree-icon", item).append(libraryIcon(node.kind === "layout" ? layoutIcons[node.layout] : componentIcons[node.componentId] || "widgets")); tree.append(item); if (node.kind === "layout") node.children.forEach((child) => visit(child, depth + 1)); }; visit(state.page.root, 0); }
 
 window.addEventListener("error", event => { if (!state.page) startup(`启动失败：${event.message}`); });
 // Register the editor lifecycle before the source-library transport takes ownership of its listeners.

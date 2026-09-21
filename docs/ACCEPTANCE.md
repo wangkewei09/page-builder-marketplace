@@ -119,3 +119,10 @@ A09/A17：桥接与严格原生资源模拟通过零空附件、同源双面板�
 - 23 项单测、2 项 MCP/独立包测试、typecheck、插件/Skill 校验通过。新测试等待属性面板脱离 inert 后输入（Playwright fill 不检查 inert 焦点），不通过固定延时掩盖保存竞争。
 - 自审覆盖挂载代次、引用所有权、串行写入、迟返回选区、组件源边界和重载解锁；未运行独立 Agent 评审。证据：`artifacts/evidence/selection-incremental-20260921.json`，桌面/窄屏 `selection-toolbar[-narrow]-20260921.png`，截图已目视复核。
 - 浏览器和原生资源沙箱不等于当前 Codex 宿主已经加载。开发版安装后需完整退出再开，真实 A17 仍待宿主重启后确认。
+
+## 多组件上下文（2026-09-21）
+
+- `multi-context.test.mjs` 使用真实 MCP 服务和打包后的原生 HTML，无 HTTP 的严格 CSP 宿主模拟：多选/取消、一个附件、同类不同 ID、换选保留引用、两项已保存属性更新、结构树键盘、拒绝后换选再重试、部分删除/全部清空均通过，错误为 0。真实 macOS ⌘ 点击；Windows Ctrl 仅事件分支验证，未称 Windows 实机通过。
+- 原有 `host-bridge`、`incremental-canvas`、`native-refresh` 回归通过，覆盖跨面板接管、单选兼容、复制删除、实例复用与组件库重载恢复。typecheck、23 项 TS 行为测试、2 项 MCP/独立包测试、插件和 Skill 校验通过。
+- 自审检查了活动选区/临时多选/显式引用三者边界、相同活动节点的组变化、异步发布与重试、节点删除、旧字段兼容；未做独立 Agent 评审。
+- 截图已目视复核桌面与 660px 面板的数量、选框和浮动操作；连续测试和安装证据见 `artifacts/evidence/multi-context-20260921.json`。当前 Codex 宿主真实加载与附件展开仍需重启后验收，不能由模拟宿主结果代替。

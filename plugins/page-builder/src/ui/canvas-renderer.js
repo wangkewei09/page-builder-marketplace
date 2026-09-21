@@ -19,7 +19,7 @@ export function createCanvasRenderer({ renderComponent, beforeCommit, onSelect, 
       if (!previous || previous.kind !== node.kind) {
         const shell = document.createElement("div");
         shell.dataset.nodeId = node.id;
-        shell.addEventListener("click", event => { if (!shell.closest(".is-preview")) { event.stopPropagation(); onSelect(node.id); } });
+        shell.addEventListener("click", event => { if (!shell.closest(".is-preview")) { event.stopPropagation(); onSelect(node.id, event); } });
         shell.addEventListener("dragstart", event => { if (shell.draggable) { event.stopPropagation(); onDragStart(event, node.id); } });
         record = { shell, kind: node.kind, key: null };
       }

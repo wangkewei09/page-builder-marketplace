@@ -1,6 +1,6 @@
 // A body-level toolbar stays outside moving layout shells and canvas clipping.
 export function createSelectionToolbar({ mount, clear, actions, canShow }) {
-  let element = null, selected = null, observer = null;
+  let element = null, selected = null, signature = null, observer = null;
   function position() {
     if (!element || !selected) return;
     const shell = document.querySelector(`[data-node-id="${CSS.escape(selected)}"]`);
@@ -19,12 +19,12 @@ export function createSelectionToolbar({ mount, clear, actions, canShow }) {
     element.style.left = `${left}px`; element.style.top = `${Math.min(top, innerHeight - bounds.height - 8)}px`;
   }
   function reset() {
-    observer?.disconnect(); observer = null; clear(); element?.remove(); element = null; selected = null;
+    observer?.disconnect(); observer = null; clear(); element?.remove(); element = null; selected = null; signature = null;
   }
-  async function select(id) {
-    if (id === selected) { position(); return; }
+  async function select(id, key = id) {
+    if (id === selected && key === signature) { position(); return; }
     reset(); if (!id) return;
-    selected = id; const toolbar = document.createElement("div"); element = toolbar;
+    selected = id; signature = key; const toolbar = document.createElement("div"); element = toolbar;
     toolbar.className = "node-actions"; toolbar.setAttribute("role", "toolbar"); toolbar.setAttribute("aria-label", "选中组件操作");
     for (const event of ["click", "pointerdown", "dragstart"]) toolbar.addEventListener(event, e => e.stopPropagation());
     document.body.append(toolbar);
@@ -41,5 +41,5 @@ export function createSelectionToolbar({ mount, clear, actions, canShow }) {
   // Register before library transport starts tracking component-owned listeners.
   document.addEventListener("scroll", position, true);
   window.addEventListener("resize", position);
-  return { select, position, reset, invalidate(id) { if (id !== selected) reset(); } };
+  return { select, position, reset, invalidate(id, key = id) { if (id !== selected || key !== signature) reset(); } };
 }
