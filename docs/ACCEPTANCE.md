@@ -100,3 +100,13 @@ A09/A17：桥接与严格原生资源模拟通过零空附件、同源双面板�
 环境：Browser plugin not available（本会话未提供 browser skill），采用项目已有 Playwright Core 与 Google Chrome。HTTP 1440×1000/1500×1000 与 520×760；原生注入 1440×1000，旧库窄面板 520×440/320×360。页面身份正确、非空、无错误覆盖层、非预期控制台错误 0。注入错误协议时预期出现一条 400 拒绝请求，有独立断言，不算正常流程成功。
 
 截图已目视：`/tmp/page-builder-real-protocol.png`、`/tmp/page-builder-protocol-desktop.png`、`/tmp/page-builder-protocol-narrow.png`、`/tmp/page-builder-native-refresh-fixed.png`。浏览器测试均使用隔离页面/缓存/导出目录，不修改真实用户页面。代码测试比对源实际有效 schema，未把测试替身当组件库实现。
+
+
+## A04/A05/A08 拖拽反馈专项（2026-09-21）
+
+- `npm run test:drag`：真实鼠标事件验证中间插入与让位动画、稳定落点、上下移动、原位放回、Esc/外部取消、撤销重做、重开、版本冲突、空纵向/横向/分栏、跨容器移动、横向换行/多行分栏、边缘滚动及取消停止、保存失败后的重试、520px 窄面板和减少动态效果。全部通过；预览期间 revision 不变，完成只增一次。
+- 浏览器基础编辑回归通过：拖入、改文案/变体、avatar 类型、跨容器移动、删除/撤销、预览原组件交互和保存重开。原测试模糊匹配“类型”同时命中变体提示，改为精确属性组定位；补隔离 library cache，未弱化行为断言。
+- `native-refresh.test.mjs` 增加严格无 HTTP 动态注入文档在多次库重载/恢复之后的真实鼠标占位及插入；安装版本对应结果见 PROGRESS。
+- 环境：本任务未列出 Browser skill（Browser plugin not available in this session），采用既有 Playwright/Chrome 153.0.8010.52，HTTP 1440×1000 / 520×760；原生资源沙箱 1420×960。无空白/渲染错误、非预期控制台错误 0。故意注入的 409/503 单独记录。
+- 连续交互与数据证据：`/tmp/page-builder-drag-result.json`；桌面 `/tmp/page-builder-drag-placeholder.png`、窄屏 `/tmp/page-builder-drag-narrow.png`、重载后原生资源 `/tmp/page-builder-drag-native.png`。截图仅辅助视觉检查，不替代拖动和持久化断言。
+- 真实 Codex 当前面板加载新版本仍属 A17 单独验收；没有把浏览器/原生资源沙箱当成实际宿主验收。

@@ -7,6 +7,7 @@ import { EmptyResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import { contextOwner } from "./context-owner.js";
 import { inputVariantPatch } from "../input-variants.ts";
 import { cardVariantPatch } from "../card-variants.ts";
+import { createCanvasDrag } from "./canvas-drag.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
@@ -22,6 +23,22 @@ let runtimeTransport = null, runtimeAssets = null, runtimeEpoch = 0;
 let reloadingRuntime = false, runtimeReloadFailed = false;
 let contextLease = null;
 let contextQueue = Promise.resolve();
+const canvasDrag = createCanvasDrag({
+  canStart: () => {
+    if (state.preview || !state.page || state.mutating || state.editTimers.size || reloadingRuntime || runtimeReloadFailed) return false;
+    if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性的修改。", "error"); return false; }
+    return true;
+  },
+  labelFor: drag => {
+    const node = drag.kind === "existing" ? findNode(state.page.root, drag.id)?.node : null;
+    return node ? node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label : drag.kind === "layout" ? labels[drag.id] : definition(drag.id)?.label;
+  },
+  onStart: drag => { state.dragging = drag; },
+  onEnd: () => { state.dragging = null; },
+  onDrop: (drag, parentId, index) => drag.kind === "existing"
+    ? commit([{ type: "move", nodeId: drag.id, parentId, index }], "组件已移动")
+    : addNode(drag.kind, drag.id, parentId, index)
+});
 function clearPublishedContext() {
   contextQueue = contextQueue.catch(() => {}).then(async () => {
     // A structuredContent object containing null still creates a Codex attachment.
@@ -158,6 +175,7 @@ async function rebuildNativePage(result, assets) {
 }
 
 async function reloadNativePage(result) {
+  canvasDrag.cancel(false);
   const previous = { page: state.page, library: state.library, components: state.catalog, selection: { nodeId: state.selection } };
   const previousAssets = runtimeAssets, settingsOpen = $(".library-settings")?.open;
   reloadingRuntime = true; $("#app").inert = true;
@@ -196,6 +214,7 @@ async function connectHost() {
   if (window.B2B) setContextStatus("connecting", "正在连接 Codex 对话上下文…");
   const app = new App({ name: "page-builder-development-ui", version: state.runtime?.pluginVersion || "development" });
   app.onteardown = async () => {
+    canvasDrag.cancel(false);
     state.selectionEpoch += 1;
     if (contextLease) await contextLease.close(); else await clearPublishedContext();
     return {};
@@ -236,10 +255,10 @@ async function publishModelContext(epoch) {
 }
 
 async function refreshFromDisk() {
-  if (!state.page || state.mutating || state.polling || reloadingRuntime || runtimeReloadFailed) return;
+  if (!state.page || state.dragging || state.mutating || state.polling || reloadingRuntime || runtimeReloadFailed) return;
   state.polling = true;
   try {
-    const result = await api(`./api/pages/${state.page.pageId}`); if (state.mutating || reloadingRuntime) return; const nextLibrary = result.library || state.runtime?.componentLibrary || null;
+    const result = await api(`./api/pages/${state.page.pageId}`); if (state.dragging || state.mutating || reloadingRuntime) return; const nextLibrary = result.library || state.runtime?.componentLibrary || null;
     if (nextLibrary?.snapshotId && state.library?.snapshotId && nextLibrary.snapshotId !== state.library.snapshotId) {
       if (state.fullPropsDirty || state.editTimers.size) return;
       if (native) await reloadNativePage(result); else location.reload(); return;
@@ -316,15 +335,15 @@ function renderLibrary() {
 
 function libraryItem(id, label, description, kind) {
   const item = document.createElement("div"); item.className = "library-item"; item.draggable = true; item.tabIndex = 0; item.setAttribute("role", "button"); item.setAttribute("aria-label", `${label}，${description}`); item.innerHTML = `<span class="library-icon">${kind === "layout" ? "▦" : escapeHtml(id.slice(2))}</span><span class="library-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(description)}</small></span><span class="library-add ui-control"></span>`;
-  item.addEventListener("dragstart", (event) => { state.dragging = { kind, id }; event.dataTransfer.effectAllowed = "copy"; event.dataTransfer.setData("text/plain", `${kind}:${id}`); });
+  item.addEventListener("dragstart", (event) => canvasDrag.begin(event, { kind, id }));
   const addHost = $(".library-add", item); addHost.addEventListener("click", (event) => event.stopPropagation()); void mountUi(`library-${kind}-${id}`, addHost, "C-04", iconProps("add", `添加${label}`), { "b2b:icon-activate": (event) => { event.stopPropagation(); addNode(kind, id, state.selection); } });
   item.addEventListener("keydown", (event) => { if (event.key === "Enter") addNode(kind, id, state.selection); }); return item;
 }
 
-async function addNode(kind, id, selectedId) {
+async function addNode(kind, id, selectedId, index) {
   let parentId = state.page.root.id; const selected = selectedId ? findNode(state.page.root, selectedId)?.node : null; if (selected?.kind === "layout") parentId = selected.id;
   const node = kind === "layout" ? { kind: "layout", layout: id, gap: "medium", ...(id === "columns" ? { columns: 2 } : {}) } : { kind: "component", componentId: id, props: ({ "C-02": { label: "按钮" }, "C-21": { label: "输入内容", placeholder: "请输入" }, "C-23": { placeholder: "请选择", items: ["选项一", "选项二", "选项三"] }, "C-34": { title: "卡片标题", body: "在属性面板中编辑卡片内容。" }, "C-42": { text: "标签" } })[id] || {} };
-  await commit([{ type: "add", parentId, node }], `${kind === "layout" ? labels[id] : definition(id).label}已添加`);
+  await commit([{ type: "add", parentId, ...(index === undefined ? {} : { index }), node }], `${kind === "layout" ? labels[id] : definition(id).label}已添加`);
 }
 
 function commit(operations, success, applyDraft = false) {
@@ -360,21 +379,18 @@ async function renderAll() {
   void mountUi("revision", "#revision-badge", "C-42", { variant: "status", type: "status", size: "extra-small", color: "neutral", text: `Revision ${state.page.revision}`, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: false, bordered: true, solid: false, disabled: false }); $("#node-count").textContent = `${nodeCount(state.page.root) - 1} 个节点`;
   $("#canvas").classList.toggle("is-preview", state.preview); await renderNode(state.page.root, fragment, true, { epoch, instances: nextInstances });
   if (epoch !== state.renderEpoch) { for (const instance of nextInstances.values()) if (!instance.destroyed) instance.destroy(); return; }
-  state.instances = nextInstances; $("#canvas").replaceChildren(fragment); renderTree(); renderSelection();
+  canvasDrag.cancel(false); state.instances = nextInstances; $("#canvas").replaceChildren(fragment); renderTree(); renderSelection();
 }
 
 async function renderNode(node, target, isRoot = false, context) {
   const shell = document.createElement("div"); shell.className = `node-shell ${node.kind === "layout" ? "layout-shell" : "component-shell"}${isRoot ? " is-root" : ""}`; shell.dataset.nodeId = node.id; shell.draggable = !isRoot && !state.preview;
   if (!state.preview) {
     shell.addEventListener("click", (event) => { event.stopPropagation(); select(node.id); });
-    shell.addEventListener("dragstart", (event) => { event.stopPropagation(); state.dragging = { kind: "existing", id: node.id }; event.dataTransfer.setData("text/plain", `existing:${node.id}`); });
+    shell.addEventListener("dragstart", (event) => { event.stopPropagation(); canvasDrag.begin(event, { kind: "existing", id: node.id }); });
     shell.append(nodeActions(node, isRoot));
   }
   if (node.kind === "layout") {
-    shell.classList.add(`layout-node`, `layout-${node.layout}`, `gap-${node.gap}`); if (node.columns) shell.style.setProperty("--columns", node.columns);
-    shell.addEventListener("dragover", (event) => { event.preventDefault(); event.stopPropagation(); shell.querySelector(":scope > .drop-hint")?.classList.add("is-dragover"); });
-    shell.addEventListener("dragleave", () => shell.querySelector(":scope > .drop-hint")?.classList.remove("is-dragover"));
-    shell.addEventListener("drop", async (event) => { event.preventDefault(); event.stopPropagation(); if (!state.dragging) return; const drag = state.dragging; state.dragging = null; if (drag.kind === "existing") { if (drag.id !== node.id) await commit([{ type: "move", nodeId: drag.id, parentId: node.id }], "组件已移动"); } else await addNode(drag.kind, drag.id, node.id); });
+    shell.classList.add(`layout-node`, `layout-${node.layout}`, `gap-${node.gap}`); shell.dataset.layoutLabel = labels[node.layout]; if (node.columns) shell.style.setProperty("--columns", node.columns);
     for (const child of node.children) await renderNode(child, shell, false, context);
     if (!node.children.length && !state.preview) { const hint = document.createElement("div"); hint.className = "drop-hint"; hint.textContent = isRoot ? "从左侧拖入组件，或点击 + 添加" : "拖入组件"; shell.append(hint); }
   } else {

@@ -129,6 +129,24 @@ try {
   await frame.getByRole('button', { name: '删除节点', exact: true }).waitFor();
   assert.equal(await page.evaluate(() => window.initializations), 1, 'refresh must retain the same host connection');
   await page.screenshot({ path: '/tmp/page-builder-native-refresh-fixed.png' });
+  // The drag controller's document listeners must survive library listener cleanup.
+  const beforeDrag = await getPage();
+  const palette = frame.locator('#component-list .library-item').first();
+  const from = await palette.boundingBox(), to = await frame.locator('.component-shell').boundingBox();
+  await page.mouse.move(from.x + 24, from.y + from.height / 2); await page.mouse.down();
+  await page.mouse.move(from.x + 32, from.y + from.height / 2 + 8, { steps: 4 });
+  await page.mouse.move(to.x + 30, to.y + 3, { steps: 10 }); await page.mouse.move(to.x + 31, to.y + 4);
+  await frame.locator('.drop-placeholder').waitFor();
+  assert.equal(await frame.locator('.drop-placeholder').getAttribute('data-index'), '0');
+  assert.deepEqual(await getPage(), beforeDrag, 'native drag preview must not persist');
+  await page.waitForTimeout(220);
+  await page.screenshot({ path: '/tmp/page-builder-drag-native.png' });
+  await page.mouse.up(); await frame.getByText('基础按钮已添加', { exact: true }).waitFor();
+  const afterDrag = await getPage();
+  assert.equal(afterDrag.revision, beforeDrag.revision + 1);
+  assert.equal(afterDrag.root.children[0].componentId, 'C-02');
+  assert.equal(afterDrag.root.children[1].id, beforeDrag.root.children[0].id);
+  assert.equal(await frame.locator('.drop-placeholder,.drag-ghost').count(), 0);
   assert.deepEqual(errors, []); assert.deepEqual(requests, []);
-  console.log(JSON.stringify({ nativeRefresh: 'pass', injectedDocumentPreserved: true, repeatedSourceReload: true, sourceMetadataReloaded: true, pluginBuildUnchanged: true, sourceJavaScriptAndCssChanged: true, contentAndSelectionPreserved: true, noRuntimeNodeGrowth: true, sameHostConnection: true, sameSourceRevisionPreserved: true, editingAfterReload: true, failurePreservesDisplayAndRetry: true, failedReplacementRestoresRuntime: true, noHttpRequests: true, screenshot: '/tmp/page-builder-native-refresh-fixed.png' }));
+  console.log(JSON.stringify({ nativeRefresh: 'pass', injectedDocumentPreserved: true, repeatedSourceReload: true, sourceMetadataReloaded: true, pluginBuildUnchanged: true, sourceJavaScriptAndCssChanged: true, contentAndSelectionPreserved: true, noRuntimeNodeGrowth: true, sameHostConnection: true, sameSourceRevisionPreserved: true, editingAfterReload: true, dragPreviewAndDropAfterReload: true, failurePreservesDisplayAndRetry: true, failedReplacementRestoresRuntime: true, noHttpRequests: true, screenshot: '/tmp/page-builder-native-refresh-fixed.png' }));
 } finally { await browser.close(); await client.close(); }
