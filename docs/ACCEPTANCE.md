@@ -126,3 +126,10 @@ A09/A17：桥接与严格原生资源模拟通过零空附件、同源双面板�
 - 原有 `host-bridge`、`incremental-canvas`、`native-refresh` 回归通过，覆盖跨面板接管、单选兼容、复制删除、实例复用与组件库重载恢复。typecheck、23 项 TS 行为测试、2 项 MCP/独立包测试、插件和 Skill 校验通过。
 - 自审检查了活动选区/临时多选/显式引用三者边界、相同活动节点的组变化、异步发布与重试、节点删除、旧字段兼容；未做独立 Agent 评审。
 - 截图已目视复核桌面与 660px 面板的数量、选框和浮动操作；连续测试和安装证据见 `artifacts/evidence/multi-context-20260921.json`。当前 Codex 宿主真实加载与附件展开仍需重启后验收，不能由模拟宿主结果代替。
+
+## 空白取消选择与页面概览（2026-09-21）
+
+- `multi-context` 新增真实点击根布局间隙（含 ⌘）、画布 padding、外侧空白；单选/多选与持久选区清空，已有附件不变。页面名称及组件/非根布局数量随 Schema 更新，子布局和源 C-02「页面布局」入口仍可选择。
+- `native-refresh` 新增反复库重载、失败恢复和拖入后的空白取消验收，页面 revision 与引用均不变。原 `host-bridge`、`incremental-canvas`、typecheck、插件校验通过，相关控制台错误为 0。
+- 桌面 1440×900 / 窄屏 680×900（内嵌视口 1420px / 660px）截图已目视复核；没有 Browser skill，使用既有 Playwright/Chrome 和隔离 MCP 严格 CSP 资源。证据 `artifacts/evidence/page-overview-20260921.json`。自审覆盖命中边界、草稿保护、空选区、视图缓存和重载监听器，未做独立评审。
+- 安装与源码构建核对、用户数据备份分别记录；当前 Codex 宿主加载仍须重启后确认。

@@ -150,6 +150,12 @@ try {
   assert.equal(afterDrag.root.children[0].componentId, 'C-02');
   assert.equal(afterDrag.root.children[1].id, beforeDrag.root.children[0].id);
   assert.equal(await frame.locator('.drop-placeholder,.drag-ghost').count(), 0);
+  const reference = await page.evaluate(() => window.contexts.at(-1).structuredContent.pageBuilderSelection);
+  await frame.locator('.canvas-scroll').click({ position: { x: 2, y: 2 } });
+  await frame.locator('#selection-type').getByText('未选择', { exact: true }).waitFor();
+  await frame.locator('.page-overview-info').getByText('2 个组件', { exact: true }).waitFor();
+  assert.deepEqual(await getPage(), afterDrag, 'clearing selection after reload must not edit the page');
+  assert.deepEqual(await page.evaluate(() => window.contexts.at(-1).structuredContent.pageBuilderSelection), reference, 'clearing after reload must preserve explicit context');
   assert.deepEqual(errors, []); assert.deepEqual(requests, []);
-  console.log(JSON.stringify({ nativeRefresh: 'pass', injectedDocumentPreserved: true, repeatedSourceReload: true, sourceMetadataReloaded: true, pluginBuildUnchanged: true, sourceJavaScriptAndCssChanged: true, contentAndSelectionPreserved: true, noRuntimeNodeGrowth: true, sameHostConnection: true, sameSourceRevisionPreserved: true, editingAfterReload: true, dragPreviewAndDropAfterReload: true, failurePreservesDisplayAndRetry: true, failedReplacementRestoresRuntime: true, noHttpRequests: true, screenshot: '/tmp/page-builder-native-refresh-fixed.png' }));
+  console.log(JSON.stringify({ nativeRefresh: 'pass', injectedDocumentPreserved: true, repeatedSourceReload: true, sourceMetadataReloaded: true, pluginBuildUnchanged: true, sourceJavaScriptAndCssChanged: true, contentAndSelectionPreserved: true, noRuntimeNodeGrowth: true, sameHostConnection: true, sameSourceRevisionPreserved: true, editingAfterReload: true, dragPreviewAndDropAfterReload: true, deselectAfterReload: true, failurePreservesDisplayAndRetry: true, failedReplacementRestoresRuntime: true, noHttpRequests: true, screenshot: '/tmp/page-builder-native-refresh-fixed.png' }));
 } finally { await browser.close(); await client.close(); }

@@ -226,3 +226,10 @@
 - 定向回归和自审完成，详见 ACCEPTANCE 与 `artifacts/evidence/multi-context-20260921.json`。修复了重试按当前视觉选区替换失败组的问题。Ctrl 分支为事件验证，未声称 Windows 实机测试。
 - 官方 CLI 安装 `0.1.1+codex.20260921092603`，13 个安装运行文件与源码构建一致；新缓存的隔离 MCP 可读出 733855 字符原生资源。用户页面/历史/配置 325 个文件备份至 `/Users/wangkewei/Documents/Page Builder Backups/multi-context-20260921-172641`，安装前后摘要相同。
 - 已告知需完整 ⌘Q 后重新启动加载插件。本次未重启用户宿主，未把隔离服务当作宿主实际生效证据；没有发布 GitHub 或改组件库源文件。组件库仍手动刷新。
+
+## 2026-09-21 / 空白取消选择与页面概览
+
+- 原因：根布局点击仍选择根节点，外围画布没有清除入口。现在根布局空白和画布留白清除视觉/持久选区，保留显式上下文；子布局保留选择能力，预览/拖动/未应用草稿维持保护。
+- 未选择时右侧显示页面名称、组件/布局数量、编辑提示及源 C-02「页面布局」入口，选中后恢复属性。统计来自当前 Schema，页面名仍在顶部修改，无新增页面数据或库端修改。
+- `multi-context`、`incremental-canvas`、`host-bridge`、`native-refresh`、typecheck 与插件校验通过；重载后监听有效，证据见 ACCEPTANCE 与 `artifacts/evidence/page-overview-20260921.json`。只作自审，没有独立 Agent 评审。
+- 官方 CLI 安装 `0.1.1+codex.20260921094936`。325 个用户页面/历史/配置文件备份于 `/Users/wangkewei/Documents/Page Builder Backups/page-overview-20260921-175045`，安装前后摘要相同。当前宿主加载新构建仍需完整 ⌘Q 后启动；没有强行重启或发布 GitHub。

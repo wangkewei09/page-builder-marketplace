@@ -48,7 +48,10 @@ const canvasDrag = createCanvasDrag({
 const canvasRenderer = createCanvasRenderer({
   renderComponent: (component, target) => window.B2B.renderComponent(component, target),
   beforeCommit: () => canvasDrag.cancel(false),
-  onSelect: (id, event) => select(id, event),
+  onSelect: (id, event) => {
+    if (state.dragging || reloadingRuntime || runtimeReloadFailed) return;
+    select(id === state.page.root.id ? null : id, event);
+  },
   onDragStart: (event, id) => canvasDrag.begin(event, { kind: "existing", id }),
   labelFor: layout => labels[layout]
 });
@@ -464,7 +467,7 @@ function fail(error) { setSaving("error", "保存失败"); toast(error.message, 
 function select(nodeId, event = {}) {
   if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性，再选择组件。", "error"); return Promise.resolve(); }
   const ids = new Set(validIds(state.selectedIds));
-  const toggle = (event.metaKey || event.ctrlKey) && nodeId !== state.page.root.id;
+  const toggle = nodeId && (event.metaKey || event.ctrlKey) && nodeId !== state.page.root.id;
   if (!toggle) { ids.clear(); if (nodeId) ids.add(nodeId); }
   else { ids.delete(state.page.root.id); if (ids.has(nodeId)) ids.delete(nodeId); else ids.add(nodeId); }
   state.selectedIds = ids;
@@ -515,12 +518,14 @@ async function renderSelectionNow(force = false) {
   if (selectionId !== state.selection || selectionKey !== JSON.stringify([...state.selectedIds])) return;
   const found = state.selection ? findNode(state.page.root, state.selection) : null;
   const nodeKey = found && { ...found.node, children: undefined };
-  const key = JSON.stringify([state.loadedLibraryId, nodeKey, selectionKey]);
+  const overview = !found && pageOverview();
+  const key = JSON.stringify([state.loadedLibraryId, nodeKey, selectionKey, overview]);
   if (!force && (key === inspectorKey || state.fullPropsDirty)) return;
   state.fullPropsDirty = false; inspectorKey = key;
   clearUiPrefix("field-"); clearUiPrefix("delete-");
   const inspector = $("#inspector"); inspector.replaceChildren(); contextReadyStatus();
-  if (!found) { $("#selection-type").textContent = "未选择"; inspector.innerHTML = `<div class="empty-inspector"><span class="empty-icon"></span><p>选择画布中的组件</p><small>在这里修改内容、变体和状态</small></div>`; $(".empty-icon", inspector).append(libraryIcon("touch_app")); return; }
+  $("#inspector-title").textContent = found ? "属性" : "页面";
+  if (!found) { await renderPageOverview(inspector, overview); return; }
   if (state.selectedIds.size > 1) {
     $("#selection-type").textContent = `已选 ${state.selectedIds.size} 项`;
     const hint = document.createElement("p"); hint.textContent = "可一起加入 AI 上下文。单击组件可恢复单选，编辑属性或移动。";
@@ -536,6 +541,32 @@ async function renderSelectionNow(force = false) {
   }
   const node = found.node; $("#selection-type").textContent = node.kind === "layout" ? labels[node.layout] : `${node.componentId} · ${definition(node.componentId)?.label || "组件"}`;
   if (node.kind === "layout") await renderLayoutInspector(node, inspector); else await renderComponentInspector(node, inspector);
+}
+
+function pageOverview() {
+  let components = 0, layouts = 0;
+  const visit = node => {
+    if (node.kind === "component") components += 1;
+    else { if (node.id !== state.page.root.id) layouts += 1; node.children.forEach(visit); }
+  };
+  visit(state.page.root);
+  return { name: state.page.name, components, layouts };
+}
+async function renderPageOverview(inspector, overview) {
+  $("#selection-type").textContent = "未选择";
+  const section = document.createElement("section"); section.className = "page-overview";
+  const info = document.createElement("dl"); info.className = "page-overview-info";
+  for (const [label, value] of [["页面名称", overview.name], ["组件数量", `${overview.components} 个组件`], ["布局数量", `${overview.layouts} 个布局`]]) {
+    const term = document.createElement("dt"), detail = document.createElement("dd");
+    term.textContent = label; detail.textContent = value; info.append(term, detail);
+  }
+  const action = document.createElement("div"), hint = document.createElement("div"); hint.className = "page-overview-hint";
+  const title = document.createElement("strong"); title.append(libraryIcon("touch_app"), document.createTextNode("编辑提示")); hint.append(title);
+  for (const text of ["单击组件，编辑内容和样式。", "按住 ⌘ / Ctrl 点击，可选择多个组件。", "点击画布空白处取消选中，已加入 AI 上下文的引用会保留。", "页面名称可在顶部修改。"] ) {
+    const line = document.createElement("p"); line.textContent = text; hint.append(line);
+  }
+  section.append(info, action, divider(), hint); inspector.append(section);
+  await mountUi("field-page-overview-layout", action, "C-02", buttonProps("页面布局", "secondary-gray", "tune"), { "b2b:button-activate": () => select(state.page.root.id) });
 }
 
 async function field(parent, scope, label, key, value, rule, onChange) {
@@ -797,4 +828,11 @@ function renderTree() { const tree = $("#tree"); tree.replaceChildren(); const v
 window.addEventListener("error", event => { if (!state.page) startup(`启动失败：${event.message}`); });
 // Register the editor lifecycle before the source-library transport takes ownership of its listeners.
 window.addEventListener("pagehide", () => contextLease?.close(), { once: true });
+// Delegate outside the runtime-owned DOM so manual library reloads keep this listener.
+document.addEventListener("click", event => {
+  const target = event.target;
+  if (!(target instanceof Element) || !target.closest(".canvas-scroll") || target.closest(".node-shell,[inert]")) return;
+  if (!state.page || state.preview || state.dragging || reloadingRuntime || runtimeReloadFailed) return;
+  if (state.selection || state.selectedIds.size) select(null);
+});
 bootstrap().catch((error) => { startup(`启动失败：${error.message}`); console.error(error); });

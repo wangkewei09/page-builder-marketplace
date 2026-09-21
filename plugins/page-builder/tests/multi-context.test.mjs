@@ -79,6 +79,39 @@ try {
   await page.screenshot({ path: "/tmp/page-builder-multi-context-narrow.png" });
   await page.setViewportSize({ width: 1440, height: 900 }); await page.locator("iframe").evaluate(el => { el.style.width = "1420px"; });
 
+  // Blank root gap, canvas padding and the surrounding workspace all clear selection, not the attachment.
+  async function deselected() {
+    await frame.locator("#selection-type").getByText("未选择", { exact: true }).waitFor();
+    assert.equal(await frame.locator("#canvas .is-selected,.tree-item.is-selected,.node-actions").count(), 0);
+    assert.equal(await frame.locator("#inspector-title").innerText(), "页面");
+    assert.deepEqual((await payload()).nodeIds, [a,b]);
+    assert.equal((await call("page_get_selection", { pageId: saved.pageId })).selection.nodeId, null);
+  }
+  const root = shell(saved.root.id), aBounds = await shell(a).boundingBox(), rootBounds = await root.boundingBox();
+  await root.click({ position: { x: 4, y: aBounds.y + aBounds.height - rootBounds.y + 5 }, modifiers: ["Meta"] });
+  await deselected();
+  await frame.locator("#inspector").getByText("3 个组件", { exact: true }).waitFor();
+  await shell(a).click(); await frame.locator("#canvas").click({ position: { x: 3, y: 3 } }); await deselected();
+  await shell(b).click(); await frame.locator(".canvas-scroll").click({ position: { x: 2, y: 2 } }); await deselected();
+  await change([{ type: "rename", name: "页面信息回归" }, { type: "add", parentId: saved.root.id, node: { kind: "layout", layout: "row", gap: "medium", children: [] } }]);
+  await frame.locator(".page-overview-info").getByText("页面信息回归", { exact: true }).waitFor();
+  await frame.locator(".page-overview-info").getByText("1 个布局", { exact: true }).waitFor();
+  const layoutId = saved.root.children.at(-1).id;
+  await shell(layoutId).click({ position: { x: 5, y: 5 } });
+  await frame.locator("#selection-type").getByText("横向布局", { exact: true }).waitFor();
+  await frame.locator("#canvas").click({ position: { x: 3, y: 3 } }); await deselected();
+  await frame.getByRole("button", { name: "页面布局", exact: true }).click();
+  await frame.locator("#inspector:not([inert])").getByRole("group", { name: "布局方向", exact: true }).waitFor();
+  assert.equal(await root.getAttribute("class").then(value => value.includes("is-selected")), true);
+  await frame.locator("#canvas").click({ position: { x: 3, y: 3 } }); await deselected();
+  await page.screenshot({ path: "/tmp/page-builder-page-overview.png" });
+  await page.setViewportSize({ width: 680, height: 900 }); await page.locator("iframe").evaluate(el => { el.style.width = "660px"; });
+  await frame.getByRole("button", { name: "显示或隐藏属性面板", exact: true }).click();
+  await frame.locator(".page-overview-info").getByText("3 个组件", { exact: true }).waitFor();
+  await page.screenshot({ path: "/tmp/page-builder-page-overview-narrow.png" });
+  await frame.getByRole("button", { name: "显示或隐藏属性面板", exact: true }).click();
+  await page.setViewportSize({ width: 1440, height: 900 }); await page.locator("iframe").evaluate(el => { el.style.width = "1420px"; });
+
   await shell(c).click(); await frame.locator("#inspector:not([inert]) input").first().waitFor();
   assert.equal(await frame.locator("#canvas .is-selected").count(), 1);
   assert.deepEqual((await payload()).nodeIds, [a,b], "ordinary selection must preserve the pinned group");
@@ -107,7 +140,7 @@ try {
   assert.deepEqual(await page.evaluate(() => window.messages.filter(m => m.method === 'ui/update-model-context').at(-1).params), { content: [] });
   assert.equal(await page.evaluate(() => window.messages.some(m => m.method === 'ui/message')), false);
   assert.deepEqual(requests, []); assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ multiContext: "pass", cmdAndCtrlToggle: true, explicitOneAttachment: true, duplicateComponentIdsRetainNodeIdentity: true, savedPropsUpdated: true, pinnedGroupSurvivesSelectionAndRetry: true, treeKeyboard: true, partialDeletionKeepsRemaining: true, finalDeletionClears: true, narrowToolbar: true, httpRequests: requests.length, errors }));
+  console.log(JSON.stringify({ multiContext: "pass", cmdAndCtrlToggle: true, explicitOneAttachment: true, duplicateComponentIdsRetainNodeIdentity: true, savedPropsUpdated: true, pinnedGroupSurvivesSelectionAndRetry: true, blankClearsSelectionOnly: true, pageOverviewUpdates: true, nestedAndRootLayoutSelectable: true, treeKeyboard: true, partialDeletionKeepsRemaining: true, finalDeletionClears: true, narrowToolbar: true, httpRequests: requests.length, errors }));
 } catch (error) {
   await page.screenshot({ path: "/tmp/page-builder-multi-context-failure.png" });
   console.error(JSON.stringify({ errors, body: await page.frameLocator("#native").locator("body").innerText(), attachments: await page.evaluate(() => window.attachments) })); throw error;
