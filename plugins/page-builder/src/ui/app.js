@@ -8,12 +8,14 @@ import { contextOwner } from "./context-owner.js";
 import { inputVariantPatch } from "../input-variants.ts";
 import { cardVariantPatch } from "../card-variants.ts";
 import { createCanvasDrag } from "./canvas-drag.js";
+import { createCanvasRenderer } from "./canvas-renderer.js";
+import { createSelectionToolbar } from "./selection-toolbar.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
-const state = { page: null, library: null, loadedLibraryId: null, catalog: [], selection: null, preview: false, instances: new Map(), uiSlots: new Map(), editTimers: new Map(), fullPropsDirty: false, dragging: null, searchQuery: "", leftTab: "components", viewport: "desktop", inspectorOpen: false, lastCommittedAt: 0, renderEpoch: 0, selectionEpoch: 0, mutating: 0, polling: false, runtime: null };
+const state = { page: null, library: null, loadedLibraryId: null, catalog: [], selection: null, preview: false, uiSlots: new Map(), editTimers: new Map(), fullPropsDirty: false, dragging: null, searchQuery: "", leftTab: "components", viewport: "desktop", inspectorOpen: false, lastCommittedAt: 0, renderEpoch: 0, selectionEpoch: 0, mutating: 0, polling: false, runtime: null };
 let mutationQueue = Promise.resolve();
-let selectionQueue = Promise.resolve();
+let pendingSelections = 0, inspectorRendering = false;
 let inspectorQueue = Promise.resolve();
 const labels = { column: "纵向布局", row: "横向布局", columns: "分栏布局" };
 const host = { app: null, status: "standalone", error: null };
@@ -23,6 +25,9 @@ let runtimeTransport = null, runtimeAssets = null, runtimeEpoch = 0;
 let reloadingRuntime = false, runtimeReloadFailed = false;
 let contextLease = null;
 let contextQueue = Promise.resolve();
+let contextNodeId = null, contextEpoch = 0, inspectorKey = null, renderedPageName = null;
+let contextStatusKind = "ready";
+const uiGenerations = new Map();
 const canvasDrag = createCanvasDrag({
   canStart: () => {
     if (state.preview || !state.page || state.mutating || state.editTimers.size || reloadingRuntime || runtimeReloadFailed) return false;
@@ -33,12 +38,45 @@ const canvasDrag = createCanvasDrag({
     const node = drag.kind === "existing" ? findNode(state.page.root, drag.id)?.node : null;
     return node ? node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label : drag.kind === "layout" ? labels[drag.id] : definition(drag.id)?.label;
   },
-  onStart: drag => { state.dragging = drag; },
-  onEnd: () => { state.dragging = null; },
+  onStart: drag => { state.dragging = drag; selectionToolbar.position(); },
+  onEnd: () => { state.dragging = null; selectionToolbar.position(); },
   onDrop: (drag, parentId, index) => drag.kind === "existing"
     ? commit([{ type: "move", nodeId: drag.id, parentId, index }], "组件已移动")
     : addNode(drag.kind, drag.id, parentId, index)
 });
+const canvasRenderer = createCanvasRenderer({
+  renderComponent: (component, target) => window.B2B.renderComponent(component, target),
+  beforeCommit: () => canvasDrag.cancel(false),
+  onSelect: id => select(id),
+  onDragStart: (event, id) => canvasDrag.begin(event, { kind: "existing", id }),
+  labelFor: layout => labels[layout]
+});
+const selectionToolbar = createSelectionToolbar({
+  canShow: () => !state.preview && !state.dragging && !reloadingRuntime,
+  clear: () => clearUiPrefix("node-action-"),
+  actions: id => [
+    { key: "up", icon: "arrow_upward", label: "上移", iconOnly: true, run: () => moveSibling(id, -1) },
+    { key: "down", icon: "arrow_downward", label: "下移", iconOnly: true, run: () => moveSibling(id, 1) },
+    { key: "copy", icon: "content_copy", label: "复制", run: () => commit([{ type: "duplicate", nodeId: id }], "已复制") },
+    { key: "delete", icon: "delete", label: "删除", variant: "secondary-danger", run: () => commit([{ type: "remove", nodeId: id }], "已删除") },
+    ...(host.status === "connected" ? [{ key: "context", icon: "add_comment", label: "加入 AI 上下文", run: () => attachContext(id) }] : [])
+  ],
+  mount: (element, action, id) => mountUi(`node-action-${id}-${action.key}`, element, action.iconOnly ? "C-04" : "C-02",
+    action.iconOnly ? iconProps(action.icon, action.label) : { ...buttonProps(action.label, action.variant || "secondary-gray", action.icon), size: "mini" },
+    { [action.iconOnly ? "b2b:icon-activate" : "b2b:button-activate"]: () => action.run() })
+});
+async function attachContext(id = state.selection) {
+  if (host.status === "failed" && !host.app) await connectHost();
+  contextNodeId = id; contextEpoch += 1; contextLease?.claim();
+  await syncModelContext();
+}
+function contextReadyStatus(force = false) {
+  if (host.status !== "connected") return;
+  if (!force && ["connecting", "failed"].includes(contextStatusKind)) return;
+  const node = contextNodeId && findNode(state.page.root, contextNodeId)?.node;
+  const label = node && (node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label);
+  setContextStatus(node ? "synced" : "ready", node ? `对话已引用：${label}` : "选中后点击按钮加入 AI 上下文", node && contextNodeId === state.selection ? "重新同步" : "加入 AI 上下文");
+}
 function clearPublishedContext() {
   contextQueue = contextQueue.catch(() => {}).then(async () => {
     // A structuredContent object containing null still creates a Codex attachment.
@@ -77,15 +115,18 @@ async function api(path, options = {}) {
   return payload;
 }
 
-function clearUiSlot(key) { const slot = state.uiSlots.get(key); if (!slot) return; slot.listeners.forEach(([name, listener]) => slot.host.removeEventListener(name, listener)); if (!slot.instance.destroyed) slot.instance.destroy(); slot.host.removeAttribute("data-ui-renderer"); slot.host.removeAttribute("data-ui-renderer-valid"); state.uiSlots.delete(key); }
-function clearUiPrefix(prefix) { for (const key of [...state.uiSlots.keys()]) if (key.startsWith(prefix)) clearUiSlot(key); }
+function clearUiSlot(key) { uiGenerations.set(key, (uiGenerations.get(key) || 0) + 1); const slot = state.uiSlots.get(key); if (!slot) return; slot.listeners.forEach(([name, listener]) => slot.host.removeEventListener(name, listener)); if (!slot.instance.destroyed) slot.instance.destroy(); slot.host.removeAttribute("data-ui-renderer"); slot.host.removeAttribute("data-ui-renderer-valid"); state.uiSlots.delete(key); }
+function clearUiPrefix(prefix) { for (const key of [...new Set([...state.uiSlots.keys(), ...uiGenerations.keys()])]) if (key.startsWith(prefix)) clearUiSlot(key); }
 async function mountUi(key, hostElement, component, props, handlers = {}) {
   const epoch = runtimeEpoch;
-  clearUiSlot(key); const hostElementRef = typeof hostElement === "string" ? $(hostElement) : hostElement; if (!hostElementRef) return null; hostElementRef.replaceChildren();
-  const listeners = Object.entries(handlers).map(([name, listener]) => { hostElementRef.addEventListener(name, listener); return [name, listener]; });
+  clearUiSlot(key); const generation = uiGenerations.get(key); const hostElementRef = typeof hostElement === "string" ? $(hostElement) : hostElement; if (!hostElementRef) return null; hostElementRef.replaceChildren();
+  const listeners = Object.entries(handlers).map(([name, handler]) => {
+    const listener = event => { if (epoch === runtimeEpoch && generation === uiGenerations.get(key)) handler(event); };
+    hostElementRef.addEventListener(name, listener); return [name, listener];
+  });
   try {
     const result = await window.B2B.renderComponent({ component, props }, hostElementRef);
-    if (epoch !== runtimeEpoch || !hostElementRef.isConnected) { result.instance.destroy(); listeners.forEach(([name, listener]) => hostElementRef.removeEventListener(name, listener)); return null; }
+    if (epoch !== runtimeEpoch || generation !== uiGenerations.get(key) || !hostElementRef.isConnected) { result.instance.destroy(); listeners.forEach(([name, listener]) => hostElementRef.removeEventListener(name, listener)); return null; }
     hostElementRef.dataset.uiRenderer = component; hostElementRef.dataset.uiRendererValid = String(result.audit.valid); state.uiSlots.set(key, { instance: result.instance, listeners, host: hostElementRef }); return result.instance;
   } catch (error) { hostElementRef.textContent = `控件加载失败：${error.message}`; hostElementRef.classList.add("ui-control-error"); console.error(error); return null; }
 }
@@ -99,13 +140,14 @@ function setSaving(kind, text) {
   void mountUi("save-state", "#save-state", "C-42", { variant: "status", type: "status", size: "small", color, text, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: kind === "saving", bordered: false, solid: false, disabled: false });
 }
 function timeout(promise, ms, message) { return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms))]); }
-function setContextStatus(kind, text, action = "加入对话") {
+function setContextStatus(kind, text, action = "加入 AI 上下文") {
+  contextStatusKind = kind;
   const el = $("#context-status"); const button = $("#sync-context"); if (!el || !button) return;
   el.title = text;
   const disabled = kind === "connecting" || kind === "standalone" || kind === "unsupported" || !state.selection && kind !== "failed";
   const color = kind === "failed" ? "red" : kind === "synced" ? "green" : kind === "connecting" ? "orange" : "neutral";
   void mountUi("context-status", el, "C-42", { variant: "status", type: "status", size: "extra-small", color, text, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: kind === "connecting", bordered: false, solid: false, disabled: false });
-  void mountUi("sync-context", button, "C-02", { label: action, variant: "secondary-blue", size: "mini", icon: null, disabled, loading: kind === "connecting", width: "default" }, { "b2b:button-activate": async () => { if (host.status === "failed" && !host.app) await connectHost(); contextLease?.claim(); await syncModelContext(state.selectionEpoch); } });
+  void mountUi("sync-context", button, "C-02", { label: action, variant: "secondary-blue", size: "mini", icon: null, disabled, loading: kind === "connecting", width: "default" }, { "b2b:button-activate": () => attachContext() });
 }
 function nodeCount(node) { return 1 + (node.kind === "layout" ? node.children.reduce((sum, child) => sum + nodeCount(child), 0) : 0); }
 function findNode(node, id, parent = null) { if (node.id === id) return { node, parent }; if (node.kind === "layout") for (const child of node.children) { const found = findNode(child, id, node); if (found) return found; } return null; }
@@ -120,10 +162,11 @@ async function bootstrap() {
   await loadPage(pageId); await renderChrome(); await renderLibrarySettings(); setSaving("", "已保存"); renderLibrary(); $("#provider-status").textContent = `真实 B2B Renderer · ${state.catalog.length} 个已适配组件 · ${health.pluginVersion}`;
   if (!native) await connectHost();
   contextLease = contextOwner(state.page.pageId, () => {
-    setContextStatus("ready", "选区已由另一个面板接管"); return clearPublishedContext();
+    contextNodeId = null; contextEpoch += 1; setContextStatus("ready", "上下文已由另一个面板接管"); return clearPublishedContext();
   });
   const cleared = await clearPublishedContext();
-  if (cleared && host.status === "connected") setContextStatus("ready", "点击组件后同步到对话");
+  if (cleared) contextReadyStatus(true);
+  selectionToolbar.reset(); await renderSelection();
   startup(null); window.setInterval(refreshFromDisk, 700);
 }
 
@@ -161,8 +204,7 @@ async function loadPage(pageId) { state.selectionEpoch += 1; const result = awai
 
 async function rebuildNativePage(result, assets) {
   runtimeEpoch += 1; state.renderEpoch += 1;
-  for (const instance of state.instances.values()) if (!instance.destroyed) instance.destroy();
-  state.instances.clear(); clearUiPrefix(""); clearTimeout(toast.timer);
+  canvasRenderer.reset(); selectionToolbar.reset(); inspectorKey = null; renderedPageName = null; clearUiPrefix(""); clearTimeout(toast.timer);
   runtimeTransport?.dispose(); runtimeTransport = null; state.loadedLibraryId = null;
   $("#app").innerHTML = editorTemplate;
   state.page = result.page; state.library = result.library; state.catalog = result.components;
@@ -188,7 +230,7 @@ async function reloadNativePage(result) {
     rebuilding = true;
     await rebuildNativePage({ ...result, selection: result.selection || previous.selection }, assets);
     runtimeReloadFailed = false;
-    await syncModelContext(state.selectionEpoch);
+    await syncModelContext();
   } catch (error) {
     runtimeReloadFailed = true;
     if (rebuilding && previousAssets) {
@@ -206,6 +248,7 @@ async function reloadNativePage(result) {
     reloadingRuntime = false; $("#app").inert = false; startup(null);
     if ($(".library-settings")) $(".library-settings").open = settingsOpen;
     for (const selector of [".topbar", ".workspace", ".right-panel", "#component-list", "#layout-list", "#tree"]) if ($(selector)) $(selector).inert = runtimeReloadFailed;
+    lockInspector(); selectionToolbar.position();
   }
 }
 
@@ -215,7 +258,8 @@ async function connectHost() {
   const app = new App({ name: "page-builder-development-ui", version: state.runtime?.pluginVersion || "development" });
   app.onteardown = async () => {
     canvasDrag.cancel(false);
-    state.selectionEpoch += 1;
+    state.selectionEpoch += 1; contextEpoch += 1; contextNodeId = null;
+    selectionToolbar.reset(); canvasRenderer.reset();
     if (contextLease) await contextLease.close(); else await clearPublishedContext();
     return {};
   };
@@ -231,40 +275,42 @@ async function connectHost() {
 
 function modelContext() {
   if (!state.page) return { content: [] };
-  const found = state.selection ? findNode(state.page.root, state.selection) : null;
+  const found = contextNodeId ? findNode(state.page.root, contextNodeId) : null;
   if (!found) return { content: [] };
   const node = found.node; const summary = { pageId: state.page.pageId, nodeId: node.id, revision: state.page.revision, kind: node.kind, ...(node.kind === "component" ? { componentId: node.componentId, props: node.props } : { layout: node.layout, gap: node.gap, columns: node.columns ?? null }) };
   const label = node.kind === "component" ? `${node.componentId} ${definition(node.componentId)?.label || "组件"}` : labels[node.layout];
-  return { content: [{ type: "text", text: `页面搭建器当前选区：${label}；pageId=${summary.pageId}；nodeId=${summary.nodeId}；revision=${summary.revision}。` }], structuredContent: { pageBuilderSelection: summary }, presentation: { composerLabel: `页面搭建器 · ${label}` } };
+  return { content: [{ type: "text", text: `页面搭建器引用组件：${label}；pageId=${summary.pageId}；nodeId=${summary.nodeId}；revision=${summary.revision}。` }], structuredContent: { pageBuilderSelection: summary }, presentation: { composerLabel: `页面搭建器 · ${label}` } };
 }
 
-function syncModelContext(epoch = state.selectionEpoch) {
+function syncModelContext() {
+  const epoch = contextEpoch;
   contextQueue = contextQueue.catch(() => {}).then(() => publishModelContext(epoch)); return contextQueue;
 }
 async function publishModelContext(epoch) {
-  if (host.status !== "connected" || !host.app || !contextLease?.active || epoch !== state.selectionEpoch) return;
-  setContextStatus("connecting", state.selection ? "正在同步当前组件…" : "正在清除对话选区…");
+  if (host.status !== "connected" || !host.app || !contextLease?.active || epoch !== contextEpoch) return;
+  if (contextNodeId && !findNode(state.page.root, contextNodeId)) contextNodeId = null;
+  setContextStatus("connecting", contextNodeId ? "正在同步引用组件…" : "正在清除对话引用…");
   try {
     await host.app.request({ method: "ui/update-model-context", params: modelContext() }, EmptyResultSchema, { timeout: 3000 });
-    if (epoch !== state.selectionEpoch || !contextLease?.active) return;
-    setContextStatus("synced", state.selection ? "已同步到对话上下文" : "已清除对话选区", state.selection ? "重新同步" : "加入对话");
+    if (epoch !== contextEpoch || !contextLease?.active) return;
+    contextReadyStatus(true);
   } catch (error) {
-    if (epoch !== state.selectionEpoch || !contextLease?.active) return;
+    if (epoch !== contextEpoch || !contextLease?.active) return;
     host.error = error; setContextStatus("failed", `同步失败：${error.message}`, "重试同步");
   }
 }
 
 async function refreshFromDisk() {
-  if (!state.page || state.dragging || state.mutating || state.polling || reloadingRuntime || runtimeReloadFailed) return;
+  if (!state.page || state.dragging || state.mutating || pendingSelections || state.polling || reloadingRuntime || runtimeReloadFailed) return;
   state.polling = true;
   try {
-    const result = await api(`./api/pages/${state.page.pageId}`); if (state.dragging || state.mutating || reloadingRuntime) return; const nextLibrary = result.library || state.runtime?.componentLibrary || null;
+    const result = await api(`./api/pages/${state.page.pageId}`); if (state.dragging || state.mutating || pendingSelections || reloadingRuntime) return; const nextLibrary = result.library || state.runtime?.componentLibrary || null;
     if (nextLibrary?.snapshotId && state.library?.snapshotId && nextLibrary.snapshotId !== state.library.snapshotId) {
       if (state.fullPropsDirty || state.editTimers.size) return;
       if (native) await reloadNativePage(result); else location.reload(); return;
     }
     const pageChanged = result.page.revision !== state.page.revision; const selectionChanged = result.selection.nodeId !== state.selection;
-    if (pageChanged || selectionChanged) { state.page = result.page; if (result.components) state.catalog = result.components; state.library = nextLibrary; state.selection = result.selection.nodeId; state.selectionEpoch += 1; if (pageChanged) await renderAll(); else renderSelection(); await syncModelContext(state.selectionEpoch); }
+    if (pageChanged || selectionChanged) { state.page = result.page; if (result.components) state.catalog = result.components; state.library = nextLibrary; state.selection = result.selection.nodeId; state.selectionEpoch += 1; if (pageChanged) { await renderAll(); await syncModelContext(); } else renderSelection(); }
   } catch (error) { if (runtimeReloadFailed) $("#library-update-status").textContent = `组件库重载失败，保留原显示，请重试：${error.message}`; else console.warn("页面刷新失败", error); }
   finally { state.polling = false; }
 }
@@ -283,12 +329,13 @@ async function renderChrome() {
   const family = await window.B2B.describeComponentFamily("button");
   document.body.dataset.buttonFamily = family?.family || "button";
   const pageNameChange = (event) => { const value = String(event.detail?.value ?? "").trim(); if (value && value !== state.page.name) scheduleEdit("page-name", () => commit([{ type: "rename", name: value }])); };
-  await mountUi("page-name", "#page-name", "C-21", inputProps("页面名称", state.page.name), { "b2b:input-change": pageNameChange });
+  await mountUi("page-name", "#page-name", "C-21", inputProps("页面名称", state.page.name), { "b2b:input-change": pageNameChange }); renderedPageName = state.page.name;
+  $(".brand-mark").replaceChildren(libraryIcon("dashboard_customize"));
   await mountUi("undo", "#undo", "C-04", iconProps("undo", "撤销"), { "b2b:icon-activate": () => history("undo") });
   await mountUi("redo", "#redo", "C-04", iconProps("redo", "重做"), { "b2b:icon-activate": () => history("redo") });
   const desktopPanel = document.createElement("span"); const mobilePanel = document.createElement("span");
   await mountUi("viewport", "#viewport-tabs", "C-41", { variant: "capsule", size: "small", items: [{ id: "desktop", label: "桌面", content: desktopPanel, disabled: false, badge: null, closable: false }, { id: "mobile", label: "移动", content: mobilePanel, disabled: false, badge: null, closable: false }], panelContainer: $("#viewport-panels"), activeId: state.viewport, ariaLabel: "画布视口", activation: "automatic", addable: false, scrollable: false, overflowItems: [] }, { "b2b:tabs-change": (event) => { state.viewport = event.detail.activeId; $("#canvas-frame").classList.toggle("is-mobile", state.viewport === "mobile"); } });
-  await mountUi("toggle-inspector", "#toggle-inspector", "C-04", iconProps("tune", "显示或隐藏属性面板"), { "b2b:icon-activate": () => { state.inspectorOpen = !state.inspectorOpen; $("#app").classList.toggle("is-inspector-open", state.inspectorOpen); } });
+  await mountUi("toggle-inspector", "#toggle-inspector", "C-04", iconProps("tune", "显示或隐藏属性面板"), { "b2b:icon-activate": () => { state.inspectorOpen = !state.inspectorOpen; $("#app").classList.toggle("is-inspector-open", state.inspectorOpen); selectionToolbar.position(); } });
   await renderPreviewButton();
   await mountUi("export", "#export", "C-02", buttonProps("导出", "primary", "download"), { "b2b:button-activate": async () => { try { setSaving("saving", "正在导出"); const result = await api(`./api/pages/${state.page.pageId}/export`, { method: "POST", body: "{}" }); setSaving("", "已保存"); toast(`已导出 revision ${result.export.revision}`); } catch (error) { fail(error); } } });
   const componentsPanel = $("#components-panel"); const structurePanel = $("#structure-panel");
@@ -324,7 +371,7 @@ async function refreshLibrarySource() {
       $("#library-update-status").textContent = "组件已刷新并重载，页面内容已保留。";
     } else { await contextLease?.close(); location.reload(); }
   } catch (error) { $("#library-update-status").textContent = applied ? `组件库已保存，重载失败，请重试：${error.message}` : `更新未应用：${error.message}`; }
-  finally { refreshingLibrary = false; state.mutating -= 1; }
+  finally { refreshingLibrary = false; state.mutating -= 1; lockInspector(); }
 }
 
 function renderLibrary() {
@@ -333,8 +380,12 @@ function renderLibrary() {
   const layouts = $("#layout-list"); layouts.replaceChildren(); for (const [id, label] of Object.entries(labels)) layouts.append(libraryItem(id, label, id === "columns" ? "2–4 列响应式容器" : "接收组件与布局", "layout"));
 }
 
+function libraryIcon(name) { return window.B2B.components.runtime.icon(name); }
+const componentIcons = { "C-02": "smart_button", "C-21": "input", "C-23": "list_alt", "C-34": "web_asset", "C-42": "sell" };
+const layoutIcons = { column: "view_agenda", row: "view_week", columns: "view_column" };
 function libraryItem(id, label, description, kind) {
-  const item = document.createElement("div"); item.className = "library-item"; item.draggable = true; item.tabIndex = 0; item.setAttribute("role", "button"); item.setAttribute("aria-label", `${label}，${description}`); item.innerHTML = `<span class="library-icon">${kind === "layout" ? "▦" : escapeHtml(id.slice(2))}</span><span class="library-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(description)}</small></span><span class="library-add ui-control"></span>`;
+  const item = document.createElement("div"); item.className = "library-item"; item.draggable = true; item.tabIndex = 0; item.setAttribute("role", "button"); item.setAttribute("aria-label", `${label}，${description}`); item.innerHTML = `<span class="library-icon"></span><span class="library-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(description)}</small></span><span class="library-add ui-control"></span>`;
+  $(".library-icon", item).append(libraryIcon(kind === "layout" ? layoutIcons[id] : componentIcons[id] || "widgets"));
   item.addEventListener("dragstart", (event) => canvasDrag.begin(event, { kind, id }));
   const addHost = $(".library-add", item); addHost.addEventListener("click", (event) => event.stopPropagation()); void mountUi(`library-${kind}-${id}`, addHost, "C-04", iconProps("add", `添加${label}`), { "b2b:icon-activate": (event) => { event.stopPropagation(); addNode(kind, id, state.selection); } });
   item.addEventListener("keydown", (event) => { if (event.key === "Enter") addNode(kind, id, state.selection); }); return item;
@@ -348,89 +399,107 @@ async function addNode(kind, id, selectedId, index) {
 
 function commit(operations, success, applyDraft = false) {
   if (state.fullPropsDirty && !applyDraft) { toast("请先应用或取消全部组件属性的修改。", "error"); return Promise.resolve(); }
-  mutationQueue = mutationQueue.then(() => commitNow(operations, success));
+  mutationQueue = mutationQueue.then(() => commitNow(operations, success, applyDraft));
   return mutationQueue;
 }
-async function commitNow(operations, success) {
-  state.mutating += 1;
-  try { setSaving("saving", "正在保存"); const result = await api(`./api/pages/${state.page.pageId}/operations`, { method: "POST", body: JSON.stringify({ expectedRevision: state.page.revision, operations }) }); state.page = result.page; state.selection = result.selection?.nodeId ?? (state.selection && findNode(result.page.root, state.selection) ? state.selection : null); state.selectionEpoch += 1; state.lastCommittedAt = Date.now(); await renderAll(); await syncModelContext(state.selectionEpoch); setSaving("", "已保存"); if (success) toast(success); }
-  catch (error) { if (error.code === "REVISION_CONFLICT") await loadPage(state.page.pageId); else if (!state.fullPropsDirty) await renderSelection(); fail(error); }
-  finally { state.mutating -= 1; }
+function lockInspector() { const inspector = $("#inspector"); if (inspector) inspector.inert = Boolean(state.mutating || inspectorRendering || runtimeReloadFailed); }
+function acceptSavedPage(result, epoch, keepSelection = true) {
+  state.page = result.page;
+  // A late save must not undo a newer click while the request was in flight.
+  if (epoch === state.selectionEpoch || state.selection && !findNode(result.page.root, state.selection)) {
+    state.selection = result.selection?.nodeId ?? (keepSelection && state.selection && findNode(result.page.root, state.selection) ? state.selection : null);
+    state.selectionEpoch += 1;
+  }
 }
-async function history(direction) { if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性的修改。", "error"); return; } state.mutating += 1; try { const result = await api(`./api/pages/${state.page.pageId}/${direction}`, { method: "POST", body: JSON.stringify({ expectedRevision: state.page.revision }) }); state.page = result.page; state.selection = result.selection?.nodeId ?? null; state.selectionEpoch += 1; await renderAll(); await syncModelContext(state.selectionEpoch); toast(direction === "undo" ? "已撤销" : "已重做"); } catch (error) { fail(error); } finally { state.mutating -= 1; } }
+async function commitNow(operations, success, applyDraft) {
+  const epoch = state.selectionEpoch; state.mutating += 1; lockInspector();
+  try {
+    setSaving("saving", "正在保存");
+    const result = await api(`./api/pages/${state.page.pageId}/operations`, { method: "POST", body: JSON.stringify({ expectedRevision: state.page.revision, operations }) });
+    acceptSavedPage(result, epoch); state.lastCommittedAt = Date.now();
+    if (applyDraft) { state.fullPropsDirty = false; inspectorKey = null; }
+    await renderAll(); await syncModelContext(); setSaving("", "已保存"); if (success) toast(success);
+  } catch (error) {
+    if (error.code === "REVISION_CONFLICT") await loadPage(state.page.pageId);
+    else if (!state.fullPropsDirty) await renderSelection(true);
+    fail(error);
+  } finally { state.mutating -= 1; lockInspector(); }
+}
+function history(direction) {
+  if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性的修改。", "error"); return Promise.resolve(); }
+  mutationQueue = mutationQueue.then(async () => {
+    const epoch = state.selectionEpoch; state.mutating += 1; lockInspector();
+    try {
+      setSaving("saving", "正在保存");
+      const result = await api(`./api/pages/${state.page.pageId}/${direction}`, { method: "POST", body: JSON.stringify({ expectedRevision: state.page.revision }) });
+      acceptSavedPage(result, epoch, false); await renderAll(); await syncModelContext(); setSaving("", "已保存"); toast(direction === "undo" ? "已撤销" : "已重做");
+    } catch (error) { fail(error); }
+    finally { state.mutating -= 1; lockInspector(); }
+  });
+  return mutationQueue;
+}
+
 function fail(error) { setSaving("error", "保存失败"); toast(error.message, "error"); console.error(error); }
 
 function select(nodeId) {
   if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性，再选择组件。", "error"); return Promise.resolve(); }
-  contextLease?.claim();
   const epoch = ++state.selectionEpoch; state.selection = nodeId; renderSelection();
-  selectionQueue = selectionQueue.then(async () => {
+  pendingSelections += 1;
+  mutationQueue = mutationQueue.then(async () => {
     const result = await api(`./api/pages/${state.page.pageId}/selection`, { method: "POST", body: JSON.stringify({ nodeId, expectedRevision: state.page.revision }) });
-    if (epoch !== state.selectionEpoch) return; state.selection = result.selection.nodeId; await syncModelContext(epoch);
-  }).catch(async (error) => { if (epoch !== state.selectionEpoch) return; if (error.code === "REVISION_CONFLICT") await loadPage(state.page.pageId); fail(error); });
-  return selectionQueue;
+    if (epoch !== state.selectionEpoch) return; state.selection = result.selection.nodeId;
+  }).catch(async (error) => { if (epoch !== state.selectionEpoch) return; if (error.code === "REVISION_CONFLICT") await loadPage(state.page.pageId); fail(error); }).finally(() => { pendingSelections -= 1; });
+  return mutationQueue;
 }
 
 async function renderAll() {
-  const epoch = ++state.renderEpoch; const nextInstances = new Map(); const fragment = document.createDocumentFragment();
-  for (const instance of state.instances.values()) if (!instance.destroyed) instance.destroy(); state.instances.clear();
-  clearUiPrefix("node-action-"); clearUiPrefix("field-"); clearUiPrefix("delete-");
-  void mountUi("page-name", "#page-name", "C-21", inputProps("页面名称", state.page.name), { "b2b:input-change": (event) => { const value = String(event.detail?.value ?? "").trim(); if (value && value !== state.page.name) scheduleEdit("page-name", () => commit([{ type: "rename", name: value }])); } });
-  void mountUi("revision", "#revision-badge", "C-42", { variant: "status", type: "status", size: "extra-small", color: "neutral", text: `Revision ${state.page.revision}`, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: false, bordered: true, solid: false, disabled: false }); $("#node-count").textContent = `${nodeCount(state.page.root) - 1} 个节点`;
-  $("#canvas").classList.toggle("is-preview", state.preview); await renderNode(state.page.root, fragment, true, { epoch, instances: nextInstances });
-  if (epoch !== state.renderEpoch) { for (const instance of nextInstances.values()) if (!instance.destroyed) instance.destroy(); return; }
-  canvasDrag.cancel(false); state.instances = nextInstances; $("#canvas").replaceChildren(fragment); renderTree(); renderSelection();
-}
-
-async function renderNode(node, target, isRoot = false, context) {
-  const shell = document.createElement("div"); shell.className = `node-shell ${node.kind === "layout" ? "layout-shell" : "component-shell"}${isRoot ? " is-root" : ""}`; shell.dataset.nodeId = node.id; shell.draggable = !isRoot && !state.preview;
-  if (!state.preview) {
-    shell.addEventListener("click", (event) => { event.stopPropagation(); select(node.id); });
-    shell.addEventListener("dragstart", (event) => { event.stopPropagation(); canvasDrag.begin(event, { kind: "existing", id: node.id }); });
-    shell.append(nodeActions(node, isRoot));
+  const epoch = ++state.renderEpoch;
+  if (renderedPageName !== state.page.name && !state.editTimers.has("page-name")) {
+    renderedPageName = state.page.name;
+    await mountUi("page-name", "#page-name", "C-21", inputProps("页面名称", state.page.name), { "b2b:input-change": event => {
+      const value = String(event.detail?.value ?? "").trim();
+      if (value && value !== state.page.name) scheduleEdit("page-name", () => commit([{ type: "rename", name: value }]));
+    } });
   }
-  if (node.kind === "layout") {
-    shell.classList.add(`layout-node`, `layout-${node.layout}`, `gap-${node.gap}`); shell.dataset.layoutLabel = labels[node.layout]; if (node.columns) shell.style.setProperty("--columns", node.columns);
-    for (const child of node.children) await renderNode(child, shell, false, context);
-    if (!node.children.length && !state.preview) { const hint = document.createElement("div"); hint.className = "drop-hint"; hint.textContent = isRoot ? "从左侧拖入组件，或点击 + 添加" : "拖入组件"; shell.append(hint); }
-  } else {
-    const host = document.createElement("div"); host.className = "component-host"; shell.append(host);
-    try { const result = await window.B2B.renderComponent({ component: node.componentId, props: node.props }, host); if (context.epoch !== state.renderEpoch) { result.instance.destroy(); return shell; } context.instances.set(node.id, result.instance); shell.dataset.rendererValid = String(result.audit.valid); }
-    catch (error) { host.className = "render-error"; host.textContent = `渲染失败：${error.message}`; console.error(error); }
-  }
-  target.append(shell); return shell;
-}
-
-function nodeActions(node, isRoot) {
-  const actions = document.createElement("div"); actions.className = "node-actions";
-  if (!isRoot) {
-    for (const [suffix, icon, title, handler] of [["up", "arrow_upward", "上移", () => moveSibling(node.id, -1)], ["down", "arrow_downward", "下移", () => moveSibling(node.id, 1)], ["copy", "content_copy", "复制", () => commit([{ type: "duplicate", nodeId: node.id }], "已复制")], ["delete", "delete", "删除", () => commit([{ type: "remove", nodeId: node.id }], "已删除")]]) {
-      const control = document.createElement("span"); control.className = "ui-control"; control.addEventListener("click", (event) => event.stopPropagation()); actions.append(control);
-      void mountUi(`node-action-${node.id}-${suffix}`, control, "C-04", iconProps(icon, title), { "b2b:icon-activate": (event) => { event.stopPropagation(); handler(); } });
-    }
-  }
-  return actions;
+  const canvas = $("#canvas"); canvas.classList.toggle("is-preview", state.preview);
+  const rendered = await canvasRenderer.render(state.page.root, canvas, { preview: state.preview, identity: `${state.page.pageId}:${state.loadedLibraryId}` });
+  if (!rendered || epoch !== state.renderEpoch) return;
+  await mountUi("revision", "#revision-badge", "C-42", { variant: "status", type: "status", size: "extra-small", color: "neutral", text: `Revision ${state.page.revision}`, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: false, bordered: true, solid: false, disabled: false });
+  $("#node-count").textContent = `${nodeCount(state.page.root) - 1} 个节点`;
+  renderTree(); await renderSelection();
 }
 
 function moveSibling(id, delta) { const found = findNode(state.page.root, id); if (!found?.parent) return; const index = found.parent.children.findIndex((child) => child.id === id); const next = Math.max(0, Math.min(found.parent.children.length - 1, index + delta)); if (next !== index) commit([{ type: "move", nodeId: id, parentId: found.parent.id, index: next }], "顺序已调整"); }
 
-function renderSelection() {
-  inspectorQueue = inspectorQueue.then(renderSelectionNow).catch((error) => console.error("属性面板渲染失败", error));
+function renderSelection(force = false) {
+  selectionToolbar.invalidate(state.selection && state.selection !== state.page.root.id && !state.preview ? state.selection : null);
+  inspectorQueue = inspectorQueue.then(async () => {
+    inspectorRendering = true; lockInspector();
+    try { await renderSelectionNow(force); }
+    finally { inspectorRendering = false; lockInspector(); }
+  }).catch((error) => console.error("属性面板渲染失败", error));
   return inspectorQueue;
 }
 
-async function renderSelectionNow() {
-  state.fullPropsDirty = false;
+async function renderSelectionNow(force = false) {
+  const selectionId = state.selection;
   document.querySelectorAll(".node-shell").forEach((el) => el.classList.toggle("is-selected", el.dataset.nodeId === state.selection));
+  await selectionToolbar.select(state.selection && state.selection !== state.page.root.id && !state.preview ? state.selection : null);
+  if (selectionId !== state.selection) return;
+  const found = state.selection ? findNode(state.page.root, state.selection) : null;
+  const nodeKey = found && { ...found.node, children: undefined };
+  const key = JSON.stringify([state.loadedLibraryId, nodeKey]);
+  if (!force && (key === inspectorKey || state.fullPropsDirty)) return;
+  state.fullPropsDirty = false; inspectorKey = key;
   clearUiPrefix("field-"); clearUiPrefix("delete-");
-  const found = state.selection ? findNode(state.page.root, state.selection) : null; const inspector = $("#inspector"); inspector.replaceChildren();
-  if (!found) { $("#selection-type").textContent = "未选择"; inspector.innerHTML = `<div class="empty-inspector"><span class="empty-icon">◇</span><p>选择画布中的组件</p><small>在这里修改内容、变体和状态</small></div>`; if (host.status === "connected") setContextStatus("ready", "已连接 · 请选择组件"); return; }
+  const inspector = $("#inspector"); inspector.replaceChildren(); contextReadyStatus();
+  if (!found) { $("#selection-type").textContent = "未选择"; inspector.innerHTML = `<div class="empty-inspector"><span class="empty-icon"></span><p>选择画布中的组件</p><small>在这里修改内容、变体和状态</small></div>`; $(".empty-icon", inspector).append(libraryIcon("touch_app")); return; }
   const node = found.node; $("#selection-type").textContent = node.kind === "layout" ? labels[node.layout] : `${node.componentId} · ${definition(node.componentId)?.label || "组件"}`;
   if (node.kind === "layout") await renderLayoutInspector(node, inspector); else await renderComponentInspector(node, inspector);
 }
 
 async function field(parent, scope, label, key, value, rule, onChange) {
-  const wrapper = document.createElement("div"); wrapper.className = rule?.type === "boolean" ? "check-field" : "field"; const control = document.createElement("div"); control.className = "field-control"; wrapper.append(control); parent.append(wrapper);
+  const wrapper = document.createElement("div"); wrapper.className = rule?.type === "boolean" ? "pb-check-field" : "pb-field"; const control = document.createElement("div"); control.className = "pb-field-control"; wrapper.append(control); parent.append(wrapper);
   wrapper.dataset.property = rule.propertyKey || key;
   if (rule.description) { const hint = document.createElement("small"); hint.textContent = rule.description; wrapper.append(hint); }
   const change = onChange; onChange = next => { if (!rule.disabled) return change(next); };
@@ -439,7 +508,7 @@ async function field(parent, scope, label, key, value, rule, onChange) {
     await mountUi(slot, control, "C-11", { variant: "standalone", label, value: key, description: null, selectAllLabel: "全选", items: [], checked: Boolean(value), mixed: false, disabled: Boolean(rule.disabled), error: false, errorMessage: null, orientation: "vertical", compact: true }, { "b2b:checkbox-change": (event) => onChange(Boolean(event.detail?.checked)) });
     return wrapper;
   }
-  const title = document.createElement("span"); title.className = "field-label"; title.id = `${slot}-label`; title.textContent = label; wrapper.prepend(title);
+  const title = document.createElement("span"); title.className = "pb-field-label"; title.id = `${slot}-label`; title.textContent = label; wrapper.prepend(title);
   control.setAttribute("role", "group"); control.setAttribute("aria-labelledby", title.id);
   if (rule?.editorValues || rule?.values) {
     const values = rule.values || rule.editorValues;
@@ -600,7 +669,7 @@ async function renderFullProperties(node, inspector, rules, settings = {}) {
     const target = document.createElement("div"); body.append(target);
     await mountUi(`field-${node.id}-${prefix}-apply`, target, "C-02", buttonProps("应用全部属性", "primary"), { "b2b:button-activate": () => { for (const timer of state.editTimers.values()) clearTimeout(timer); state.editTimers.clear(); return commit([{ type: "updateProps", nodeId: node.id, props: Object.fromEntries(Object.keys(rules).map(key => [key, draft[key]])) }], "属性已更新", true); } });
     const cancel = document.createElement("div"); body.append(cancel);
-    await mountUi(`field-${node.id}-${prefix}-cancel`, cancel, "C-02", buttonProps("取消修改"), { "b2b:button-activate": () => { state.fullPropsDirty = false; return renderSelection(); } });
+    await mountUi(`field-${node.id}-${prefix}-cancel`, cancel, "C-02", buttonProps("取消修改"), { "b2b:button-activate": () => { state.fullPropsDirty = false; return renderSelection(true); } });
   }
   details.addEventListener("toggle", () => { if (details.open && !built) { built = true; void rebuild(); } });
 }
@@ -683,7 +752,7 @@ function propLabel(key) { return ({ label: "文案", value: "当前值", placeho
 function divider() { const el = document.createElement("div"); el.className = "inspector-divider"; return el; }
 function deleteButton(nodeId) { const hostElement = document.createElement("div"); hostElement.className = "delete-control"; void mountUi(`delete-${nodeId}`, hostElement, "C-02", buttonProps("删除节点", "secondary-danger", "delete", "long"), { "b2b:button-activate": () => commit([{ type: "remove", nodeId }], "已删除") }); return hostElement; }
 
-function renderTree() { const tree = $("#tree"); tree.replaceChildren(); const visit = (node, depth) => { const item = document.createElement("div"); item.className = `tree-item${node.id === state.selection ? " is-selected" : ""}`; item.tabIndex = 0; item.setAttribute("role", "button"); item.style.setProperty("--depth", depth); item.innerHTML = `<span class="tree-indent"></span><span>${node.kind === "layout" ? "▦" : "◇"}</span><span>${escapeHtml(node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label)}</span>`; item.addEventListener("click", () => select(node.id)); item.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(node.id); } }); tree.append(item); if (node.kind === "layout") node.children.forEach((child) => visit(child, depth + 1)); }; visit(state.page.root, 0); }
+function renderTree() { const tree = $("#tree"); tree.replaceChildren(); const visit = (node, depth) => { const item = document.createElement("div"); item.className = `tree-item${node.id === state.selection ? " is-selected" : ""}`; item.tabIndex = 0; item.setAttribute("role", "button"); item.style.setProperty("--depth", depth); item.innerHTML = `<span class="tree-indent"></span><span class="tree-icon"></span><span>${escapeHtml(node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label)}</span>`; item.addEventListener("click", () => select(node.id)); item.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(node.id); } }); $(".tree-icon", item).append(libraryIcon(node.kind === "layout" ? layoutIcons[node.layout] : componentIcons[node.componentId] || "widgets")); tree.append(item); if (node.kind === "layout") node.children.forEach((child) => visit(child, depth + 1)); }; visit(state.page.root, 0); }
 
 window.addEventListener("error", event => { if (!state.page) startup(`启动失败：${event.message}`); });
 // Register the editor lifecycle before the source-library transport takes ownership of its listeners.

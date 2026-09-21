@@ -1,0 +1,57 @@
+{
+  "incremental": "pass",
+  "lateSavePreservesNewSelection": true,
+  "lifecycle": {
+    "failureKeptOld": true,
+    "latestWon": true,
+    "cleared": true,
+    "disposed": [
+      "initial",
+      "latest",
+      "slow-old",
+      "slow-reset"
+    ]
+  },
+  "unchangedInstancesAndLocalInputRetained": true,
+  "newComponentOnlyOnCopy": true,
+  "noMountOnMove": true,
+  "noBlankCanvasDuringDelayedMount": true,
+  "layoutCopyNewIds": true,
+  "undoRedo": true,
+  "foundationAndIconsFromSource": true,
+  "narrowToolbarVisible": true,
+  "stats": {
+    "mounts": 6,
+    "destroys": 2,
+    "rootRemovals": 0,
+    "delay": 0
+  },
+  "errors": [],
+  "version": "0.1.1+codex.20260921084205",
+  "browser": "Chrome 153.0.8010.52",
+  "viewports": [
+    "1440x1000",
+    "520x760"
+  ],
+  "additionalPassed": [
+    "typecheck",
+    "23 unit tests",
+    "2 MCP and package tests",
+    "browser editing",
+    "drag-preview",
+    "host-bridge",
+    "native-resource",
+    "native-refresh",
+    "builder-inspector",
+    "plugin-validator",
+    "skill-validator"
+  ],
+  "actualCodexHostReloaded": false,
+  "installedVerification": {
+    "matchingFiles": 13,
+    "freshMcpResource": true,
+    "htmlCharacters": 729401,
+    "backedUpFiles": 309,
+    "changedDataFilesAfterInstall": 0
+  }
+}

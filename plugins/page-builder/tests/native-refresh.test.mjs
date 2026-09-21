@@ -49,6 +49,7 @@ try {
   const frame = page.frameLocator('#editor');
   await frame.getByLabel('添加卡片').click(); await frame.getByText('卡片已添加').waitFor();
   await frame.locator('.component-shell').click();
+  await frame.locator('#sync-context button').click();
   const saved = await client.callTool({ name: 'page_list', arguments: {} });
   const pageId = saved.structuredContent.pages[0].pageId;
   const getPage = async () => (await client.callTool({ name: 'page_get_schema', arguments: { pageId } })).structuredContent.page;
@@ -81,6 +82,7 @@ try {
     assert.deepEqual((await getPage()).root, original.root);
     assert.equal(await frame.locator('head script,head style,head link').count(), initialRuntimeNodes, 'old runtime elements must not accumulate');
     await frame.locator('.component-shell').click();
+  await frame.locator('#sync-context button').click();
     await page.waitForFunction(() => window.contexts.at(-1)?.structuredContent?.pageBuilderSelection?.componentId === 'C-34');
   }
   const beforeUnchanged = await getPage();
@@ -91,10 +93,10 @@ try {
   sourceContract.components['C-34'].fields.title = { ...sourceContract.components['C-34'].fields.title, label: '协议更新后的卡片标题' };
   await writeFile(contractFile, JSON.stringify(sourceContract));
   await refresh(); cardTitleLabel = '协议更新后的卡片标题';
-  await frame.getByRole('group', { name: cardTitleLabel, exact: true }).waitFor();
+  await frame.locator('#app:not([inert]) #inspector:not([inert])').getByRole('group', { name: cardTitleLabel, exact: true }).waitFor();
   assert.deepEqual((await getPage()).root, beforeUnchanged.root, 'native metadata reload must preserve node content');
   assert.deepEqual(await readFile('dist/ui/app.js'), builtBefore, 'native metadata changes must not rebuild the plugin');
-  await frame.getByRole('group', { name: cardTitleLabel, exact: true }).locator('input').fill('刷新后继续编辑');
+  await frame.locator('#app:not([inert]) #inspector:not([inert])').getByRole('group', { name: cardTitleLabel, exact: true }).locator('input').fill('刷新后继续编辑');
   await frame.locator('#canvas').getByText('刷新后继续编辑', { exact: true }).waitFor();
   await frame.getByText('已保存', { exact: true }).waitFor();
   const edited = await getPage(); assert.equal(edited.root.children[0].props.title, '刷新后继续编辑');
@@ -118,11 +120,12 @@ try {
   await refresh();
   const contextCount = await page.evaluate(() => window.contexts.length);
   await frame.locator('.component-shell').click();
+  await frame.locator('#sync-context button').click();
   await page.waitForFunction(count => window.contexts.length > count && window.contexts.at(-1)?.structuredContent?.pageBuilderSelection?.props?.title === '刷新后继续编辑', contextCount);
   await frame.getByRole('button', { name: '删除节点', exact: true }).waitFor();
-  await frame.getByRole('group', { name: cardVariantLabel, exact: true }).locator('[data-select-trigger]').click();
+  await frame.locator('#app:not([inert]) #inspector:not([inert])').getByRole('group', { name: cardVariantLabel, exact: true }).locator('[data-select-trigger]').click();
   await frame.getByRole('option', { name: compactLabel, exact: true }).click({ timeout: 5000 }).catch(async error => {
-    console.error(JSON.stringify({ inspector: await frame.locator('#inspector').innerText(), variant: await frame.getByRole('group', { name: cardVariantLabel, exact: true }).innerHTML(), errors }));
+    console.error(JSON.stringify({ inspector: await frame.locator('#inspector').innerText(), variant: await frame.locator('#app:not([inert]) #inspector:not([inert])').getByRole('group', { name: cardVariantLabel, exact: true }).innerHTML(), errors }));
     await page.screenshot({ path: '/tmp/page-builder-native-refresh-variant.png' }); throw error;
   });
   await page.waitForFunction(() => window.contexts.at(-1)?.structuredContent?.pageBuilderSelection?.props?.variant === 'compact');

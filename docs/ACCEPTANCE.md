@@ -110,3 +110,12 @@ A09/A17：桥接与严格原生资源模拟通过零空附件、同源双面板�
 - 环境：本任务未列出 Browser skill（Browser plugin not available in this session），采用既有 Playwright/Chrome 153.0.8010.52，HTTP 1440×1000 / 520×760；原生资源沙箱 1420×960。无空白/渲染错误、非预期控制台错误 0。故意注入的 409/503 单独记录。
 - 连续交互与数据证据：`/tmp/page-builder-drag-result.json`；桌面 `/tmp/page-builder-drag-placeholder.png`、窄屏 `/tmp/page-builder-drag-narrow.png`、重载后原生资源 `/tmp/page-builder-drag-native.png`。截图仅辅助视觉检查，不替代拖动和持久化断言。
 - 真实 Codex 当前面板加载新版本仍属 A17 单独验收；没有把浏览器/原生资源沙箱当成实际宿主验收。
+
+## 选中操作、增量渲染和源样式（2026-09-21）
+
+- `incremental-canvas.test.mjs`：真实 C-02/C-04 工具栏复制/删除、布局子树复制新 ID、撤销重做、移动零挂载、未改节点 DOM/实例与本地输入保留、延迟挂载不清空画布、单组件 props 更新、晚到保存不覆盖新选区，以及异步淘汰/失败/reset 清理通过。桌面与 520px 窄面板工具栏可见，Foundation 变量和图标字体来源通过。
+- `host-bridge.test.mjs`：选中/添加不附加；显式加入、换选后更新保留旧引用、修改引用内容、删除清空、跨面板显式接管、拒绝/超时重试、失败状态不因换选变绿、teardown 先清空再响应、无 ui/message，全部通过。
+- `browser`、`drag-preview`、`builder-inspector` 通过；C-42 avatar、属性中文/条件/源协议更新和草稿保护仍可用。源 Renderer 的 37 种变体/四种标签类型、10 种卡片直接样式对照、无 HTTP 原生资源沙箱和原生文档连续重载/失败恢复/重载后拖拽全部通过。
+- 23 项单测、2 项 MCP/独立包测试、typecheck、插件/Skill 校验通过。新测试等待属性面板脱离 inert 后输入（Playwright fill 不检查 inert 焦点），不通过固定延时掩盖保存竞争。
+- 自审覆盖挂载代次、引用所有权、串行写入、迟返回选区、组件源边界和重载解锁；未运行独立 Agent 评审。证据：`artifacts/evidence/selection-incremental-20260921.json`，桌面/窄屏 `selection-toolbar[-narrow]-20260921.png`，截图已目视复核。
+- 浏览器和原生资源沙箱不等于当前 Codex 宿主已经加载。开发版安装后需完整退出再开，真实 A17 仍待宿主重启后确认。

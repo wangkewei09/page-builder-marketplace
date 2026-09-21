@@ -50,7 +50,8 @@ try {
   await page.getByText('组件库来源与更新', { exact: true }).click();
   await page.locator('#library-source input').fill(source);
   await page.getByRole('button', { name: '刷新并重载组件', exact: true }).click();
-  const group = name => page.getByRole('group', { name, exact: true });
+  // Playwright fill does not wait for an inert input to become focusable.
+  const group = name => page.locator('#inspector:not([inert])').getByRole('group', { name, exact: true });
   await group('操作名称').waitFor();
   assert.deepEqual((await getPage()).root, original.root, 'metadata refresh must not reset existing props');
   assert.equal(await page.locator('.library-item img').count(), 0, 'metadata is text, never HTML');

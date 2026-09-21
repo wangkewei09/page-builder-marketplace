@@ -15,9 +15,11 @@ Call `page_builder_open` for a visual page-building request. Entry version 5 dec
 
 1. Use `page_list` to resolve the intended page explicitly.
 2. Use `page_get_schema` and keep its `pageId` and `revision`.
-3. Use `page_get_selection` if the user refers to “this component”.
+3. When the message includes a Page Builder context attachment, resolve its `pageId` and `nodeId` against the latest saved schema. The user explicitly pinned that node with “加入 AI 上下文”; ordinary canvas selection can now point elsewhere. Use `page_get_selection` as a fallback when no attachment or explicit node is provided. Never substitute a different selected node for a missing/deleted referenced node.
 4. Use `component_get` with the target `pageId` before changing unfamiliar component props; `component_list` also accepts `pageId` to read that page’s pinned source protocol.
 5. Submit all related changes in one `page_apply_operations` call.
+
+Selecting only edits the visual selection. The explicit context button publishes a reference, whose saved content continues to update while other selections leave its target unchanged; deletion clears it. Opening another view stays passive until its context button claims ownership. The UI never sends `ui/message` automatically.
 
 Every write includes `pageId` and `expectedRevision`. On `REVISION_CONFLICT`, read the page again and rebase; never retry an old batch blindly. A failed batch commits nothing. Manual UI edits and AI edits use the same operation handler and history, so a successful AI batch can be undone once.
 
