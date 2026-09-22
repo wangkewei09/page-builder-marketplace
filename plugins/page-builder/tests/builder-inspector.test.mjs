@@ -1,3 +1,4 @@
+import { editInline, openInline } from "./inline-helpers.mjs";
 import assert from 'node:assert/strict';
 import { cp, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -52,16 +53,16 @@ try {
   await page.getByRole('button', { name: '刷新并重载组件', exact: true }).click();
   // Playwright fill does not wait for an inert input to become focusable.
   const group = name => page.locator('#inspector:not([inert])').getByRole('group', { name, exact: true });
-  await group('操作名称').waitFor();
+  await page.getByRole('button', { name: '编辑操作名称', exact: true }).waitFor();
   assert.deepEqual((await getPage()).root, original.root, 'metadata refresh must not reset existing props');
   assert.equal(await page.locator('.library-item img').count(), 0, 'metadata is text, never HTML');
-  assert.equal(await page.getByRole('heading', { name: '按钮内容' }).count(), 1);
+  assert.equal(await page.getByRole('heading', { name: '按钮内容' }).count(), 0, 'inline-only group does not leave an empty inspector heading');
   assert.equal(await group('强调图标').count(), 0);
   await group('按钮风格').locator('[data-select-trigger]').click();
   await group('按钮风格').getByRole('option', { name: '强调操作', exact: true }).click();
   await group('强调图标').waitFor();
   assert.equal((await getPage()).root.children[0].props.variant, 'primary');
-  await group('操作名称').locator('input').fill('保留的用户文案');
+  await editInline(page, '操作名称', '保留的用户文案');
   await page.locator('#canvas').getByText('保留的用户文案', { exact: true }).waitFor();
   await page.locator('#inspector').getByText('禁用', { exact: true }).click();
   await page.waitForFunction(() => document.querySelector('#inspector [data-property="loading"] input')?.disabled);
@@ -76,9 +77,9 @@ try {
   // New API fields appear without adding a matching fields entry.
   await page.getByText('组件库来源与更新', { exact: true }).click();
   await page.getByRole('button', { name: '刷新并重载组件', exact: true }).click();
-  await group('更新后的名称').waitFor();
+  await page.getByRole('button', { name: '编辑更新后的名称', exact: true }).waitFor();
   assert.equal(await group('sourceNote').locator('input').inputValue(), '新增默认值');
-  assert.equal(await group('更新后的名称').locator('input').inputValue(), '保留的用户文案');
+  assert.equal(await (await openInline(page, '更新后的名称')).inputValue(), '保留的用户文案'); await page.locator('.inline-editor input').press('Escape');
   assert.deepEqual((await getPage()).root, beforeMetadata.root);
   await group('按钮风格').locator('[data-select-trigger]').getByText('新的强调操作', { exact: true }).waitFor();
   const beforeBad = await getPage();
@@ -91,13 +92,16 @@ try {
   rejectingCandidate = false; assert.equal(expectedFailures.length, 1);
   assert.equal((await api('/api/libraries')).currentSnapshotId, beforeBad.componentLibrary.snapshotId);
   await writeFile(contractFile, JSON.stringify(contract));
-  await page.getByText('全部组件属性', { exact: true }).click();
-  await page.locator('#inspector details').getByRole('group', { name: '更新后的名称', exact: true }).locator('input').fill('未提交草稿');
+  await page.getByLabel('添加输入框').click(); await page.getByText('输入框已添加', { exact: true }).waitFor();
+  await page.locator('.component-shell').last().click();
+  await page.getByText('其他设置', { exact: true }).click();
+  const draftField = page.locator('#inspector details').getByRole('group', { name: '前置图标', exact: true }).locator('input');
+  await draftField.fill('search');
+  const beforeDraft = await getPage();
   await page.getByLabel('添加标签').click();
-  assert.deepEqual(await getPage(), beforeBad, 'unapplied structured edits must block unrelated writes');
-  assert.equal(await page.locator('#inspector details').getByRole('group', { name: '更新后的名称', exact: true }).locator('input').inputValue(), '未提交草稿');
+  assert.deepEqual(await getPage(), beforeDraft, 'unapplied settings must block unrelated writes');
+  assert.equal(await draftField.inputValue(), 'search');
   await page.getByRole('button', { name: '取消修改', exact: true }).click();
-  assert.equal(await group('更新后的名称').locator('input').inputValue(), '保留的用户文案');
   await page.getByLabel('添加标签').click(); await page.getByText('标签已添加', { exact: true }).waitFor();
   await page.locator('.component-shell').last().click();
   await page.locator('#inspector').getByText('允许关闭', { exact: true }).click();

@@ -1,3 +1,4 @@
+import { editInline, openInline } from "./inline-helpers.mjs";
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -39,7 +40,7 @@ try {
     throw Error('Props did not save: ' + JSON.stringify(expected));
   };
   const fields = id => metadata.components[id].fields;
-  const group = (id, key) => page.getByRole('group', { name: fields(id)[key].label, exact: true });
+  const group = (id, key) => page.locator('#inspector:not([inert])').getByRole('group', { name: fields(id)[key].label, exact: true });
   const choose = async (id, key, value) => {
     const saved = await getPage(); if (saved.root.children.at(-1).props[key] === value) return saved;
     await group(id, key).locator('[data-select-trigger]').click();
@@ -63,8 +64,8 @@ try {
       await choose(id, 'variant', option.value); variants++;
       assert.equal(await page.locator('.render-error,.ui-control-error').count(), 0, id + ':' + option.value);
       if (id === 'C-21' && option.value === '数字输入框') {
-        await group(id, 'value').locator('input').fill('7'); await waitProps({ value: 7 });
-        await group(id, 'value').locator('input').fill(''); await waitProps({ value: '' });
+        await editInline(page, fields(id).value.label, '7'); await waitProps({ value: 7 });
+        await editInline(page, fields(id).value.label, ''); await waitProps({ value: '' });
       }
       if (id === 'C-21' && option.value === '长文本输入框') {
         assert.equal(await group(id, 'size').locator('[data-select-trigger]').isDisabled(), true);
@@ -77,10 +78,10 @@ try {
     }
     if (id === 'C-34') {
       await choose(id, 'variant', 'tabs');
-      await page.getByRole('button', { name: '编辑' + fields(id).tabs.label, exact: true }).click();
+      await page.getByText('其他设置', { exact: true }).click();
       const nested = page.getByRole('group', { name: fields(id).tabs.label + ' 1 · ' + fields(id).tabs.item.fields.label.label, exact: true });
       await nested.locator('input').fill('协议驱动的页签');
-      await page.getByRole('button', { name: '应用全部属性', exact: true }).click();
+      await page.getByRole('button', { name: '应用其他设置', exact: true }).click();
       await page.locator('#canvas').getByText('协议驱动的页签', { exact: true }).waitFor();
     }
   }

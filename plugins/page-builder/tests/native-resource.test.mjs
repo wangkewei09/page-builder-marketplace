@@ -1,3 +1,4 @@
+import { editInline, openInline } from "./inline-helpers.mjs";
 import { strict as assert } from "node:assert";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -48,9 +49,9 @@ try {
   await frame.getByText("卡片已添加").waitFor();
   await frame.locator('.node-shell[data-renderer-valid="true"]').first().click();
   await frame.locator("#sync-context button").click();
-  for (const label of ["卡片标题", "卡片正文", "辅助信息"]) await frame.locator("#inspector .pb-field-label").getByText(label, { exact: true }).waitFor();
+  for (const label of ["卡片标题", "卡片正文", "辅助信息"]) await frame.locator("#inspector").getByRole("button", { name: `编辑${label}`, exact: true }).waitFor();
   assert.equal(await frame.getByText("已选值（每行一个）", { exact: true }).count(), 0);
-  const body = frame.locator("#app:not([inert]) #inspector:not([inert]) textarea");
+  const body = await openInline(frame, "卡片正文");
   assert.equal(await body.evaluate(el => el.getBoundingClientRect().height), 92);
   await body.fill("原生资源编辑已保存", { timeout: 5000 }).catch(async error => { console.error(JSON.stringify({ inspector: await frame.locator("#inspector").innerText(), errors })); throw error; }); await body.press("Tab");
   await frame.locator("#canvas").getByText("原生资源编辑已保存", { exact: true }).waitFor();
@@ -142,14 +143,15 @@ try {
     if (variant === "checkable") assert.equal(props.checkable, true);
   }
   for (const type of ["avatar", "property", "option", "status"]) await choose("类型", type);
-  await frame.getByText("全部组件属性", { exact: true }).click();
+  await frame.getByText("其他设置", { exact: true }).click();
   const allProps = frame.locator("#app:not([inert]) #inspector:not([inert]) details");
   await allProps.getByRole("group", { name: "图标", exact: true }).locator("input").fill("person");
-  const color = allProps.getByRole("group", { name: "颜色", exact: true });
+  await allProps.getByRole("button", { name: "应用其他设置", exact: true }).click();
+  await page.waitForFunction(() => window.contexts.native?.props?.icon === "person");
+  const color = frame.locator('#inspector:not([inert])').getByRole('group', { name: '颜色', exact: true });
   await color.locator('[data-select-trigger]').click();
   await color.getByRole('option', { name: '绿色', exact: true }).click();
-  await allProps.getByRole("button", { name: "应用全部属性", exact: true }).click();
-  await page.waitForFunction(() => window.contexts.native?.props?.icon === "person");
+  await page.waitForFunction(() => window.contexts.native?.props?.color === 'green');
   assert.equal(await page.evaluate(() => window.contexts.native.props.color), 'green', 'full properties must also save the source value, not the Chinese label');
   await frame.getByLabel("添加选择器").click(); await frame.getByText("选择器已添加").waitFor();
   await frame.locator('.component-shell[data-renderer-valid="true"]').last().click();

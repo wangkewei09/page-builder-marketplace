@@ -1,3 +1,4 @@
+import { editInline, openInline } from "./inline-helpers.mjs";
 import assert from 'node:assert/strict';
 import { cp, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -93,10 +94,23 @@ try {
   sourceContract.components['C-34'].fields.title = { ...sourceContract.components['C-34'].fields.title, label: '协议更新后的卡片标题' };
   await writeFile(contractFile, JSON.stringify(sourceContract));
   await refresh(); cardTitleLabel = '协议更新后的卡片标题';
-  await frame.locator('#app:not([inert]) #inspector:not([inert])').getByRole('group', { name: cardTitleLabel, exact: true }).waitFor();
+  await frame.locator('#app:not([inert]) #inspector:not([inert])').getByRole('button', { name: '编辑' + cardTitleLabel, exact: true }).waitFor();
   assert.deepEqual((await getPage()).root, beforeUnchanged.root, 'native metadata reload must preserve node content');
   assert.deepEqual(await readFile('dist/ui/app.js'), builtBefore, 'native metadata changes must not rebuild the plugin');
-  await frame.locator('#app:not([inert]) #inspector:not([inert])').getByRole('group', { name: cardTitleLabel, exact: true }).locator('input').fill('刷新后继续编辑');
+  // Source-only anchor changes alter editing placement without rebuilding the plugin.
+  const inlineFile = path.join(source, 'components/runtime/inline-editing.json');
+  const inlineContract = JSON.parse(await readFile(inlineFile, 'utf8'));
+  const changedAnchors = structuredClone(inlineContract);
+  changedAnchors.components['C-34'] = changedAnchors.components['C-34'].filter(item => item.property !== 'title');
+  changedAnchors.components['C-34'].push({ property: 'title', selector: ':scope > .missing-title', control: 'text' });
+  await writeFile(inlineFile, JSON.stringify(changedAnchors)); await refresh();
+  await frame.locator('#app:not([inert]) #inspector:not([inert])').getByRole('group', { name: cardTitleLabel, exact: true }).waitFor();
+  assert.equal(await frame.getByRole('button', { name: '编辑' + cardTitleLabel, exact: true }).count(), 0, 'unmatched source anchor retains inspector access');
+  assert.deepEqual((await getPage()).root, beforeUnchanged.root);
+  await writeFile(inlineFile, JSON.stringify(inlineContract)); await refresh();
+  await frame.locator('#app:not([inert]) #inspector:not([inert])').getByRole('button', { name: '编辑' + cardTitleLabel, exact: true }).waitFor();
+  assert.deepEqual(await readFile('dist/ui/app.js'), builtBefore, 'source anchors reload without rebuilding the consumer');
+  await editInline(frame, cardTitleLabel, '刷新后继续编辑');
   await frame.locator('#canvas').getByText('刷新后继续编辑', { exact: true }).waitFor();
   await frame.getByText('已保存', { exact: true }).waitFor();
   const edited = await getPage(); assert.equal(edited.root.children[0].props.title, '刷新后继续编辑');

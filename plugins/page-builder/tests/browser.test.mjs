@@ -1,3 +1,4 @@
+import { editInline, openInline } from "./inline-helpers.mjs";
 import { strict as assert } from "node:assert";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -20,9 +21,9 @@ try {
   await page.locator("#component-list .library-item").first().dragTo(page.locator(".layout-shell.is-root")); await page.getByText("基础按钮已添加").waitFor(); assert.equal(await page.locator('.node-shell[data-renderer-valid="true"]').count(), 6);
   const shell = page.locator('.node-shell[data-renderer-valid="true"]').first(); await shell.click();
   await page.locator("#inspector:not([inert])").waitFor();
-  const label = page.locator("#inspector").getByRole("textbox", { name: "文案", exact: true }); await label.fill("提交申请"); await label.press("Tab"); await page.getByText("提交申请", { exact: true }).waitFor();
+  await editInline(page, "文案", "提交申请"); await page.getByText("提交申请", { exact: true }).waitFor();
   const variant = page.locator('.inspector .pb-field').filter({ hasText: "变体" }); await variant.locator("[data-select-trigger]").click(); await variant.getByRole("option", { name: "主要按钮", exact: true }).click(); await page.locator('[data-component-reference="C-02"][data-button-variant="primary"]').first().waitFor();
-  await label.focus(); await label.press("Escape"); assert.equal(await page.locator('.node-shell[data-renderer-valid="true"]').count(), 6);
+  await (await openInline(page, "文案")).press("Escape"); assert.equal(await page.locator('.node-shell[data-renderer-valid="true"]').count(), 6);
   await page.getByRole("button", { name: "删除节点" }).click(); await page.waitForFunction(() => document.querySelectorAll('.node-shell[data-renderer-valid="true"]').length === 5); await page.getByRole("button", { name: "撤销" }).click(); await page.getByText("提交申请", { exact: true }).waitFor(); await page.getByRole("button", { name: "重做" }).click(); await page.waitForFunction(() => document.querySelectorAll('.node-shell[data-renderer-valid="true"]').length === 5); await page.getByRole("button", { name: "撤销" }).click(); await page.getByText("提交申请", { exact: true }).waitFor();
   await page.getByLabel("添加分栏布局").click(); await page.getByText("分栏布局已添加").waitFor(); const columns = page.locator('.layout-shell.layout-columns').last(); await columns.click(); await page.getByLabel("添加标签").click(); const tag = columns.locator('[data-component-reference="C-42"]'); await tag.waitFor(); await tag.evaluate((element) => element.closest(".node-shell").click()); const typeField = page.getByRole('group', { name: '类型', exact: true }); await typeField.locator("[data-select-trigger]").click(); await typeField.getByRole("option", { name: "头像标签", exact: true }).click(); await page.locator('.canvas [data-component-reference="C-42"][data-contract-type="avatar"]').waitFor(); assert.equal(await page.locator(".render-error").count(), 0);
   await page.waitForFunction(() => document.querySelector("#save-state")?.textContent === "已保存");

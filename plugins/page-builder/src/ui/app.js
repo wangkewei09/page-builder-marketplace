@@ -10,6 +10,7 @@ import { cardVariantPatch } from "../card-variants.ts";
 import { createCanvasDrag } from "./canvas-drag.js";
 import { createCanvasRenderer } from "./canvas-renderer.js";
 import { createSelectionToolbar } from "./selection-toolbar.js";
+import { createInlineEditor } from "./inline-editor.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
@@ -30,8 +31,8 @@ let contextStatusKind = "ready";
 const uiGenerations = new Map();
 const canvasDrag = createCanvasDrag({
   canStart: () => {
-    if (state.preview || !state.page || state.mutating || state.editTimers.size || reloadingRuntime || runtimeReloadFailed) return false;
-    if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性的修改。", "error"); return false; }
+    if (inlineEditor.active || state.preview || !state.page || state.mutating || state.editTimers.size || reloadingRuntime || runtimeReloadFailed) return false;
+    if (state.fullPropsDirty) { toast("请先应用或取消其他设置的修改。", "error"); return false; }
     if (state.selectedIds.size > 1) { toast("请先单击要移动的组件，再拖动。", "error"); return false; }
     return true;
   },
@@ -56,7 +57,7 @@ const canvasRenderer = createCanvasRenderer({
   labelFor: layout => labels[layout]
 });
 const selectionToolbar = createSelectionToolbar({
-  canShow: () => !state.preview && !state.dragging && !reloadingRuntime,
+  canShow: () => !inlineEditor.active && !state.preview && !state.dragging && !reloadingRuntime,
   clear: () => clearUiPrefix("node-action-"),
   actions: id => state.selectedIds.size > 1 ? [
     { key: "count", badge: true, label: `已选 ${state.selectedIds.size} 项` },
@@ -73,6 +74,28 @@ const selectionToolbar = createSelectionToolbar({
     : mountUi(`node-action-${id}-${action.key}`, element, action.iconOnly ? "C-04" : "C-02",
       action.iconOnly ? iconProps(action.icon, action.label) : { ...buttonProps(action.label, action.variant || "secondary-gray", action.icon), size: "mini" },
       { [action.iconOnly ? "b2b:icon-activate" : "b2b:button-activate"]: () => action.run() })
+});
+const inlineEditor = createInlineEditor({
+  canEdit: () => Boolean(state.page && !state.preview && !state.dragging && !state.mutating && !state.fullPropsDirty && !state.editTimers.size && !reloadingRuntime && !runtimeReloadFailed),
+  getNode: id => findNode(state.page.root, id)?.node, getRevision: () => state.page.revision,
+  definition, labelFor: componentPropLabel, select,
+  mount: (target, label, value, control) => mountUi("inline-content", target, "C-21", inputProps(label, String(value ?? ""), control === "textarea" ? "长文本输入框" : "基础输入框")),
+  clear: () => clearUiSlot("inline-content"),
+  onChange: () => { lockInspector(); selectionToolbar.position(); },
+  save: (node, property, value, expectedRevision) => {
+    const run = async () => {
+      state.mutating += 1; lockInspector(); setSaving("saving", "正在保存");
+      try {
+        const rule = definition(node.componentId).props[property];
+        const next = value === "" && rule.type.includes("null") ? null : value;
+        const result = await api(`./api/pages/${state.page.pageId}/operations`, { method: "POST", body: JSON.stringify({ expectedRevision, operations: [{ type: "updateProps", nodeId: node.id, props: componentPatch(node, property, next) }] }) });
+        acceptSavedPage(result, state.selectionEpoch); state.lastCommittedAt = Date.now();
+        await renderAll(); await syncModelContext(); setSaving("", "已保存");
+      } catch (error) { setSaving("error", "未保存"); throw error; }
+      finally { state.mutating -= 1; lockInspector(); }
+    };
+    const result = mutationQueue.then(run); mutationQueue = result.catch(() => {}); return result;
+  }
 });
 function validIds(ids) { return [...new Set(ids)].filter(id => id && state.page && findNode(state.page.root, id)); }
 function setSelection(nodeId, preserveGroup = false) {
@@ -224,7 +247,7 @@ async function loadPage(pageId) { state.selectionEpoch += 1; const result = awai
 
 async function rebuildNativePage(result, assets) {
   runtimeEpoch += 1; state.renderEpoch += 1;
-  canvasRenderer.reset(); selectionToolbar.reset(); inspectorKey = null; renderedPageName = null; clearUiPrefix(""); clearTimeout(toast.timer);
+  inlineEditor.cancel(); canvasRenderer.reset(); selectionToolbar.reset(); inspectorKey = null; renderedPageName = null; clearUiPrefix(""); clearTimeout(toast.timer);
   runtimeTransport?.dispose(); runtimeTransport = null; state.loadedLibraryId = null;
   $("#app").innerHTML = editorTemplate;
   state.page = result.page; state.library = result.library; state.catalog = result.components;
@@ -277,7 +300,7 @@ async function connectHost() {
   if (window.B2B) setContextStatus("connecting", "正在连接 Codex 对话上下文…");
   const app = new App({ name: "page-builder-development-ui", version: state.runtime?.pluginVersion || "development" });
   app.onteardown = async () => {
-    canvasDrag.cancel(false);
+    inlineEditor.cancel(); canvasDrag.cancel(false);
     state.selectionEpoch += 1; contextEpoch += 1; contextNodeIds = [];
     selectionToolbar.reset(); canvasRenderer.reset();
     if (contextLease) await contextLease.close(); else await clearPublishedContext();
@@ -324,10 +347,10 @@ async function publishModelContext(epoch) {
 }
 
 async function refreshFromDisk() {
-  if (!state.page || state.dragging || state.mutating || pendingSelections || state.polling || reloadingRuntime || runtimeReloadFailed) return;
+  if (!state.page || state.fullPropsDirty || inlineEditor.active || state.dragging || state.mutating || pendingSelections || state.polling || reloadingRuntime || runtimeReloadFailed) return;
   state.polling = true;
   try {
-    const result = await api(`./api/pages/${state.page.pageId}`); if (state.dragging || state.mutating || pendingSelections || reloadingRuntime) return; const nextLibrary = result.library || state.runtime?.componentLibrary || null;
+    const result = await api(`./api/pages/${state.page.pageId}`); if (state.fullPropsDirty || inlineEditor.active || state.dragging || state.mutating || pendingSelections || reloadingRuntime) return; const nextLibrary = result.library || state.runtime?.componentLibrary || null;
     if (nextLibrary?.snapshotId && state.library?.snapshotId && nextLibrary.snapshotId !== state.library.snapshotId) {
       if (state.fullPropsDirty || state.editTimers.size) return;
       if (native) await reloadNativePage(result); else location.reload(); return;
@@ -368,7 +391,7 @@ async function renderChrome() {
 }
 
 async function renderPreviewButton() {
-  await mountUi("preview", "#preview", "C-02", buttonProps(state.preview ? "返回编辑" : "预览", "secondary-gray", state.preview ? "edit" : "visibility"), { "b2b:button-activate": async () => { state.preview = !state.preview; await renderPreviewButton(); await renderAll(); } });
+  await mountUi("preview", "#preview", "C-02", buttonProps(state.preview ? "返回编辑" : "预览", "secondary-gray", state.preview ? "edit" : "visibility"), { "b2b:button-activate": async () => { if (inlineEditor.active) return; state.preview = !state.preview; await renderPreviewButton(); await renderAll(); } });
 }
 
 let librarySource = "", refreshingLibrary = false;
@@ -381,7 +404,7 @@ async function renderLibrarySettings() {
 }
 async function refreshLibrarySource() {
   const status = $("#library-update-status");
-  if (refreshingLibrary || state.mutating || state.editTimers.size || state.fullPropsDirty) { status.textContent = state.fullPropsDirty ? "请先应用全部组件属性，再刷新组件库。" : "正在保存当前编辑，请稍后刷新。"; return; }
+  if (inlineEditor.active || refreshingLibrary || state.mutating || state.editTimers.size || state.fullPropsDirty) { status.textContent = state.fullPropsDirty ? "请先应用其他设置，再刷新组件库。" : "正在保存当前编辑，请稍后刷新。"; return; }
   if (!librarySource.trim()) { status.textContent = "请填写独立组件库的 design-source 目录。"; return; }
   refreshingLibrary = true; state.mutating += 1;
   let applied = false;
@@ -416,16 +439,17 @@ function libraryItem(id, label, description, kind) {
 
 async function addNode(kind, id, selectedId, index) {
   let parentId = state.page.root.id; const selected = selectedId ? findNode(state.page.root, selectedId)?.node : null; if (selected?.kind === "layout") parentId = selected.id;
-  const node = kind === "layout" ? { kind: "layout", layout: id, gap: "medium", ...(id === "columns" ? { columns: 2 } : {}) } : { kind: "component", componentId: id, props: ({ "C-02": { label: "按钮" }, "C-21": { label: "输入内容", placeholder: "请输入" }, "C-23": { placeholder: "请选择", items: ["选项一", "选项二", "选项三"] }, "C-34": { title: "卡片标题", body: "在属性面板中编辑卡片内容。" }, "C-42": { text: "标签" } })[id] || {} };
+  const node = kind === "layout" ? { kind: "layout", layout: id, gap: "medium", ...(id === "columns" ? { columns: 2 } : {}) } : { kind: "component", componentId: id, props: ({ "C-02": { label: "按钮" }, "C-21": { label: "输入内容", placeholder: "请输入" }, "C-23": { placeholder: "请选择", items: ["选项一", "选项二", "选项三"] }, "C-34": { title: "卡片标题", body: "双击这里编辑卡片内容。" }, "C-42": { text: "标签" } })[id] || {} };
   await commit([{ type: "add", parentId, ...(index === undefined ? {} : { index }), node }], `${kind === "layout" ? labels[id] : definition(id).label}已添加`);
 }
 
 function commit(operations, success, applyDraft = false) {
-  if (state.fullPropsDirty && !applyDraft) { toast("请先应用或取消全部组件属性的修改。", "error"); return Promise.resolve(); }
+  if (inlineEditor.active) return Promise.resolve();
+  if (state.fullPropsDirty && !applyDraft) { toast("请先应用或取消其他设置的修改。", "error"); return Promise.resolve(); }
   mutationQueue = mutationQueue.then(() => commitNow(operations, success, applyDraft));
   return mutationQueue;
 }
-function lockInspector() { const inspector = $("#inspector"); if (inspector) inspector.inert = Boolean(state.mutating || inspectorRendering || runtimeReloadFailed); }
+function lockInspector() { const inspector = $("#inspector"); if (inspector) inspector.inert = Boolean(inlineEditor.active || state.mutating || inspectorRendering || runtimeReloadFailed); }
 function acceptSavedPage(result, epoch, keepSelection = true) {
   state.page = result.page;
   // A late save must not undo a newer click while the request was in flight.
@@ -449,7 +473,8 @@ async function commitNow(operations, success, applyDraft) {
   } finally { state.mutating -= 1; lockInspector(); }
 }
 function history(direction) {
-  if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性的修改。", "error"); return Promise.resolve(); }
+  if (inlineEditor.active) return Promise.resolve();
+  if (state.fullPropsDirty) { toast("请先应用或取消其他设置的修改。", "error"); return Promise.resolve(); }
   mutationQueue = mutationQueue.then(async () => {
     const epoch = state.selectionEpoch; state.mutating += 1; lockInspector();
     try {
@@ -465,7 +490,8 @@ function history(direction) {
 function fail(error) { setSaving("error", "保存失败"); toast(error.message, "error"); console.error(error); }
 
 function select(nodeId, event = {}) {
-  if (state.fullPropsDirty) { toast("请先应用或取消全部组件属性，再选择组件。", "error"); return Promise.resolve(); }
+  if (inlineEditor.active) return Promise.resolve();
+  if (state.fullPropsDirty) { toast("请先应用或取消其他设置，再选择组件。", "error"); return Promise.resolve(); }
   const ids = new Set(validIds(state.selectedIds));
   const toggle = nodeId && (event.metaKey || event.ctrlKey) && nodeId !== state.page.root.id;
   if (!toggle) { ids.clear(); if (nodeId) ids.add(nodeId); }
@@ -562,7 +588,7 @@ async function renderPageOverview(inspector, overview) {
   }
   const action = document.createElement("div"), hint = document.createElement("div"); hint.className = "page-overview-hint";
   const title = document.createElement("strong"); title.append(libraryIcon("touch_app"), document.createTextNode("编辑提示")); hint.append(title);
-  for (const text of ["单击组件，编辑内容和样式。", "按住 ⌘ / Ctrl 点击，可选择多个组件。", "点击画布空白处取消选中，已加入 AI 上下文的引用会保留。", "页面名称可在顶部修改。"] ) {
+  for (const text of ["单击选中组件；双击文字可直接编辑，失焦保存，Esc 取消。", "按住 ⌘ / Ctrl 点击，可选择多个组件。", "点击画布空白处取消选中，已加入 AI 上下文的引用会保留。", "页面名称可在顶部修改。"] ) {
     const line = document.createElement("p"); line.textContent = text; hint.append(line);
   }
   section.append(info, action, divider(), hint); inspector.append(section);
@@ -617,8 +643,9 @@ function editorRule(rule, editor, props, value) {
 }
 async function renderContractInspector(node, inspector, def) {
   const builder = def.builder;
+  const inline = await renderInlineLinks(node, inspector);
   const groups = [...(builder.groups || []), { id: undefined, label: "其他属性" }];
-  const entries = editorFields(def.props, builder.fields, { ...def.defaults, ...node.props });
+  const entries = editorFields(def.props, builder.fields, { ...def.defaults, ...node.props }).filter(({ key, rule }) => !inline.has(key) && !rule.type.includes("object") && !rule.type.includes("array"));
   for (const group of groups) {
     const fields = entries.filter(item => item.editor.group === group.id); if (!fields.length) continue;
     const section = document.createElement("section"), title = document.createElement("h3");
@@ -626,29 +653,25 @@ async function renderContractInspector(node, inspector, def) {
     for (const { key, rule, editor } of fields) {
       const label = editor.label || componentPropLabel(node.componentId, key);
       const value = Object.hasOwn(node.props, key) ? node.props[key] : rule.default;
-      if (rule.type.includes("object") || rule.type.includes("array")) {
-        const target = document.createElement("div"); target.className = "structured-field-link"; section.append(target);
-        await mountUi(`field-${node.id}-structured-${key}`, target, "C-02", { ...buttonProps(`编辑${label}`), disabled: !matchesConditions(editor.enabledWhen, { ...def.defaults, ...node.props }) }, { "b2b:button-activate": () => { const details = inspector.querySelector("details"); if (details) { details.open = true; details.scrollIntoView({ block: "nearest" }); } } });
-        continue;
-      }
       await field(section, node.id, label, key, value, { ...editorRule(rule, editor, { ...def.defaults, ...node.props }, value), componentId: node.componentId, propertyKey: key }, next => {
         try {
-          if (state.fullPropsDirty) throw new Error("请先应用全部组件属性，再修改单个属性。");
+          if (state.fullPropsDirty) throw new Error("请先应用其他设置，再修改单个属性。");
           if (editor.control === "image" && native && next && !String(next).startsWith("data:image/")) throw new Error("原生面板不能加载外部图片地址，请使用上传图片。");
           return commit([{ type: "updateProps", nodeId: node.id, props: componentPatch(node, key, next === "" && rule.type.includes("null") ? null : next) }], "属性已更新");
         } catch (error) { fail(error); }
       });
     }
   }
-  await renderFullProperties(node, inspector, def.props);
+  await renderFullProperties(node, inspector, def.props, { exclude: new Set([...inline, ...entries.map(item => item.key)]) });
   inspector.append(divider(), deleteButton(node.id));
 }
 
 async function renderComponentInspector(node, inspector) {
   const def = definition(node.componentId);
   if (def.builder) return renderContractInspector(node, inspector, def);
+  const inline = await renderInlineLinks(node, inspector);
   const actual = await window.B2B.describeComponent(node.componentId);
-  for (const key of def.editable) { const rule = def.props[key]; if (!rule) continue;
+  for (const key of def.editable) { const rule = def.props[key]; if (!rule || inline.has(key)) continue;
     const sourceRule = actual.api.props[key];
     if (node.componentId === "C-23" && key === "items" && node.props.items.some(item => typeof item === "object")) continue;
     let effective = { ...rule, ...sourceRule, componentId: node.componentId, propertyKey: key };
@@ -674,25 +697,42 @@ async function renderComponentInspector(node, inspector) {
     const save = props => commit([{ type: "updateProps", nodeId: node.id, props }], "属性已更新");
     if (node.props.variant === "长文本输入框") await field(inspector, node.id, "随内容自动增高", "auto", node.props.auto, { type: "boolean" }, value => save({ auto: value }));
     if (node.props.variant === "带图标输入框") await field(inspector, node.id, "前置图标", "prefixIcon", node.props.prefixIcon, { type: "string" }, value => save({ prefixIcon: value }));
-    if (node.props.variant === "带属性输入框" && node.props.prefixAddon?.type === "text") await field(inspector, node.id, "前缀文字", "prefixAddon", node.props.prefixAddon.text, { type: "string" }, value => save({ prefixAddon: { ...node.props.prefixAddon, text: value } }));
-    if (node.props.variant === "组合输入框") for (const [index, segment] of (node.props.composite?.segments || []).entries()) await field(inspector, node.id, segment.label, `segment-${index}`, segment.value, { type: "string" }, value => save({ composite: { ...node.props.composite, segments: node.props.composite.segments.map((item, i) => i === index ? { ...item, value } : item) } }));
+    if (node.props.variant === "带属性输入框" && node.props.prefixAddon?.type === "text") await field(inspector, node.id, "前缀文字", "prefixAddon", node.props.prefixAddon.text, { type: "string", propertyKey: "prefixAddon.text" }, value => save({ prefixAddon: { ...node.props.prefixAddon, text: value } }));
+    if (node.props.variant === "组合输入框") for (const [index, segment] of (node.props.composite?.segments || []).entries()) await field(inspector, node.id, segment.label, `segment-${index}`, segment.value, { type: "string", propertyKey: `composite.segments.${index}.value` }, value => save({ composite: { ...node.props.composite, segments: node.props.composite.segments.map((item, i) => i === index ? { ...item, value } : item) } }));
   }
   if (node.componentId === "C-34") await renderCardFields(node, inspector);
-  await renderFullProperties(node, inspector, actual.api.props);
+  const shown = new Set([...inline, ...[...inspector.querySelectorAll("[data-property]")].map(el => el.dataset.property)]);
+  await renderFullProperties(node, inspector, actual.api.props, { exclude: shown });
   inspector.append(divider(), deleteButton(node.id));
 }
+async function renderInlineLinks(node, inspector) {
+  const regions = inlineEditor.regions(node), keys = new Set(regions.map(item => item.property));
+  if (!keys.size) return keys;
+  const section = document.createElement("section"), hint = document.createElement("p"), actions = document.createElement("div");
+  section.className = "canvas-content-links"; hint.textContent = "内容可在画布中双击编辑，也可从这里定位。";
+  actions.className = "canvas-content-actions"; section.append(hint, actions); inspector.append(section);
+  for (const key of keys) {
+    const target = document.createElement("div"); actions.append(target);
+    await mountUi(`field-${node.id}-inline-${key}`, target, "C-02", { ...buttonProps(`编辑${componentPropLabel(node.componentId, key)}`, "secondary-gray", "edit"), size: "mini" }, { "b2b:button-activate": () => { regions.find(item => item.property === key)?.element.scrollIntoView({ block: "nearest" }); return inlineEditor.open(node.id, key); } });
+  }
+  return keys;
+}
 async function renderFullProperties(node, inspector, rules, settings = {}) {
+  const excluded = settings.exclude || new Set();
+  const def = definition(node.componentId), builder = def.builder;
+  const original = structuredClone({ ...def.defaults, ...node.props });
+  if (!editorFields(rules, builder?.fields, original).some(({ key }) => !excluded.has(key))) return;
   const details = document.createElement("details"), summary = document.createElement("summary");
   const prefix = settings.slotPrefix || "full";
-  const builder = definition(node.componentId).builder;
-  summary.textContent = settings.title || "全部组件属性"; details.append(summary); inspector.append(details);
-  let draft = structuredClone({ ...definition(node.componentId).defaults, ...node.props });
+  summary.textContent = settings.title || "其他设置"; details.append(summary); inspector.append(details);
+  let draft = structuredClone(original);
   const conditionKeys = new Set();
   function collectConditions(fields) { for (const editor of Object.values(fields || {})) { for (const condition of [...(editor.visibleWhen || []), ...(editor.enabledWhen || []), ...(editor.controlWhen || []).flatMap(item => item.when)]) conditionKeys.add(condition.property); collectConditions(editor.fields); if (editor.item) collectConditions({ item: editor.item }); } }
   collectConditions(builder?.fields);
   const body = document.createElement("div"); details.append(body); let built = false;
   const seed = rule => "default" in rule ? structuredClone(rule.default) : rule.values?.[0] ?? (rule.type?.includes("array") ? [] : rule.fields || rule.type?.includes("object") ? {} : rule.type === "boolean" ? false : rule.type === "number" ? 0 : "");
   async function build(container, name, value, rule, write, depth = 0, propertyKey = "", editor = {}) {
+    if (excluded.has(propertyKey)) return;
     if (depth > 8) return;
     if (!matchesConditions(editor.visibleWhen, draft)) return;
     const disabled = !matchesConditions(editor.enabledWhen, draft);
@@ -729,7 +769,7 @@ async function renderFullProperties(node, inspector, rules, settings = {}) {
   }
   async function rebuild() {
     clearUiPrefix(`field-${node.id}-${prefix}-`); body.replaceChildren();
-    const hint = document.createElement("p"); hint.textContent = "这里列出组件库公开的全部属性。组合修改后点击应用；无效组合不会保存。"; body.append(hint);
+    const hint = document.createElement("p"); hint.textContent = "其余设置与列表内容。修改后点击应用；无效组合不会保存。"; body.append(hint);
     for (const { key, rule, editor } of editorFields(rules, builder?.fields, draft)) await build(body, editor.label || componentPropLabel(node.componentId, key), draft[key], rule, value => {
       try {
         const patch = contractPatch(definition(node.componentId), draft, key, value);
@@ -738,7 +778,12 @@ async function renderFullProperties(node, inspector, rules, settings = {}) {
       } catch (error) { fail(error); }
     }, 0, key, editor);
     const target = document.createElement("div"); body.append(target);
-    await mountUi(`field-${node.id}-${prefix}-apply`, target, "C-02", buttonProps("应用全部属性", "primary"), { "b2b:button-activate": () => { for (const timer of state.editTimers.values()) clearTimeout(timer); state.editTimers.clear(); return commit([{ type: "updateProps", nodeId: node.id, props: Object.fromEntries(Object.keys(rules).map(key => [key, draft[key]])) }], "属性已更新", true); } });
+    await mountUi(`field-${node.id}-${prefix}-apply`, target, "C-02", buttonProps("应用其他设置", "primary"), { "b2b:button-activate": () => {
+      const props = Object.fromEntries(Object.keys(draft).filter(key => JSON.stringify(draft[key]) !== JSON.stringify(original[key])).map(key => [key, draft[key]]));
+      if (!Object.keys(props).length) { state.fullPropsDirty = false; return renderSelection(true); }
+      for (const timer of state.editTimers.values()) clearTimeout(timer); state.editTimers.clear();
+      return commit([{ type: "updateProps", nodeId: node.id, props }], "属性已更新", true);
+    } });
     const cancel = document.createElement("div"); body.append(cancel);
     await mountUi(`field-${node.id}-${prefix}-cancel`, cancel, "C-02", buttonProps("取消修改"), { "b2b:button-activate": () => { state.fullPropsDirty = false; return renderSelection(true); } });
   }
@@ -763,7 +808,7 @@ async function renderCardFields(node, inspector) {
   });
   await mountUi(`field-${node.id}-upload`, upload, "C-02", buttonProps("上传媒体图片"), { "b2b:button-activate": () => file.click() });
   if (p.coverImage) await field(inspector, node.id, "图片说明", "coverAlt", p.coverAlt, { type: "string" }, value => save({ coverAlt: value }));
-  if (p.avatar) await field(inspector, node.id, "头像文字", "avatar-text", p.avatar.text, { type: "string" }, value => save({ avatar: { ...p.avatar, text: value } }));
+  if (p.avatar) await field(inspector, node.id, "头像文字", "avatar-text", p.avatar.text, { type: "string", propertyKey: "avatar.text" }, value => save({ avatar: { ...p.avatar, text: value } }));
   if (["external-grid", "content-grid"].includes(p.variant)) await field(inspector, node.id, "卡片列数", "columns", p.columns, { type: "number", values: [2, 3, 4] }, value => save({ columns: value }));
   const listKey = ["external-grid", "content-grid", "nested"].includes(p.variant) ? "items" : p.variant === "tabs" ? "tabs" : p.variant === "actions" ? "actions" : null;
   if (!listKey) return;
@@ -771,7 +816,7 @@ async function renderCardFields(node, inspector) {
   const fields = listKey === "items" ? { title: "子卡片标题", body: "子卡片正文", meta: "子卡片辅助信息" } : listKey === "tabs" ? { label: "页签标题", content: "页签内容" } : { label: "操作名称", icon: "操作图标" };
   for (const [index, entry] of entries.entries()) {
     inspector.append(divider());
-    for (const [key, label] of Object.entries(fields)) await field(inspector, node.id, `${label} ${index + 1}`, `${listKey}-${entry.id}-${key}`, entry[key], { type: "string", multiline: ["body", "content"].includes(key) }, value => save({ [listKey]: entries.map(item => item.id === entry.id ? { ...item, [key]: value } : item) }));
+    for (const [key, label] of Object.entries(fields)) await field(inspector, node.id, `${label} ${index + 1}`, `${listKey}-${entry.id}-${key}`, entry[key], { type: "string", propertyKey: `${listKey}.${index}.${key}`, multiline: ["body", "content"].includes(key) }, value => save({ [listKey]: entries.map(item => item.id === entry.id ? { ...item, [key]: value } : item) }));
     if (entries.length > 1) {
       const target = document.createElement("div"); inspector.append(target);
       await mountUi(`field-${node.id}-remove-${entry.id}`, target, "C-02", buttonProps(`移除第 ${index + 1} 项`, "secondary-danger"), { "b2b:button-activate": () => { const next = entries.filter(item => item.id !== entry.id); return save({ [listKey]: next, ...(listKey === "tabs" && p.activeTabId === entry.id ? { activeTabId: next[0].id } : {}) }); } });

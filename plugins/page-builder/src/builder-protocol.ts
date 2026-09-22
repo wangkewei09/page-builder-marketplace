@@ -38,7 +38,7 @@ export function matchesPropType(value: unknown, rule: PropRule): boolean {
   if (rule.values) return rule.values.some(item => item === value);
   return (rule.type || (rule.fields ? "object" : "unknown")).split("|").some(type => type === "unknown" || type === "null" && value === null || type === "array" && Array.isArray(value) || type === "object" && !!value && typeof value === "object" && !Array.isArray(value) || ["string", "boolean", "number"].includes(type) && typeof value === type && (type !== "number" || Number.isFinite(value)));
 }
-function conditions(value: any, rules: Record<string, PropRule>, at: string) {
+export function conditions(value: any, rules: Record<string, PropRule>, at: string) {
   list(value, at);
   for (const [i, condition] of value.entries()) {
     const key = `${at}[${i}]`; object(condition, key, ["property", "values", "not"]);

@@ -1,12 +1,10 @@
 # 当前进度与验证证据
 
-更新时间：2026-09-16。
+更新时间：2026-09-22。
 
 ## 当前状态
 
-首版本地实现已完成第二轮修复：开发版身份和原生入口协议、MCP Apps 选区桥、跨进程页面/选区事实、组合变体校验、独立组件库快照，以及编辑器外壳真实设计系统均已实现并在隔离环境验证。剩余完成条件集中在重装后新 Codex 任务中的原生右侧入口、输入区引用和同页 AI 回写实测（A09/A17）。
-
-已安装开发版：`page-builder@page-builder-development`，版本 `0.2.0+codex.20260916111800`。它来自本正式目录；旧 `page-builder@page-builder-marketplace` 已停用，保留用户数据。当前已打开的面板不能据安装成功推断已加载新版本。
+本轮完成画布文字/数值编辑和右侧属性去重，开发版 `0.1.1+codex.20260922093539` 已从本仓库构建并安装。源端新增独立 inline-editing.json；源码、安装文件和新启动的隔离 MCP 已核对，当前 Codex 宿主是否加载新版仍需完整退出重开后确认。详情与边界见 [画布编辑](INLINE_EDITING.md)；下方保留各日期历史证据。
 
 ## 已完成准备
 
@@ -233,3 +231,14 @@
 - 未选择时右侧显示页面名称、组件/布局数量、编辑提示及源 C-02「页面布局」入口，选中后恢复属性。统计来自当前 Schema，页面名仍在顶部修改，无新增页面数据或库端修改。
 - `multi-context`、`incremental-canvas`、`host-bridge`、`native-refresh`、typecheck 与插件校验通过；重载后监听有效，证据见 ACCEPTANCE 与 `artifacts/evidence/page-overview-20260921.json`。只作自审，没有独立 Agent 评审。
 - 官方 CLI 安装 `0.1.1+codex.20260921094936`。325 个用户页面/历史/配置文件备份于 `/Users/wangkewei/Documents/Page Builder Backups/page-overview-20260921-175045`，安装前后摘要相同。当前宿主加载新构建仍需完整 ⌘Q 后启动；没有强行重启或发布 GitHub。
+
+## 2026-09-22 / 画布内容编辑与属性去重
+
+- 支持源 C-21 浮层、单击选中/双击编辑、定位按钮、文字/数值、输入法、失焦/Enter/取消；保存共用 Page Schema、revision、撤销与显式 AI 引用。未变化的画布节点继续复用。
+- 原重复属性表改成只含未展示字段的「其他设置」，复杂草稿仅保存变化属性。Source JSON 映射随手动快照重载；源位置缺失退回右侧，空映射可禁用旧兼容映射。没有加入自动组件更新。
+- 回归通过：25 项 TS + 2 项 MCP/独立包、前端编辑/拖拽/增量、多引用、原生资源、真实源 37 变体/4 标签类型、10 卡片样式几何对照、重复库重载与失败恢复、原生无 HTTP 的映射更新、协议错误/草稿/并发保护。源端检查器和既有 80 项协议测试通过。
+- 发现并处理：输入控件异步挂载完成前 fill 会被稍后的 select() 干扰，测试等待 ready；源控件挂载失败时全局 Esc 仍可退出；避免快速重复打开残留浮层。
+- 已知范围：图标选择器、复杂列表的画布编辑未实施；源 C-21 长文本固定 240 字，UI 明示限制。既有组件 Renderer、API、样式均未改动；源目录只增加/补充编辑元数据、作者检查器和维护文档。
+- 使用已有 Playwright/Chrome 153.0.8010.53；本会话未提供 Browser skill。桌面/窄屏已用 view_image 复核。自审覆盖 API 两端、生命周期、草稿和异常，无独立 Agent 评审。
+- 官方 CLI 安装 `0.1.1+codex.20260922093539`；15 个 manifest/runtime/skill 文件与源码构建逐字节一致，fresh isolated installed MCP 返回非空原生资源。327 个用户页面/历史/配置文件已备份且安装后哈希未变。真实已运行 Codex 宿主加载新代码不由这些结果代替。
+- 证据：[验收与安装](../artifacts/evidence/inline-editing-20260922.json)，[桌面](../artifacts/evidence/inline-desktop-20260922.png)，[窄屏](../artifacts/evidence/inline-narrow-20260922.png)。

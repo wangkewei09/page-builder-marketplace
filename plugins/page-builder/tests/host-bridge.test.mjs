@@ -1,3 +1,4 @@
+import { editInline, openInline } from "./inline-helpers.mjs";
 import { strict as assert } from "node:assert";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -47,13 +48,13 @@ try {
   const pinned = await page.evaluate(() => window.attachments.app.structuredContent.pageBuilderSelection);
   await shells.first().click();
   await frame.locator("#inspector:not([inert])").waitFor();
-  await frame.getByRole('group', { name: '文案', exact: true }).locator('input').fill('编辑其他组件');
+  await editInline(frame, '文案', '编辑其他组件');
   await frame.locator('#canvas').getByText('编辑其他组件', { exact: true }).waitFor();
   await page.waitForFunction(rev => window.attachments.app.structuredContent.pageBuilderSelection.revision > rev, pinned.revision);
   assert.equal(await page.evaluate(() => window.attachments.app.structuredContent.pageBuilderSelection.nodeId), pinned.nodeId, 'editing a different selected component keeps the pinned node');
   await shells.last().click();
   await frame.locator("#inspector:not([inert])").waitFor();
-  await frame.getByRole('group', { name: '文字', exact: true }).locator('input').fill('已引用的标签');
+  await editInline(frame, '文字', '已引用的标签');
   await page.waitForFunction(() => window.attachments.app.structuredContent.pageBuilderSelection.props.text === '已引用的标签');
 
   await page.evaluate(url => { const second=document.createElement('iframe'); second.id='second'; second.src=url; second.style='width:1100px;height:720px'; document.body.append(second); }, url);
