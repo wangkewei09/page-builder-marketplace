@@ -52,7 +52,8 @@ try {
   for (const label of ["卡片标题", "卡片正文", "辅助信息"]) await frame.locator("#inspector").getByRole("button", { name: `编辑${label}`, exact: true }).waitFor();
   assert.equal(await frame.getByText("已选值（每行一个）", { exact: true }).count(), 0);
   const body = await openInline(frame, "卡片正文");
-  assert.equal(await body.evaluate(el => el.getBoundingClientRect().height), 92);
+  assert.ok(await body.evaluate(el => el.isContentEditable && el.classList.contains('card-body')), 'edits the source card body itself');
+  assert.equal(await frame.locator('.inline-editor').count(), 0);
   await body.fill("原生资源编辑已保存", { timeout: 5000 }).catch(async error => { console.error(JSON.stringify({ inspector: await frame.locator("#inspector").innerText(), errors })); throw error; }); await body.press("Tab");
   await frame.locator("#canvas").getByText("原生资源编辑已保存", { exact: true }).waitFor();
   await frame.getByRole('button', { name: '上传媒体图片', exact: true }).waitFor();

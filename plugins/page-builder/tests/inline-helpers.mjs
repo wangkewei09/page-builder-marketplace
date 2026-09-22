@@ -1,12 +1,17 @@
-// Follow the user-visible canvas content entry point; wait for the source control
-// to finish mounting and taking focus before filling it (Playwright fill ignores inert).
+// Follow the user-visible content entry point. The editable is the original
+// canvas text element/native input, never a separately mounted editor.
+export const inlineSelector = '#canvas [data-pb-inline-edit]';
+export async function inlineValue(control) {
+  return control.evaluate(el => el.matches('input,textarea') ? el.value : el.innerText);
+}
 export async function openInline(surface, label) {
   await surface.locator('#inspector:not([inert])').getByRole('button', { name: `编辑${label}`, exact: true }).click();
-  await surface.locator('.inline-editor[data-ready="true"]').waitFor();
-  return surface.locator('.inline-editor input,.inline-editor textarea');
+  const control = surface.locator(inlineSelector); await control.waitFor();
+  return control;
 }
 export async function editInline(surface, label, value) {
-  const input = await openInline(surface, label); await input.fill(value);
-  await input.press(await input.evaluate(el => el.tagName === 'TEXTAREA') ? 'Meta+Enter' : 'Enter');
-  await surface.locator('.inline-editor').waitFor({ state: 'detached' });
+  const control = await openInline(surface, label); await control.fill(value);
+  await control.press(await control.getAttribute('data-pb-inline-edit') === 'textarea' ? 'Meta+Enter' : 'Enter');
+  await control.waitFor({ state: 'detached' });
+  await surface.locator('#inspector:not([inert])').waitFor({ state: 'attached' });
 }

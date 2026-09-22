@@ -1,0 +1,52 @@
+{
+  "passed": true,
+  "data": "/var/folders/8s/jrvr4t450qxgvccn_47kky380000gn/T/page-builder-inline-ziyulw",
+  "assertions": [
+    "double click / single click",
+    "actual source text edit / original font color geometry / icon retained / no popup",
+    "no replacement renderer",
+    "plain text paste",
+    "long card body",
+    "unique property paths",
+    "localized updates",
+    "Esc / multiline / IME / blur",
+    "numeric types",
+    "failure draft and retry",
+    "undo redo",
+    "revision conflict",
+    "disabled and loading states",
+    "no source actions during edit / preview actions restored",
+    "desktop and narrow"
+  ],
+  "version": "0.1.1+codex.20260922100557",
+  "checks": [
+    "typecheck/build",
+    "25 TypeScript tests + MCP/package tests",
+    "inline-editing real browser desktop and 520px",
+    "browser",
+    "host-bridge",
+    "drag-preview",
+    "incremental-canvas",
+    "builder-inspector",
+    "native-resource: strict CSP/no HTTP, 37 variants and 10 card geometry checks",
+    "native-refresh: repeated source metadata reload",
+    "builder-source: actual design-source, 37 variants/4 types",
+    "plugin and skill validation"
+  ],
+  "review": "self-review",
+  "actualCodexHostReloaded": false,
+  "sourceChanges": "Only docs/INLINE_EDITING.md; no Renderer/API/CSS/Token/protocol format changes.",
+  "backup": {
+    "root": "/Users/wangkewei/.codex/page-builder/v1",
+    "backup": "/Users/wangkewei/Documents/Page Builder Backups/inplace-editing-20260922-180629",
+    "files": 327
+  },
+  "installedVerification": {
+    "version": "0.1.1+codex.20260922100557",
+    "installed": "/Users/wangkewei/.codex/plugins/cache/page-builder-development/page-builder/0.1.1+codex.20260922100557",
+    "matchingFiles": 15,
+    "installedMcpResource": true,
+    "htmlCharacters": 754178,
+    "actualCodexHostReloaded": false
+  }
+}

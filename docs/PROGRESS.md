@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-本轮完成画布文字/数值编辑和右侧属性去重，开发版 `0.1.1+codex.20260922093539` 已从本仓库构建并安装。源端新增独立 inline-editing.json；源码、安装文件和新启动的隔离 MCP 已核对，当前 Codex 宿主是否加载新版仍需完整退出重开后确认。详情与边界见 [画布编辑](INLINE_EDITING.md)；下方保留各日期历史证据。
+本轮修正用户指出的“画布编辑仍是弹窗”：光标现在直接进入原文字或原生输入框，按钮图标和源字体/颜色/位置保留。开发版 `0.1.1+codex.20260922100557` 已构建并通过官方 CLI 安装。页面数据保持不变；当前 Codex 已打开面板仍需完整退出重开才可确认加载新代码。协议格式和源组件实现未改，详见 [画布编辑](INLINE_EDITING.md)。下方历史浮层验收只代表上一实现，并未满足原位交互需求。
 
 ## 已完成准备
 
@@ -242,3 +242,12 @@
 - 使用已有 Playwright/Chrome 153.0.8010.53；本会话未提供 Browser skill。桌面/窄屏已用 view_image 复核。自审覆盖 API 两端、生命周期、草稿和异常，无独立 Agent 评审。
 - 官方 CLI 安装 `0.1.1+codex.20260922093539`；15 个 manifest/runtime/skill 文件与源码构建逐字节一致，fresh isolated installed MCP 返回非空原生资源。327 个用户页面/历史/配置文件已备份且安装后哈希未变。真实已运行 Codex 宿主加载新代码不由这些结果代替。
 - 证据：[验收与安装](../artifacts/evidence/inline-editing-20260922.json)，[桌面](../artifacts/evidence/inline-desktop-20260922.png)，[窄屏](../artifacts/evidence/inline-narrow-20260922.png)。
+
+## 2026-09-22 / 修正为组件文字原位编辑
+
+- 依据用户截图，上一版额外 C-21 浮层不符合“组件里直接改”。移除浮层及其定位/挂载逻辑；源纯文本元素临时开启 plaintext-only，按钮只包裹文字节点，原生输入框复用本身。原节点/属性关闭后恢复，取消不保存，正确区分 DOM 草稿与持久 props。
+- 按钮/输入控件编辑时暂时保持其当前源颜色，结束释放，不写源 CSS；图标、加载动画和其他组件实例保留。粘贴只有纯文本，正文不误继承弹窗 C-21 的 240 字限制；IME 确认、非法数字、保存拒绝/重试、409、撤销/重做均覆盖。
+- 构建/typecheck、25 项 TypeScript 与 MCP/package、原位专项、browser、host-bridge、drag-preview、incremental-canvas、builder-inspector、native-resource、native-refresh、真实源 builder-source 均通过。原生资源含无 HTTP 严格 CSP、37 变体和 10 卡片几何对照；真实源 76 字段/37 变体/4 类型通过。首次 source 检查未带测试源环境变量，补齐后通过；首次构建误在仓库根目录运行，改在插件目录完成构建，不计失败命令为通过。
+- Browser skill 在会话清单中不可用，沿用前端测试技能允许的 Playwright/本机 Chrome。已查看[桌面](../artifacts/evidence/inplace-desktop-20260922.png)和[窄屏](../artifacts/evidence/inplace-narrow-20260922.png)截图。专项断言原字体/颜色/文字边界、同一个图标/节点、无弹窗、取消后原 HTML、禁用/加载时原位键入和预览恢复事件。
+- 327 个用户页面/历史/配置文件备份到 `~/Documents/Page Builder Backups/inplace-editing-20260922-180629`，安装后逐文件 SHA256 未变。官方插件/skill 校验通过，15 个安装文件与源码产物一致，隔离 fresh MCP 资源包含原位实现；真实已运行 Codex 宿主不据此标为通过。
+- 自审完成，未声称独立 Agent 审核；未推送 GitHub、未改已发布 v0.1.1 标签。源组件库只同步说明文件，不变更 Renderer/API/CSS/Token，故不属于组件实现 Level C 修改。证据见 [验收记录](../artifacts/evidence/inplace-editing-20260922.json)。

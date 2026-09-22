@@ -1,4 +1,4 @@
-import { editInline, openInline } from "./inline-helpers.mjs";
+import { editInline, openInline, inlineValue, inlineSelector } from "./inline-helpers.mjs";
 import assert from 'node:assert/strict';
 import { cp, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -79,7 +79,7 @@ try {
   await page.getByRole('button', { name: '刷新并重载组件', exact: true }).click();
   await page.getByRole('button', { name: '编辑更新后的名称', exact: true }).waitFor();
   assert.equal(await group('sourceNote').locator('input').inputValue(), '新增默认值');
-  assert.equal(await (await openInline(page, '更新后的名称')).inputValue(), '保留的用户文案'); await page.locator('.inline-editor input').press('Escape');
+  assert.equal(await inlineValue(await openInline(page, '更新后的名称')), '保留的用户文案'); await page.locator(inlineSelector).press('Escape');
   assert.deepEqual((await getPage()).root, beforeMetadata.root);
   await group('按钮风格').locator('[data-select-trigger]').getByText('新的强调操作', { exact: true }).waitFor();
   const beforeBad = await getPage();

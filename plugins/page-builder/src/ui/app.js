@@ -79,9 +79,8 @@ const inlineEditor = createInlineEditor({
   canEdit: () => Boolean(state.page && !state.preview && !state.dragging && !state.mutating && !state.fullPropsDirty && !state.editTimers.size && !reloadingRuntime && !runtimeReloadFailed),
   getNode: id => findNode(state.page.root, id)?.node, getRevision: () => state.page.revision,
   definition, labelFor: componentPropLabel, select,
-  mount: (target, label, value, control) => mountUi("inline-content", target, "C-21", inputProps(label, String(value ?? ""), control === "textarea" ? "长文本输入框" : "基础输入框")),
-  clear: () => clearUiSlot("inline-content"),
   onChange: () => { lockInspector(); selectionToolbar.position(); },
+  status: message => { const hint = $("#selection-hint"); if (hint) { hint.textContent = message || "⌘ / Ctrl + 点击多选"; hint.setAttribute("role", "status"); hint.setAttribute("aria-live", "polite"); } },
   save: (node, property, value, expectedRevision) => {
     const run = async () => {
       state.mutating += 1; lockInspector(); setSaving("saving", "正在保存");
