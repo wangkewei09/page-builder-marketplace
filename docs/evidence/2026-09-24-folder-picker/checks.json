@@ -1,0 +1,21 @@
+{
+  "version": "0.1.1+codex.20260924085012",
+  "typecheck": true,
+  "build": true,
+  "unitTestsPassed": 31,
+  "mcpPackageTestsPassed": 2,
+  "projectsBrowser": "passed with simulated OS dialog results and real MCP project persistence",
+  "cases": [
+    "no editable path fields",
+    "must select folder before create",
+    "cancel preserves previous selection",
+    "picker error and retry",
+    "create/open/relink",
+    "reject wrong project folder",
+    "realpath and unusual names",
+    "one dialog, abort and timeout",
+    "HTTP origin rejection"
+  ],
+  "nativeOSDialog": "launched twice; request pending then timeout; CUA could not bind osascript, no visual/selection confirmation",
+  "actualCodexHostReloaded": false
+}

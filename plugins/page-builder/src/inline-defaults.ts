@@ -1,0 +1,178 @@
+// Compatibility mappings for snapshots predating inline-editing.json. Source declarations replace these in full.
+import type { InlineContract } from "./inline-protocol.js";
+export const legacyInline: InlineContract = {
+  "schemaVersion": 1,
+  "libraryId": "b2b",
+  "components": {
+    "C-02": [
+      {
+        "property": "label",
+        "selector": ":scope",
+        "control": "text"
+      }
+    ],
+    "C-42": [
+      {
+        "property": "text",
+        "selector": ":scope > .source-tag-label",
+        "control": "text"
+      }
+    ],
+    "C-21": [
+      {
+        "property": "value",
+        "selector": ":scope > input",
+        "control": "text",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "基础输入框",
+              "带图标输入框",
+              "带属性输入框"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "value",
+        "selector": ":scope > input",
+        "control": "number",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "数字输入框"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "value",
+        "selector": ":scope > textarea",
+        "control": "textarea",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "长文本输入框"
+            ]
+          }
+        ]
+      }
+    ],
+    "C-34": [
+      {
+        "property": "title",
+        "selector": ":scope > header > strong",
+        "control": "text"
+      },
+      {
+        "property": "title",
+        "selector": ":scope > strong",
+        "control": "text",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "interactive"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "title",
+        "selector": ":scope > .card-compact-person > .card-compact-copy",
+        "control": "text",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "compact"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "title",
+        "selector": ":scope > .card-meta > strong",
+        "control": "text",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "meta",
+              "actions"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "body",
+        "selector": ":scope > .card-body",
+        "control": "textarea"
+      },
+      {
+        "property": "body",
+        "selector": ":scope > small",
+        "control": "textarea",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "interactive"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "body",
+        "selector": ":scope > .card-meta > p",
+        "control": "textarea",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "meta",
+              "actions"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "meta",
+        "selector": ":scope > footer > small",
+        "control": "text"
+      },
+      {
+        "property": "meta",
+        "selector": ":scope > .card-meta > .card-meta-footer > .card-meta-name",
+        "control": "text",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "meta",
+              "actions"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "extraActionLabel",
+        "selector": ":scope > header > [data-card-slot=\"extra\"] > button",
+        "control": "text"
+      },
+      {
+        "property": "extraActionLabel",
+        "selector": ":scope > [data-card-slot=\"compact-action\"] > button",
+        "control": "text"
+      },
+      {
+        "property": "footerActionLabel",
+        "selector": ":scope > footer > [data-card-slot=\"footer\"] > button",
+        "control": "text"
+      }
+    ]
+  }
+};

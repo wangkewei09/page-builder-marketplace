@@ -1,3 +1,5 @@
+import { DirectoryPicker } from "./directory-picker.js";
+import type { ProjectManager } from "./projects.js";
 import { refreshLibrary } from "./library-update.js";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFile, stat } from "node:fs/promises";
@@ -24,12 +26,26 @@ async function json(request: IncomingMessage) {
 
 export type RuntimeInfo = { pluginVersion: string; provider: string; serverName: string };
 
-export function createEditorServer(store: PageStore, uiDirectory: string, exportDirectory: string, runtime: RuntimeInfo, libraries: ComponentLibraryManager) {
+export function createEditorServer(legacyStore: PageStore, uiDirectory: string, exportDirectory: string, runtime: RuntimeInfo, libraries: ComponentLibraryManager, projects?: ProjectManager, directoryPicker = new DirectoryPicker()) {
   const server = createServer(async (request, response) => {
     try {
       if (!request.url) return send(response, 404, { error: "NOT_FOUND" });
       const url = new URL(request.url, "http://127.0.0.1"); const pathname = decodeURIComponent(url.pathname);
+      const origin = request.headers.origin;
+      const address = server.address() as AddressInfo | null;
+      if (pathname.startsWith("/api/") && origin && origin !== `http://127.0.0.1:${address?.port}`) throw new DomainError("UNTRUSTED_ORIGIN", "只允许搭建器本地页面访问项目文件。");
       if (request.method === "OPTIONS") { response.writeHead(204, { "access-control-allow-origin": "*", "access-control-allow-methods": "GET,POST,OPTIONS", "access-control-allow-headers": "content-type" }); return response.end(); }
+      if (pathname === "/api/projects/choose-directory" && request.method === "POST") { const input = await json(request); return send(response, 200, directoryPicker.start(input.purpose, input.initialDirectory)); }
+      if (pathname === "/api/projects/directory-choice" && request.method === "POST") { const input = await json(request); return send(response, 200, directoryPicker.status(input.requestId)); }
+      if (pathname === "/api/projects/cancel-directory-choice" && request.method === "POST") { const input = await json(request); return send(response, 200, directoryPicker.cancel(input.requestId)); }
+      const workspaceId = url.searchParams.get("workspace") || undefined;
+      const store = projects ? await projects.store(workspaceId) : legacyStore;
+      if (pathname === "/api/projects" && request.method === "GET" && projects) return send(response, 200, await projects.list());
+      if (pathname === "/api/projects" && request.method === "POST" && projects) { const input = await json(request); return send(response, 201, await projects.create(input.name, input.parentDirectory)); }
+      if (pathname === "/api/projects/open" && request.method === "POST" && projects) { const input = await json(request); return send(response, 200, await projects.open(input.directory, input.expectedProjectId)); }
+      if (pathname === "/api/projects/relink" && request.method === "POST" && projects) { const input = await json(request); return send(response, 200, await projects.relink(input.workspaceId, input.directory)); }
+      if (pathname === "/api/projects/settings" && request.method === "POST" && projects) { const input = await json(request); return send(response, 200, await projects.update(input.workspaceId, input.expectedRevision, input)); }
+      if (pathname === "/api/projects/current" && request.method === "GET" && projects && workspaceId) return send(response, 200, { project: await projects.resolve(workspaceId), pages: await store.list() });
       if (pathname === "/api/health") return send(response, 200, { ok: true, ...runtime, components: Object.keys(COMPONENTS), schemaVersion: 1, componentLibrary: await libraries.current() });
       if (pathname === "/api/catalog" && request.method === "GET") return send(response, 200, { components: Object.values(await libraries.catalog(url.searchParams.get("snapshotId") || undefined)) });
       if (pathname === "/api/libraries" && request.method === "GET") return send(response, 200, await libraries.list());
@@ -40,7 +56,7 @@ export function createEditorServer(store: PageStore, uiDirectory: string, export
       if (assetMatch && request.method === "GET") { const resolved = await libraries.asset(assetMatch[1], assetMatch[2]); const info = await stat(resolved); if (!info.isFile()) return send(response, 404, { error: "NOT_FOUND" }); return send(response, 200, await readFile(resolved), MIME[path.extname(resolved)] ?? "application/octet-stream"); }
       if (pathname === "/api/pages" && request.method === "GET") return send(response, 200, { pages: await store.list() });
       if (pathname === "/api/pages" && request.method === "POST") { const input = await json(request); return send(response, 201, { page: await store.create(input.name) }); }
-      if (pathname === "/api/import" && request.method === "POST") { const input = await json(request); return send(response, 201, { page: await store.import(input.page ?? input) }); }
+      if (pathname === "/api/import" && request.method === "POST") { const input = await json(request); return send(response, 201, { page: await store.import(input.page ?? input, input.name) }); }
       const match = pathname.match(/^\/api\/pages\/([A-Za-z0-9_-]+)(?:\/(operations|undo|redo|selection|export|library))?$/);
       if (match) {
         const [, pageId, action] = match;
@@ -64,6 +80,6 @@ export function createEditorServer(store: PageStore, uiDirectory: string, export
   });
   return {
     async start() { await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve)); const { port } = server.address() as AddressInfo; return `http://127.0.0.1:${port}`; },
-    close() { return new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())); }
+    close() { directoryPicker.dispose(); return new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())); }
   };
 }

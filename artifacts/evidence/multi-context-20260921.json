@@ -1,0 +1,47 @@
+{
+  "date": "2026-09-21",
+  "pluginVersion": "0.1.1+codex.20260921092603",
+  "sourceRoot": "/Users/wangkewei/Desktop/page-builder-marketplace",
+  "evidenceScope": "Actual built native MCP resource in strict CSP mock host; not the running Codex host",
+  "checks": {
+    "multi-context": "pass",
+    "host-bridge": "pass",
+    "incremental-canvas": "pass",
+    "native-refresh": "pass",
+    "typecheck": "pass",
+    "TS_behavior_tests": 23,
+    "MCP_and_package_tests": 2,
+    "plugin_validator": "pass",
+    "skill_validator": "pass"
+  },
+  "multiContext": {
+    "oneAttachment": true,
+    "sameComponentDifferentNodeIds": true,
+    "savedPropsAndRevision": true,
+    "selectionPreservesReference": true,
+    "retryPreservesFailedGroup": true,
+    "partialAndFinalDeletion": true,
+    "treeKeyboard": true,
+    "noHttpRequests": true,
+    "errors": [],
+    "macOSCmdClick": "native tested",
+    "WindowsCtrlClick": "event branch only"
+  },
+  "screenshots": [
+    "multi-context-20260921.png",
+    "multi-context-narrow-20260921.png"
+  ],
+  "review": "self-review only",
+  "actualCodexHostReloaded": false,
+  "dataBackup": {
+    "backup": "/Users/wangkewei/Documents/Page Builder Backups/multi-context-20260921-172641",
+    "filesUnchanged": 325,
+    "changed": []
+  },
+  "installation": {
+    "officialCLI": "pass",
+    "matchingRuntimeFiles": 13,
+    "isolatedInstalledMcpResourceCharacters": 733855,
+    "actualCodexHostReloaded": false
+  }
+}

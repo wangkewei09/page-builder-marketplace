@@ -11845,6 +11845,399 @@ var init_v4 = __esm({
   }
 });
 
+// src/ui/project-manager.js
+function createProjectManager({ api: api2, mountUi: mountUi2, clearUiPrefix: clearUiPrefix2, inputProps: inputProps2, buttonProps: buttonProps2, current, enter, settle, setOpen, changed }) {
+  let root = null, busy = false, listing, mode = "recent", search = "", sequence = 0;
+  const prefix = "project-home-";
+  async function render(...args) {
+    const instance = await mountUi2(...args);
+    if (!instance) throw new Error("\u9879\u76EE\u63A7\u4EF6\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u8FD4\u56DE\u9879\u76EE\u540E\u91CD\u8BD5\u3002");
+    return instance;
+  }
+  const slot = (parent, className = "") => {
+    const el = document.createElement("div");
+    el.className = className;
+    parent.append(el);
+    return el;
+  };
+  const text = (parent, value, tag = "p") => {
+    const el = document.createElement(tag);
+    el.textContent = value;
+    parent.append(el);
+    return el;
+  };
+  const date5 = (value) => value && !Number.isNaN(Date.parse(value)) ? new Date(value).toLocaleDateString("zh-CN") : "\u5C1A\u672A\u66F4\u65B0";
+  const scoped = (project, path, options = {}) => api2(path, { ...options, unscoped: !project, workspaceId: project?.workspaceId });
+  function message(value) {
+    if (root) root.querySelector("[data-message]").textContent = value;
+  }
+  function close() {
+    if (busy) return;
+    root?.remove();
+    root = null;
+    clearUiPrefix2(prefix);
+    setOpen(false);
+    document.querySelector("#project-menu button")?.focus();
+  }
+  async function button(parent, label, run, variant = "secondary-gray", icon = null) {
+    const host2 = slot(parent);
+    await render(`${prefix}${root?.querySelector("[data-content]")?.contains(parent) ? "view-" : ""}${++sequence}`, host2, "C-02", buttonProps2(label, variant, icon), { "b2b:button-activate": () => {
+      if (!busy) void action(run);
+    } });
+    return host2;
+  }
+  async function input(parent, label, value, update, multiline = false) {
+    const group = slot(parent, "project-field");
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", label);
+    text(group, label, "label");
+    const props = inputProps2(label, value, multiline ? "\u957F\u6587\u672C\u8F93\u5165\u6846" : "\u57FA\u7840\u8F93\u5165\u6846");
+    if (multiline) props.counter = true;
+    await render(`${prefix}${root?.querySelector("[data-content]")?.contains(parent) ? "view-" : ""}${++sequence}`, slot(group), "C-21", props, { "b2b:input-change": (event) => update(String(event.detail.value ?? "")) });
+    return group;
+  }
+  async function folder(parent, label, purpose, initialDirectory, update) {
+    const group = slot(parent, "project-field project-folder");
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", label);
+    text(group, label, "label");
+    const summary = text(group, "\u5C1A\u672A\u9009\u62E9\u6587\u4EF6\u5939");
+    summary.dataset.folderName = "";
+    const location2 = document.createElement("details");
+    location2.hidden = true;
+    group.append(location2);
+    text(location2, "\u67E5\u770B\u5B8C\u6574\u4F4D\u7F6E", "summary");
+    const fullPath = text(location2, "");
+    fullPath.className = "project-path";
+    let selected = "";
+    await button(group, "\u9009\u62E9\u6587\u4EF6\u5939", async () => {
+      message("\u8BF7\u5728\u7CFB\u7EDF\u7A97\u53E3\u4E2D\u9009\u62E9\u6587\u4EF6\u5939\uFF0C\u6216\u70B9\u51FB\u53D6\u6D88\u8FD4\u56DE\u3002");
+      let choice = await api2("./api/projects/choose-directory", { unscoped: true, method: "POST", body: JSON.stringify({ purpose, initialDirectory: selected || initialDirectory }) });
+      const requestId = choice.requestId;
+      try {
+        const deadline = Date.now() + 19e4;
+        while (choice.status === "pending") {
+          if (!root?.isConnected || Date.now() > deadline) throw new Error("\u6587\u4EF6\u5939\u9009\u62E9\u5DF2\u7ED3\u675F\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u3002");
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          choice = await api2("./api/projects/directory-choice", { unscoped: true, method: "POST", body: JSON.stringify({ requestId }) });
+        }
+        if (choice.status === "cancelled") return;
+        if (choice.status !== "selected" || !choice.directory) throw new Error(choice.message || "\u672A\u80FD\u9009\u62E9\u6587\u4EF6\u5939\uFF0C\u8BF7\u91CD\u8BD5\u3002");
+        selected = choice.directory;
+        update(selected);
+        summary.textContent = selected.split(/[\\/]/).filter(Boolean).at(-1) || selected;
+        fullPath.textContent = selected;
+        location2.hidden = false;
+      } finally {
+        if (choice.status === "pending") await api2("./api/projects/cancel-directory-choice", { unscoped: true, method: "POST", body: JSON.stringify({ requestId }) }).catch(() => {
+        });
+      }
+    }, "secondary-blue", "folder_open");
+  }
+  async function action(run) {
+    if (busy || !root) return;
+    busy = true;
+    root.dataset.ready = "false";
+    root.querySelector("[data-body]").inert = true;
+    message("\u6B63\u5728\u5904\u7406\u2026");
+    try {
+      await run();
+      message("");
+    } catch (error40) {
+      message(error40.message);
+    } finally {
+      busy = false;
+      if (root) {
+        root.dataset.ready = "true";
+        root.querySelector("[data-body]").inert = false;
+      }
+    }
+  }
+  async function openPage(project, pageId) {
+    await enter(project, pageId);
+    busy = false;
+    close();
+  }
+  function content(title, subtitle = "") {
+    clearUiPrefix2(`${prefix}view-`);
+    const area = root.querySelector("[data-content]");
+    area.replaceChildren();
+    const heading = slot(area, "project-view-heading");
+    text(heading, title, "h1");
+    if (subtitle) text(heading, subtitle);
+    return area;
+  }
+  function cover(project) {
+    if (project.coverImage) return project.coverImage;
+    const css = getComputedStyle(document.documentElement);
+    const bg = css.getPropertyValue("--b2b-color-action-primary-subtle").trim() || "#eef3ff";
+    const fg = css.getPropertyValue("--b2b-color-action-primary").trim() || "#245bff";
+    const initial = [...project.name].slice(0, 2).join("").replace(/[<>&"']/g, "");
+    return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"><rect width="640" height="360" fill="${bg}"/><text x="320" y="190" text-anchor="middle" dominant-baseline="middle" fill="${fg}" font-family="sans-serif" font-size="64">${initial}</text></svg>`)}`;
+  }
+  async function card(parent, key, title, description, meta, image, open, settings) {
+    const host2 = slot(parent, "project-card");
+    host2.dataset.project = key;
+    await render(`${prefix}view-card-${key}`, host2, "C-34", {
+      variant: "actions",
+      title,
+      body: description || "\u6682\u65E0\u9879\u76EE\u8BF4\u660E",
+      meta,
+      icon: "folder",
+      coverImage: image,
+      coverAlt: `${title}\u5C01\u9762`,
+      hoverable: true,
+      avatar: { text: [...title][0] || "P", image: null, fallback: [...title][0] || "P", label: title },
+      actions: [{ id: "open", label: "\u6253\u5F00\u9879\u76EE", icon: "folder_open" }, { id: "settings", label: "\u9879\u76EE\u8BBE\u7F6E", icon: "settings" }]
+    }, { "b2b:card-action": (event) => {
+      event.stopPropagation();
+      void action(event.detail.id === "settings" ? settings : open);
+    } });
+    host2.addEventListener("click", (event) => {
+      if (!event.target.closest("button,a")) void action(open);
+    });
+    host2.title = title;
+  }
+  async function refreshListing() {
+    listing = await api2("./api/projects", { unscoped: true });
+  }
+  async function navigation() {
+    const nav = root.querySelector("nav");
+    clearUiPrefix2(`${prefix}nav-`);
+    nav.replaceChildren();
+    for (const [id, label, icon] of [["recent", "\u6700\u8FD1\u9879\u76EE", "schedule"], ["all", "\u6240\u6709\u9879\u76EE", "folder"], ["starred", "\u6536\u85CF\u9879\u76EE", "star"], ["legacy", "\u5386\u53F2\u9875\u9762", "description"]]) {
+      const host2 = slot(nav);
+      await render(`${prefix}nav-${id}`, host2, "C-02", buttonProps2(label, id === mode ? "secondary-blue" : "secondary-gray", icon, "long"), { "b2b:button-activate": () => action(() => id === "legacy" ? legacy() : home(id)) });
+      if (id === mode) host2.setAttribute("aria-current", "page");
+    }
+  }
+  async function home(nextMode = mode === "legacy" ? "recent" : mode) {
+    mode = nextMode;
+    search = "";
+    await refreshListing();
+    await navigation();
+    const body = content(mode === "starred" ? "\u6536\u85CF\u9879\u76EE" : mode === "all" ? "\u6240\u6709\u9879\u76EE" : "\u6700\u8FD1\u9879\u76EE", "\u4F60\u7684\u9879\u76EE\u4E0E\u9875\u9762\uFF0C\u90FD\u5728\u672C\u5730\u3002");
+    const toolbar = slot(body, "project-home-tools");
+    let grid, emptySearch;
+    await input(toolbar, "\u641C\u7D22\u9879\u76EE", "", (value) => {
+      search = value.toLowerCase().trim();
+      if (grid) {
+        let count = 0;
+        for (const item of grid.children) {
+          item.hidden = !item.dataset.search.includes(search);
+          if (!item.hidden) count++;
+        }
+        emptySearch.hidden = count > 0 || !search;
+      }
+    });
+    await button(toolbar, "\u65B0\u5EFA\u9879\u76EE", createForm, "primary", "add");
+    await button(toolbar, "\u6253\u5F00\u672C\u5730\u9879\u76EE", openForm, "secondary-gray", "folder_open");
+    const projects = listing.projects.filter((project) => mode !== "starred" || project.starred);
+    if (mode === "all") projects.sort((a, b2) => a.name.localeCompare(b2.name, "zh-CN"));
+    grid = slot(body, "project-grid");
+    grid.setAttribute("aria-label", "\u9879\u76EE\u5361\u7247");
+    for (const project of projects) {
+      await card(grid, project.workspaceId, project.name, project.description, project.available ? `${project.pageCount} \u4E2A\u9875\u9762 \xB7 ${date5(project.updatedAt)}` : "\u8DEF\u5F84\u5F85\u5173\u8054", cover(project), () => project.available ? details(project) : settingsForm(project), () => settingsForm(project));
+      grid.lastChild.dataset.search = `${project.name} ${project.description || ""} ${project.directory}`.toLowerCase();
+    }
+    emptySearch = text(body, "\u6CA1\u6709\u5339\u914D\u7684\u9879\u76EE\uFF0C\u8BD5\u8BD5\u5176\u4ED6\u540D\u79F0\u6216\u8DEF\u5F84\u3002");
+    emptySearch.hidden = true;
+    if (!projects.length) {
+      const empty = slot(body, "project-home-empty");
+      text(empty, mode === "starred" ? "\u8FD8\u6CA1\u6709\u6536\u85CF\u9879\u76EE" : "\u4ECE\u4F60\u7684\u7B2C\u4E00\u4E2A\u9879\u76EE\u5F00\u59CB", "h2");
+      text(empty, mode === "starred" ? "\u5728\u9879\u76EE\u8BBE\u7F6E\u4E2D\u6536\u85CF\uFF0C\u4FBF\u53EF\u5728\u8FD9\u91CC\u5FEB\u901F\u627E\u5230\u3002" : "\u65B0\u5EFA\u4E00\u4E2A\u672C\u5730\u9879\u76EE\uFF0C\u6216\u6253\u5F00\u5DF2\u7ECF\u4ECE GitHub \u4E0B\u8F7D\u5230\u672C\u5730\u7684\u9879\u76EE\u6587\u4EF6\u5939\u3002");
+    }
+  }
+  async function details(project) {
+    const opened = await api2("./api/projects/open", { unscoped: true, method: "POST", body: JSON.stringify({ directory: project.directory }) });
+    project = opened.project;
+    const body = content(project.name, project.description || "\u5728\u9879\u76EE\u4E2D\u7EC4\u7EC7\u548C\u7F16\u8F91\u9875\u9762\u3002");
+    const toolbar = slot(body, "project-home-tools");
+    await button(toolbar, "\u8FD4\u56DE\u9879\u76EE", () => home(), "secondary-gray", "arrow_back");
+    await button(toolbar, "\u9879\u76EE\u8BBE\u7F6E", () => settingsForm(project), "secondary-gray", "settings");
+    text(body, project.directory, "p").className = "project-path";
+    text(body, "\u9879\u76EE\u753B\u5E03 \xB7 \u9875\u9762", "h2");
+    const pages = slot(body, "project-page-grid");
+    for (const page of opened.pages) {
+      const host2 = slot(pages);
+      await render(`${prefix}view-page-${page.pageId}`, host2, "C-34", { variant: "interactive", appearance: "bordered", hoverable: true, title: page.name, body: `\u66F4\u65B0\u4E8E ${date5(page.updatedAt)}`, icon: "description" }, { "b2b:card-activate": () => action(() => openPage(project, page.pageId)) });
+    }
+    if (!opened.pages.length) text(body, "\u8FD9\u4E2A\u9879\u76EE\u8FD8\u6CA1\u6709\u9875\u9762\u3002");
+    const row = slot(body, "project-page-create");
+    let name = "\u65B0\u9875\u9762";
+    await input(row, "\u65B0\u9875\u9762\u540D\u79F0", name, (value) => {
+      name = value;
+    });
+    await button(row, "\u6DFB\u52A0\u9875\u9762", async () => {
+      if (!name.trim() || name.trim().length > 80) throw new Error("\u9875\u9762\u540D\u79F0\u8BF7\u586B\u5199 1\u201380 \u4E2A\u5B57\u7B26\u3002");
+      const result = await scoped(project, "./api/pages", { method: "POST", body: JSON.stringify({ name: name.trim() }) });
+      await openPage(project, result.page.pageId);
+    }, "primary", "add");
+    if (current().project?.workspaceId === project.workspaceId) await button(row, "\u590D\u5236\u5F53\u524D\u9875\u9762", async () => {
+      const page = current().page;
+      const result = await scoped(project, "./api/import", { method: "POST", body: JSON.stringify({ page, name: `${page.name.slice(0, 76)}\uFF08\u526F\u672C\uFF09` }) });
+      await openPage(project, result.page.pageId);
+    }, "secondary-gray", "content_copy");
+  }
+  async function createForm() {
+    const body = content("\u65B0\u5EFA\u9879\u76EE", "\u9009\u62E9\u672C\u5730\u4FDD\u5B58\u4F4D\u7F6E\uFF0C\u5F00\u59CB\u7EC4\u7EC7\u4F60\u7684\u9875\u9762\u3002");
+    await button(body, "\u8FD4\u56DE\u9879\u76EE", () => home(), "secondary-gray", "arrow_back");
+    const form = slot(body, "project-settings-form");
+    let name = "", parentDirectory = "";
+    await input(form, "\u9879\u76EE\u540D\u79F0", name, (value) => {
+      name = value;
+    });
+    await folder(form, "\u4FDD\u5B58\u5230\u6587\u4EF6\u5939", "create", listing.defaultDirectory, (value) => {
+      parentDirectory = value;
+    });
+    text(form, "\u5728\u8BE5\u4F4D\u7F6E\u521B\u5EFA\u540C\u540D\u6587\u4EF6\u5939\uFF0C\u4E0D\u4F1A\u8986\u76D6\u5DF2\u6709\u6587\u4EF6\u3002");
+    await button(form, "\u521B\u5EFA\u9879\u76EE", async () => {
+      if (!parentDirectory) throw new Error("\u8BF7\u5148\u9009\u62E9\u4FDD\u5B58\u9879\u76EE\u7684\u6587\u4EF6\u5939\u3002");
+      const result = await api2("./api/projects", { unscoped: true, method: "POST", body: JSON.stringify({ name, parentDirectory }) });
+      await openPage(result.project, result.page.pageId);
+    }, "primary", "add");
+  }
+  async function openForm() {
+    const body = content("\u6253\u5F00\u672C\u5730\u9879\u76EE", "\u652F\u6301\u5DF2\u4ECE GitHub \u514B\u9686\u6216\u4E0B\u8F7D\u5230\u672C\u5730\u7684\u642D\u5EFA\u5668\u9879\u76EE\u3002");
+    await button(body, "\u8FD4\u56DE\u9879\u76EE", () => home(), "secondary-gray", "arrow_back");
+    const form = slot(body, "project-settings-form");
+    let directory = "";
+    await folder(form, "\u9879\u76EE\u6587\u4EF6\u5939", "open", listing.defaultDirectory, (value) => {
+      directory = value;
+    });
+    text(form, "\u8BF7\u9009\u62E9\u542B page-builder.project.json \u7684\u9879\u76EE\u6839\u76EE\u5F55\u3002");
+    await button(form, "\u6253\u5F00\u9879\u76EE", async () => {
+      if (!directory) throw new Error("\u8BF7\u5148\u9009\u62E9\u8981\u6253\u5F00\u7684\u9879\u76EE\u6587\u4EF6\u5939\u3002");
+      const result = await api2("./api/projects/open", { unscoped: true, method: "POST", body: JSON.stringify({ directory }) });
+      await details(result.project);
+    }, "primary", "folder_open");
+  }
+  async function settingsForm(project) {
+    if (project.available === false) {
+      const body2 = content("\u91CD\u65B0\u5173\u8054\u9879\u76EE\u8DEF\u5F84", project.name);
+      await button(body2, "\u8FD4\u56DE\u9879\u76EE", () => home(), "secondary-gray", "arrow_back");
+      const form2 = slot(body2, "project-settings-form");
+      await pathForm(form2, project);
+      return;
+    }
+    project = (await scoped(project, "./api/projects/current")).project;
+    const body = content("\u9879\u76EE\u8BBE\u7F6E", project.name);
+    await button(body, "\u8FD4\u56DE\u9879\u76EE", () => home(), "secondary-gray", "arrow_back");
+    const form = slot(body, "project-settings-form");
+    const draft = { name: project.name, description: project.description || "", coverImage: project.coverImage || null, starred: Boolean(project.starred) };
+    await input(form, "\u9879\u76EE\u540D\u79F0", draft.name, (value) => {
+      draft.name = value;
+    });
+    await input(form, "\u9879\u76EE\u8BF4\u660E", draft.description, (value) => {
+      draft.description = value;
+    }, true);
+    const preview = document.createElement("img");
+    preview.className = "project-cover-preview";
+    preview.alt = "\u9879\u76EE\u5C01\u9762\u9884\u89C8";
+    preview.src = cover(project);
+    form.append(preview);
+    const upload = document.createElement("input");
+    upload.type = "file";
+    upload.accept = "image/png,image/jpeg,image/webp";
+    upload.hidden = true;
+    upload.setAttribute("aria-label", "\u4E0A\u4F20\u9879\u76EE\u5C01\u9762");
+    form.append(upload);
+    upload.addEventListener("change", () => action(async () => {
+      const file2 = upload.files?.[0];
+      if (!file2) return;
+      if (file2.size > 1e6 || !["image/png", "image/jpeg", "image/webp"].includes(file2.type)) throw new Error("\u5C01\u9762\u8BF7\u4F7F\u7528 1 MB \u4EE5\u5185\u7684 PNG\u3001JPEG \u6216 WebP \u56FE\u7247\u3002");
+      const data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("\u65E0\u6CD5\u8BFB\u53D6\u5C01\u9762\u56FE\u7247\u3002"));
+        reader.readAsDataURL(file2);
+      });
+      const image = new Image();
+      image.src = data;
+      await image.decode().catch(() => {
+        throw new Error("\u8FD9\u4E0D\u662F\u6709\u6548\u7684\u56FE\u7247\u6587\u4EF6\u3002");
+      });
+      draft.coverImage = data;
+      preview.src = data;
+    }));
+    text(form, "\u5EFA\u8BAE\u4F7F\u7528 16:9 \u6A2A\u5411\u5C01\u9762\uFF0C\u652F\u6301 1 MB \u4EE5\u5185\u7684 PNG\u3001JPEG\u3001WebP\u3002");
+    const covers = slot(form, "project-home-tools");
+    await button(covers, "\u4E0A\u4F20\u5C01\u9762", () => upload.click(), "secondary-gray", "image");
+    await button(covers, "\u6062\u590D\u9ED8\u8BA4\u5C01\u9762", () => {
+      draft.coverImage = null;
+      preview.src = cover({ ...project, coverImage: null });
+    });
+    const starHost = slot(form);
+    const star = async () => {
+      const focused = starHost.contains(document.activeElement);
+      await render(`${prefix}view-star`, starHost, "C-02", buttonProps2(draft.starred ? "\u5DF2\u6536\u85CF \xB7 \u70B9\u51FB\u53D6\u6D88" : "\u6536\u85CF\u6B64\u9879\u76EE", draft.starred ? "secondary-blue" : "secondary-gray", "star"), { "b2b:button-activate": () => action(async () => {
+        draft.starred = !draft.starred;
+        await star();
+      }) });
+      if (focused) starHost.querySelector("button")?.focus();
+    };
+    await star();
+    text(form, `\u672C\u5730\u8DEF\u5F84\uFF1A${project.directory}`).className = "project-path";
+    text(form, "\u4FEE\u6539\u9879\u76EE\u540D\u79F0\u4E0D\u4F1A\u91CD\u547D\u540D\u672C\u5730\u6587\u4EF6\u5939\u3002\u5C01\u9762\u3001\u8BF4\u660E\u548C\u6536\u85CF\u968F\u9879\u76EE\u6587\u4EF6\u4E00\u8D77\u4FDD\u5B58\u3002");
+    await button(form, "\u4FDD\u5B58\u8BBE\u7F6E", async () => {
+      const result = await api2("./api/projects/settings", { unscoped: true, method: "POST", body: JSON.stringify({ workspaceId: project.workspaceId, expectedRevision: project.revision ?? 0, ...draft }) });
+      await changed?.(result.project);
+      await home();
+    }, "primary");
+    const relocation = document.createElement("details");
+    form.append(relocation);
+    text(relocation, "\u91CD\u65B0\u5173\u8054\u672C\u5730\u8DEF\u5F84", "summary");
+    await pathForm(relocation, project);
+  }
+  async function pathForm(parent, project) {
+    let directory = "";
+    text(parent, "\u5982\u679C\u4F60\u5DF2\u5728\u6587\u4EF6\u7BA1\u7406\u5668\u4E2D\u79FB\u52A8\u4E86\u9879\u76EE\uFF0C\u5728\u8FD9\u91CC\u5173\u8054\u65B0\u4F4D\u7F6E\u3002\u6B64\u64CD\u4F5C\u4E0D\u4F1A\u79FB\u52A8\u3001\u8986\u76D6\u6216\u5220\u9664\u6587\u4EF6\uFF0C\u5E76\u4F1A\u6838\u5BF9\u9879\u76EE\u8EAB\u4EFD\u3002");
+    await folder(parent, "\u65B0\u7684\u9879\u76EE\u6587\u4EF6\u5939", "relink", project.directory, (value) => {
+      directory = value;
+    });
+    await button(parent, "\u9A8C\u8BC1\u5E76\u5173\u8054\u8DEF\u5F84", async () => {
+      if (!directory) throw new Error("\u8BF7\u5148\u9009\u62E9\u79FB\u52A8\u540E\u7684\u9879\u76EE\u6587\u4EF6\u5939\u3002");
+      const result = await api2("./api/projects/relink", { unscoped: true, method: "POST", body: JSON.stringify({ directory, workspaceId: project.workspaceId }) });
+      await details(result.project);
+    }, "secondary-blue", "folder_open");
+  }
+  async function legacy() {
+    mode = "legacy";
+    await navigation();
+    const body = content("\u5386\u53F2\u9875\u9762", "\u4EE5\u524D\u521B\u5EFA\u7684\u9875\u9762\u4ECD\u4FDD\u7559\u5728\u539F\u4F4D\u7F6E\u3002");
+    const pages = (await api2("./api/pages", { unscoped: true })).pages;
+    const list = slot(body, "project-page-grid");
+    for (const page of pages) {
+      const row = slot(list);
+      await button(row, page.name, () => openPage(null, page.pageId), "secondary-gray", "description");
+      const active = current();
+      if (active.project) await button(row, "\u590D\u5236\u5230\u5F53\u524D\u9879\u76EE", async () => {
+        const old = await api2(`./api/pages/${page.pageId}`, { unscoped: true });
+        const result = await scoped(active.project, "./api/import", { method: "POST", body: JSON.stringify({ page: old.page }) });
+        await openPage(active.project, result.page.pageId);
+      });
+    }
+  }
+  async function show() {
+    if (root || !await settle()) return;
+    root = document.createElement("section");
+    root.id = "project-home";
+    root.setAttribute("aria-label", "\u9879\u76EE\u5DE5\u4F5C\u53F0");
+    root.innerHTML = '<div data-body class="project-home-shell"><aside class="project-home-sidebar"><div class="project-home-brand">\u9875\u9762\u642D\u5EFA\u5668</div><p>\u672C\u5730\u5DE5\u4F5C\u7A7A\u95F4</p><nav aria-label="\u9879\u76EE\u5BFC\u822A"></nav><div data-resume></div><p class="project-local-note">\u9879\u76EE\u4FDD\u5B58\u5728\u4F60\u7684\u7535\u8111\u4E0A</p></aside><main class="project-home-main"><p data-message role="status" aria-live="polite"></p><div data-content></div></main></div>';
+    document.body.append(root);
+    setOpen(true);
+    await action(async () => {
+      await button(root.querySelector("[data-resume]"), "\u7EE7\u7EED\u7F16\u8F91", () => {
+        busy = false;
+        close();
+      }, "secondary-blue", "arrow_back");
+      await home("recent");
+    });
+    root?.querySelector("nav button")?.focus();
+  }
+  return { show, close };
+}
+
 // src/select-variants.ts
 function selectVariantPatch(props, variant, defaults) {
   const plain = (props.items || []).filter((item) => typeof item === "string" || !item.group).map((item) => typeof item === "string" ? item : item.label);
@@ -11877,9 +12270,9 @@ var components = {
     type: { property: "\u5C5E\u6027\u6807\u7B7E", option: "\u9009\u9879\u6807\u7B7E", status: "\u72B6\u6001\u6807\u7B7E", avatar: "\u5934\u50CF\u6807\u7B7E" }
   }
 };
-function inspectorOptions(componentId, key, values) {
+function inspectorOptions(componentId, key, values, metadata) {
   const labels2 = components[componentId]?.[key] || shared[key] || {};
-  const options = values.map((value) => ({ value, label: Object.hasOwn(labels2, value) ? labels2[value] : String(value) }));
+  const options = values.map((value) => ({ value, label: metadata?.find((option) => option.value === value)?.label ?? (Object.hasOwn(labels2, value) ? labels2[value] : String(value)) }));
   const counts = /* @__PURE__ */ new Map();
   for (const { label } of options) counts.set(label, (counts.get(label) || 0) + 1);
   const used = /* @__PURE__ */ new Set();
@@ -11889,6 +12282,35 @@ function inspectorOptions(componentId, key, values) {
     used.add(option.label);
   }
   return options;
+}
+
+// src/editor-contract.ts
+function matchesConditions(conditions, props) {
+  return !conditions || conditions.every((condition) => condition.not ? !condition.values.includes(props[condition.property]) : condition.values.includes(props[condition.property]));
+}
+function editorControl(editor, props) {
+  const matches = editor.controlWhen?.filter((item) => matchesConditions(item.when, props)) || [];
+  if (matches.length > 1) throw new Error("\u7EC4\u4EF6\u7F16\u8F91\u534F\u8BAE\u5339\u914D\u591A\u4E2A\u63A7\u4EF6\u89C4\u5219\uFF0C\u8BF7\u4FEE\u6B63\u7EC4\u4EF6\u5E93\u534F\u8BAE\u540E\u91CD\u8F7D\u3002");
+  return matches[0]?.control || editor.control || "auto";
+}
+function editorFields(rules, fields = {}, props = {}) {
+  return Object.entries(rules).map(([key, rule], index) => ({ key, rule, editor: fields[key] || {}, index })).filter((item) => matchesConditions(item.editor.visibleWhen, props)).sort((a, b2) => (a.editor.order ?? a.index) - (b2.editor.order ?? b2.index));
+}
+function emptyValue(value) {
+  return value == null || typeof value === "string" && !value.trim() || Array.isArray(value) && !value.length;
+}
+function contractPatch(definition2, props, property, value) {
+  const transitions = definition2.builder?.transitions?.filter((item) => item.property === property && item.value === value && matchesConditions(item.when, props)) || [];
+  if (!transitions.length) return null;
+  if (transitions.length !== 1) throw new Error("\u7EC4\u4EF6\u7F16\u8F91\u534F\u8BAE\u5339\u914D\u591A\u4E2A\u8F6C\u6362\u89C4\u5219\uFF0C\u8BF7\u4FEE\u6B63\u7EC4\u4EF6\u5E93\u534F\u8BAE\u540E\u91CD\u8F7D\u3002");
+  const transition = transitions[0];
+  for (const item of transition.require || []) if (emptyValue(props[item.property])) throw new Error(item.message);
+  const patch = {};
+  for (const name of transition.reset || []) patch[name] = structuredClone(definition2.props[name].default);
+  Object.assign(patch, structuredClone(transition.set || {}));
+  for (const [name, next] of Object.entries(transition.ensure || {})) if (emptyValue(props[name])) patch[name] = structuredClone(next);
+  patch[property] = value;
+  return patch;
 }
 
 // src/ui/library-transport.js
@@ -15154,11 +15576,686 @@ function cardVariantPatch(props, variant) {
   return patch;
 }
 
+// src/ui/canvas-drag.js
+function createCanvasDrag({ canStart, onStart, onEnd, onDrop, labelFor }) {
+  let session = null;
+  let frame = 0;
+  const animations = /* @__PURE__ */ new Map();
+  const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const canvas = () => document.querySelector("#canvas");
+  const children = (parent) => [...parent.children].filter((el) => el.matches(".node-shell") && el !== session?.source);
+  const contains = (r, x, y) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  function rect(element) {
+    const result = element.getBoundingClientRect();
+    let x = 0, y = 0;
+    for (let el = element; el && el !== canvas(); el = el.parentElement) {
+      if (!animations.has(el)) continue;
+      const transform2 = getComputedStyle(el).transform;
+      if (transform2 !== "none") {
+        const matrix = new DOMMatrixReadOnly(transform2);
+        x += matrix.m41;
+        y += matrix.m42;
+      }
+    }
+    return { left: result.left - x, right: result.right - x, top: result.top - y, bottom: result.bottom - y, width: result.width, height: result.height };
+  }
+  function reflow(change, animate = true) {
+    const shells = [...canvas()?.querySelectorAll(".node-shell") || []];
+    const before = new Map(shells.filter((el) => el.getClientRects().length).map((el) => [el, el.getBoundingClientRect()]));
+    for (const animation of animations.values()) animation.cancel();
+    animations.clear();
+    change();
+    if (!animate || reducedMotion()) return;
+    for (const el of shells) {
+      const old = before.get(el);
+      if (!old || !el.isConnected || !el.getClientRects().length) continue;
+      let ancestor = el.parentElement;
+      while (ancestor && !animations.has(ancestor)) ancestor = ancestor.parentElement;
+      if (ancestor) continue;
+      const next = el.getBoundingClientRect(), dx = old.left - next.left, dy = old.top - next.top;
+      if (Math.abs(dx) + Math.abs(dy) < 1) continue;
+      const animation = el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: "translate(0,0)" }], { duration: 180, easing: "cubic-bezier(.2,.8,.2,1)" });
+      animations.set(el, animation);
+      animation.finished.then(() => {
+        if (animations.get(el) === animation) animations.delete(el);
+      }, () => {
+      });
+    }
+  }
+  function place(parent, index) {
+    if (!session || session.target?.parent === parent && session.target.index === index) return;
+    const { placeholder, source, label, height, width } = session;
+    reflow(() => {
+      session.target?.parent.classList.remove("is-drop-target");
+      source?.classList.add("is-drag-source");
+      parent.classList.add("is-drop-target");
+      placeholder.style.setProperty("--drop-height", `${height}px`);
+      placeholder.style.setProperty("--drop-width", `${Math.min(width, parent.clientWidth)}px`);
+      const targetLabel = parent.classList.contains("is-root") ? "\u9875\u9762" : parent.dataset.layoutLabel;
+      placeholder.querySelector("strong").textContent = `${label} \xB7 \u677E\u624B\u653E\u5230\u8FD9\u91CC`;
+      placeholder.querySelector("small").textContent = `${targetLabel} \xB7 \u7B2C ${index + 1} \u9879`;
+      placeholder.dataset.parentId = parent.dataset.nodeId;
+      placeholder.dataset.index = String(index);
+      parent.insertBefore(placeholder, children(parent)[index] || null);
+      session.target = { parent, index };
+    });
+  }
+  function clearPreview(animate = true) {
+    if (!session?.target) return;
+    reflow(() => {
+      session.placeholder.remove();
+      session.target?.parent.classList.remove("is-drop-target");
+      session.source?.classList.remove("is-drag-source");
+      session.target = null;
+      session.anchor = null;
+    }, animate);
+  }
+  function cancel(animate = true) {
+    if (!session) return;
+    cancelAnimationFrame(frame);
+    frame = 0;
+    clearPreview(animate);
+    session.source?.classList.remove("is-drag-origin");
+    session.ghost.remove();
+    session = null;
+    document.body.classList.remove("is-canvas-dragging");
+    onEnd();
+  }
+  function targetAt(x, y) {
+    const root = canvas()?.querySelector(".is-root");
+    if (!root) return null;
+    const descend = (parent2) => {
+      for (const child of children(parent2)) {
+        if (!child.classList.contains("layout-shell")) continue;
+        const r = rect(child);
+        if (!contains(r, x, y)) continue;
+        const vertical = parent2.classList.contains("layout-column");
+        const inset = Math.min(12, (vertical ? r.height : r.width) / 4);
+        if (vertical ? y > r.top + inset && y < r.bottom - inset : x > r.left + inset && x < r.right - inset) return descend(child);
+      }
+      return parent2;
+    };
+    const parent = descend(root);
+    if (session.source === parent || session.source?.contains(parent)) return null;
+    const items = children(parent).map((el, index) => ({ index, r: rect(el) }));
+    if (parent.classList.contains("layout-column")) return { parent, index: items.find((item) => y < item.r.top + item.r.height / 2)?.index ?? items.length };
+    const rows = [];
+    for (const item of items) {
+      let row2 = rows.at(-1);
+      if (!row2 || item.r.top >= row2.bottom - 1) {
+        row2 = { top: item.r.top, bottom: item.r.bottom, items: [] };
+        rows.push(row2);
+      }
+      row2.items.push(item);
+      row2.bottom = Math.max(row2.bottom, item.r.bottom);
+    }
+    if (!rows.length) return { parent, index: 0 };
+    if (y > rows.at(-1).bottom + 8) return { parent, index: items.length };
+    const row = rows.find((row2, index) => !rows[index + 1] || y < (row2.bottom + rows[index + 1].top) / 2);
+    return { parent, index: row.items.find((item) => x < item.r.left + item.r.width / 2)?.index ?? row.items.at(-1).index + 1 };
+  }
+  function update(x, y, scrolled = false) {
+    if (!session || session.committing) return false;
+    const area = canvas(), scroll = document.querySelector(".canvas-scroll");
+    if (!area || !contains(area.getBoundingClientRect(), x, y) || !contains(scroll.getBoundingClientRect(), x, y)) {
+      clearPreview();
+      return false;
+    }
+    if (!scrolled && session.target && session.anchor && Math.hypot(x - session.anchor.x, y - session.anchor.y) < 8) return true;
+    if (session.source && !session.target) place(session.source.parentElement, session.originIndex);
+    if (session.target && contains(rect(session.placeholder), x, y)) return true;
+    const target = targetAt(x, y);
+    if (!target) {
+      clearPreview();
+      return false;
+    }
+    place(target.parent, target.index);
+    session.anchor = { x, y };
+    return true;
+  }
+  function tick() {
+    frame = 0;
+    if (!session || session.committing || !session.pointer) return;
+    const { x, y } = session.pointer, scroll = document.querySelector(".canvas-scroll"), bounds = scroll?.getBoundingClientRect();
+    if (bounds && contains(bounds, x, y)) {
+      const edge = Math.min(48, bounds.height / 4);
+      const delta = y < bounds.top + edge ? -12 * (1 - (y - bounds.top) / edge) : y > bounds.bottom - edge ? 12 * (1 - (bounds.bottom - y) / edge) : 0;
+      if (delta) {
+        const before = scroll.scrollTop;
+        scroll.scrollTop += delta;
+        if (scroll.scrollTop !== before) update(x, y, true);
+      }
+    }
+    frame = requestAnimationFrame(tick);
+  }
+  function begin(event, drag) {
+    if (!canStart() || !event.dataTransfer || event.target.closest(".node-actions, .library-add, input, textarea, select")) {
+      event.preventDefault();
+      return;
+    }
+    cancel(false);
+    const source = drag.kind === "existing" ? event.currentTarget : null;
+    if (source?.classList.contains("is-root")) {
+      event.preventDefault();
+      return;
+    }
+    const size = source?.getBoundingClientRect();
+    const content = source?.querySelector(":scope > .component-host > *")?.getBoundingClientRect();
+    const width = content ? Math.min(size.width, content.width + 18) : size?.width;
+    const placeholder = document.createElement("div");
+    placeholder.className = "drop-placeholder";
+    placeholder.setAttribute("role", "status");
+    placeholder.append(document.createElement("strong"), document.createElement("small"));
+    const label = labelFor(drag), ghost = document.createElement("div");
+    ghost.className = "drag-ghost";
+    ghost.textContent = `${drag.kind === "existing" ? "\u79FB\u52A8" : "\u6DFB\u52A0"} \xB7 ${label}`;
+    document.body.append(ghost);
+    session = { drag, source, placeholder, ghost, label, height: Math.max(56, size?.height || 64), width: width || 180, originIndex: source ? [...source.parentElement.children].filter((el) => el.matches(".node-shell")).indexOf(source) : -1, target: null, pointer: null, committing: false };
+    event.dataTransfer.effectAllowed = source ? "move" : "copy";
+    event.dataTransfer.setData("text/plain", `${drag.kind}:${drag.id}`);
+    event.dataTransfer.setDragImage(ghost, 18, 18);
+    onStart(drag);
+    const started = session;
+    requestAnimationFrame(() => {
+      if (session !== started) return;
+      ghost.style.visibility = "hidden";
+      source?.classList.add("is-drag-origin");
+      document.body.classList.add("is-canvas-dragging");
+    });
+  }
+  document.addEventListener("dragenter", (event) => {
+    if (!session || session.committing) return;
+    const valid = canvas()?.contains(event.target);
+    event.preventDefault();
+    event.dataTransfer.dropEffect = valid ? session.source ? "move" : "copy" : "none";
+  });
+  document.addEventListener("dragover", (event) => {
+    if (!session || session.committing) return;
+    session.pointer = { x: event.clientX, y: event.clientY };
+    const valid = update(event.clientX, event.clientY);
+    event.preventDefault();
+    event.dataTransfer.dropEffect = valid ? session.source ? "move" : "copy" : "none";
+    if (!frame) frame = requestAnimationFrame(tick);
+  });
+  document.addEventListener("drop", async (event) => {
+    if (!session || session.committing) return;
+    event.preventDefault();
+    if (!update(event.clientX, event.clientY) || !session.target) {
+      cancel();
+      return;
+    }
+    const current = session, { parent, index } = current.target;
+    if (current.source?.parentElement === parent && current.originIndex === index) {
+      cancel();
+      return;
+    }
+    current.committing = true;
+    cancelAnimationFrame(frame);
+    frame = 0;
+    current.placeholder.querySelector("strong").textContent = `\u6B63\u5728\u653E\u7F6E${current.label}\u2026`;
+    try {
+      await onDrop(current.drag, parent.dataset.nodeId, index);
+    } finally {
+      if (session === current) cancel();
+    }
+  });
+  document.addEventListener("dragend", () => {
+    if (!session?.committing) cancel();
+  });
+  document.addEventListener("dragleave", (event) => {
+    if (session && !session.committing && !event.relatedTarget && !event.clientX && !event.clientY) {
+      session.pointer = null;
+      clearPreview();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && session && !session.committing) {
+      event.preventDefault();
+      cancel();
+    }
+  }, true);
+  window.addEventListener("blur", () => {
+    if (!session?.committing) cancel();
+  });
+  window.addEventListener("pagehide", () => cancel(false));
+  return { begin, cancel };
+}
+
+// src/ui/canvas-renderer.js
+function createCanvasRenderer({ renderComponent, beforeCommit, onSelect, onDragStart, labelFor }) {
+  let records = /* @__PURE__ */ new Map(), generation = 0;
+  const dispose = (record2) => {
+    if (record2?.instance && !record2.instance.destroyed) record2.instance.destroy();
+  };
+  function reset() {
+    generation += 1;
+    for (const record2 of records.values()) {
+      dispose(record2);
+      record2.shell.remove();
+    }
+    records.clear();
+  }
+  async function render(root, target, { preview = false, identity = "" } = {}) {
+    const epoch = ++generation, next = /* @__PURE__ */ new Map(), prepared = [];
+    const stale = () => epoch !== generation;
+    const prepare = async (node) => {
+      if (stale()) return;
+      const key = JSON.stringify([identity, node.kind, node.componentId, node.props]);
+      const previous = records.get(node.id);
+      let record2 = previous;
+      if (!previous || previous.kind !== node.kind) {
+        const shell = document.createElement("div");
+        shell.dataset.nodeId = node.id;
+        shell.addEventListener("click", (event) => {
+          if (!shell.closest(".is-preview")) {
+            event.stopPropagation();
+            onSelect(node.id, event);
+          }
+        });
+        shell.addEventListener("dragstart", (event) => {
+          if (shell.draggable) {
+            event.stopPropagation();
+            onDragStart(event, node.id);
+          }
+        });
+        record2 = { shell, kind: node.kind, key: null };
+      }
+      if (node.kind === "component" && record2.key !== key) {
+        const host2 = document.createElement("div");
+        host2.className = "component-host";
+        record2 = { ...record2, host: host2, key, instance: null };
+        prepared.push(record2);
+        const result = await renderComponent({ component: node.componentId, props: node.props }, host2);
+        record2.instance = result.instance;
+        record2.valid = result.audit.valid;
+      }
+      next.set(node.id, record2);
+      if (node.kind === "layout") for (const child of node.children) await prepare(child);
+    };
+    try {
+      await prepare(root);
+    } catch (error40) {
+      prepared.forEach(dispose);
+      if (!stale()) throw error40;
+      return false;
+    }
+    if (stale()) {
+      prepared.forEach(dispose);
+      return false;
+    }
+    beforeCommit();
+    const apply = (node, parent, before = null) => {
+      const record2 = next.get(node.id), shell = record2.shell, isRoot = node.id === root.id;
+      if (shell.parentNode !== parent || shell !== before) {
+        if (shell.parentNode === parent && typeof parent.moveBefore === "function") parent.moveBefore(shell, before);
+        else parent.insertBefore(shell, before);
+      }
+      shell.draggable = !isRoot && !preview;
+      const selected = shell.classList.contains("is-selected");
+      shell.className = `node-shell ${node.kind === "layout" ? "layout-shell layout-node" : "component-shell"}${isRoot ? " is-root" : ""}${selected ? " is-selected" : ""}`;
+      if (node.kind === "component") {
+        if (record2.host.parentNode !== shell) shell.replaceChildren(record2.host);
+        shell.dataset.rendererValid = String(record2.valid);
+      } else {
+        shell.classList.add(`layout-${node.layout}`, `gap-${node.gap}`);
+        shell.dataset.layoutLabel = labelFor(node.layout);
+        if (node.columns) shell.style.setProperty("--columns", node.columns);
+        else shell.style.removeProperty("--columns");
+        let cursor = shell.firstElementChild;
+        for (const child of node.children) {
+          const childShell = next.get(child.id).shell;
+          apply(child, shell, cursor);
+          cursor = childShell.nextElementSibling;
+        }
+        for (const hint of shell.querySelectorAll(":scope > .drop-hint")) hint.remove();
+        if (!node.children.length && !preview) {
+          const hint = document.createElement("div");
+          hint.className = "drop-hint";
+          hint.textContent = isRoot ? "\u4ECE\u5DE6\u4FA7\u62D6\u5165\u7EC4\u4EF6\uFF0C\u6216\u70B9\u51FB\u6DFB\u52A0\u6309\u94AE" : "\u62D6\u5165\u7EC4\u4EF6";
+          shell.append(hint);
+        }
+      }
+    };
+    apply(root, target, target.firstElementChild);
+    for (const [id, previous] of records) {
+      const current = next.get(id);
+      if (previous.instance !== current?.instance) dispose(previous);
+      if (previous.shell !== current?.shell) previous.shell.remove();
+    }
+    records = next;
+    return true;
+  }
+  return { render, reset };
+}
+
+// src/ui/selection-toolbar.js
+function createSelectionToolbar({ mount, clear, actions, canShow }) {
+  let element = null, selected = null, signature = null, observer = null;
+  function position() {
+    if (!element || !selected) return;
+    const shell = document.querySelector(`[data-node-id="${CSS.escape(selected)}"]`);
+    const clip = document.querySelector(".canvas-scroll")?.getBoundingClientRect();
+    const rect = shell?.getBoundingClientRect();
+    element.hidden = element.dataset.ready !== "true" || !canShow() || !rect || !clip || rect.bottom <= clip.top || rect.top >= clip.bottom || rect.right <= clip.left || rect.left >= clip.right;
+    if (element.hidden) return;
+    const inspector = document.querySelector(".right-panel");
+    const overlay = inspector && getComputedStyle(inspector).position === "fixed" && getComputedStyle(inspector).display !== "none" ? inspector.getBoundingClientRect() : null;
+    const right = Math.min(clip.right, overlay?.left ?? innerWidth) - 4;
+    const edge = Math.max(8, clip.left + 4);
+    element.style.maxWidth = `${Math.max(120, right - edge)}px`;
+    const bounds = element.getBoundingClientRect();
+    const left = Math.max(edge, Math.min(rect.right - bounds.width, right - bounds.width));
+    const top = rect.top - bounds.height - 4 >= clip.top ? rect.top - bounds.height - 4 : Math.max(rect.top + 4, clip.top + 4);
+    element.style.left = `${left}px`;
+    element.style.top = `${Math.min(top, innerHeight - bounds.height - 8)}px`;
+  }
+  function reset() {
+    observer?.disconnect();
+    observer = null;
+    clear();
+    element?.remove();
+    element = null;
+    selected = null;
+    signature = null;
+  }
+  async function select2(id, key = id) {
+    if (id === selected && key === signature) {
+      position();
+      return;
+    }
+    reset();
+    if (!id) return;
+    selected = id;
+    signature = key;
+    const toolbar = document.createElement("div");
+    element = toolbar;
+    toolbar.hidden = true;
+    toolbar.inert = true;
+    toolbar.className = "node-actions";
+    toolbar.setAttribute("role", "toolbar");
+    toolbar.setAttribute("aria-label", "\u9009\u4E2D\u7EC4\u4EF6\u64CD\u4F5C");
+    for (const event of ["click", "pointerdown", "dragstart"]) toolbar.addEventListener(event, (e) => e.stopPropagation());
+    document.body.append(toolbar);
+    observer = new ResizeObserver(position);
+    observer.observe(toolbar);
+    const shell = document.querySelector(`[data-node-id="${CSS.escape(id)}"]`);
+    if (shell) observer.observe(shell);
+    const canvas = document.querySelector(".canvas-scroll");
+    if (canvas) observer.observe(canvas);
+    for (const action of actions(id)) {
+      if (element !== toolbar) return;
+      const control = document.createElement("span");
+      control.className = "ui-control";
+      toolbar.append(control);
+      await mount(control, action, id);
+    }
+    if (element !== toolbar) return;
+    toolbar.dataset.ready = "true";
+    toolbar.inert = false;
+    position();
+  }
+  document.addEventListener("scroll", position, true);
+  window.addEventListener("resize", position);
+  return { select: select2, position, reset, invalidate(id, key = id) {
+    if (id !== selected || key !== signature) reset();
+  } };
+}
+
+// src/ui/inline-editor.js
+function editableRegions(node, definition2) {
+  if (!node || node.kind !== "component") return [];
+  const shell = [...document.querySelectorAll("#canvas .component-shell")].find((el) => el.dataset.nodeId === node.id);
+  const root = shell?.querySelector(":scope > .component-host")?.firstElementChild;
+  if (!root) return [];
+  const props = { ...definition2.defaults, ...node.props }, regions = [];
+  for (const binding of definition2.inline || []) {
+    const editor = definition2.builder?.fields?.[binding.property] || {};
+    if (!matchesConditions(binding.when, props) || !matchesConditions(editor.visibleWhen, props) || !matchesConditions(editor.enabledWhen, props)) continue;
+    const elements = binding.selector === ":scope" ? [root] : root.querySelectorAll(binding.selector);
+    if (elements.length !== 1) continue;
+    const element = elements[0], rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height || getComputedStyle(element).visibility === "hidden") continue;
+    if (!textTarget(element)) continue;
+    regions.push({ ...binding, element, shell, value: props[binding.property] });
+  }
+  return regions.filter((region) => !regions.some((other) => other.element === region.element && other.property !== region.property));
+}
+function textTarget(element) {
+  if (element.matches("input,textarea")) return { native: true };
+  if (!element.childElementCount && !element.matches("button")) return { leaf: true };
+  const text = [...element.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+  return text.length === 1 ? { text: text[0] } : null;
+}
+function createInlineEditor({ canEdit, getNode, getRevision, definition: definition2, labelFor, select: select2, save, onChange, status }) {
+  let current = null, openRequest = 0;
+  const regions = (node) => editableRegions(node, definition2(node.componentId));
+  const read = (editing) => editing.native ? editing.control.value : editing.control.innerText.replace(/\r\n?/g, "\n");
+  function close() {
+    openRequest += 1;
+    if (!current || current.saving) return;
+    const editing = current;
+    current = null;
+    editing.control.blur();
+    window.getSelection()?.removeAllRanges();
+    editing.restore();
+    status(null);
+    onChange();
+  }
+  function message(editing, value, invalid = false) {
+    if (current !== editing) return;
+    status(value);
+    if (invalid) editing.control.setAttribute("aria-invalid", "true");
+    else editing.control.removeAttribute("aria-invalid");
+  }
+  function finish() {
+    if (!current) return Promise.resolve(true);
+    const editing = current;
+    if (editing.pending) return editing.pending;
+    if (editing.composing) return Promise.resolve(false);
+    let value = read(editing);
+    if (editing.region.control !== "textarea") value = value.replace(/[\r\n]+/g, " ");
+    if (editing.region.control === "number" && value !== "") {
+      value = Number(value);
+      if (!Number.isFinite(value)) {
+        message(editing, "\u8BF7\u8F93\u5165\u6709\u6548\u6570\u5B57\u3002", true);
+        return Promise.resolve(false);
+      }
+    }
+    if (value === String(editing.region.value ?? "") || value === editing.region.value) {
+      close();
+      return Promise.resolve(true);
+    }
+    editing.saving = true;
+    message(editing, "\u6B63\u5728\u4FDD\u5B58\u2026");
+    editing.pending = (async () => {
+      try {
+        await save(editing.node, editing.region.property, value, editing.revision);
+        editing.saving = false;
+        close();
+        return true;
+      } catch (error40) {
+        message(editing, error40.code === "REVISION_CONFLICT" ? "\u9875\u9762\u5DF2\u88AB\u66F4\u65B0\uFF0C\u8349\u7A3F\u5DF2\u4FDD\u7559\u3002\u6309 Esc \u53D6\u6D88\u540E\u91CD\u65B0\u7F16\u8F91\u3002" : `\u672A\u4FDD\u5B58\uFF1A${error40.message}`, true);
+        return false;
+      } finally {
+        editing.saving = false;
+        editing.pending = null;
+      }
+    })();
+    return editing.pending;
+  }
+  async function open(id, property) {
+    if (current && !await finish()) return;
+    if (!canEdit()) return;
+    const request = ++openRequest;
+    await select2(id);
+    if (request !== openRequest || current || !canEdit()) return;
+    const node = getNode(id), region = node && regions(node).find((item) => item.property === property);
+    if (!region) return;
+    const target = textTarget(region.element);
+    if (!target) return;
+    const native2 = target.native, element = region.element;
+    const control = target.text ? document.createElement("span") : element;
+    const originalNodes = !native2 && !target.text ? [...element.childNodes] : null;
+    const originalAttributes = new Map([...control.attributes].map((attr) => [attr.name, attr.value]));
+    const originalValue = native2 ? control.value : null, draggable = region.shell.draggable;
+    const paint = getComputedStyle(element);
+    const paintSnapshot = Object.fromEntries(["color", "backgroundColor", "borderColor", "boxShadow", "opacity"].map((key) => [key, paint[key]]));
+    let paintAnimation = null;
+    if (target.text) target.text.replaceWith(control);
+    const editing = { node: structuredClone(node), region, native: native2, control, revision: getRevision(), composing: false, restore() {
+      paintAnimation?.cancel();
+      if (target.text) control.replaceWith(target.text);
+      else {
+        if (native2) control.value = originalValue;
+        else control.replaceChildren(...originalNodes);
+        for (const attr of [...control.attributes]) if (!originalAttributes.has(attr.name)) control.removeAttribute(attr.name);
+        for (const [name, value] of originalAttributes) control.setAttribute(name, value);
+      }
+      region.shell.draggable = draggable;
+    } };
+    current = editing;
+    region.shell.draggable = false;
+    if (element.matches("button,input,textarea")) {
+      paintAnimation = element.animate([paintSnapshot, paintSnapshot], { duration: 1, fill: "both" });
+    }
+    control.setAttribute("data-pb-inline-edit", region.control);
+    control.setAttribute("aria-label", labelFor(node.componentId, property));
+    if (native2) {
+      control.disabled = false;
+      control.readOnly = false;
+      control.value = String(region.value ?? "");
+    } else {
+      control.contentEditable = "plaintext-only";
+      control.setAttribute("role", "textbox");
+      control.setAttribute("aria-multiline", String(region.control === "textarea"));
+      control.textContent = String(region.value ?? "");
+    }
+    onChange();
+    status(region.control === "textarea" ? "\u6B63\u5728\u539F\u4F4D\u7F16\u8F91 \xB7 Enter \u6362\u884C \xB7 \u2318 / Ctrl + Enter \u4FDD\u5B58 \xB7 Esc \u53D6\u6D88" : "\u6B63\u5728\u539F\u4F4D\u7F16\u8F91 \xB7 Enter \u6216\u5931\u7126\u4FDD\u5B58 \xB7 Esc \u53D6\u6D88");
+    control.focus({ preventScroll: true });
+    if (native2) control.select();
+    else {
+      const range = document.createRange();
+      range.selectNodeContents(control);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    if (document.activeElement !== control) {
+      close();
+      status("\u6B64\u5185\u5BB9\u6682\u65F6\u65E0\u6CD5\u83B7\u5F97\u7F16\u8F91\u7126\u70B9\u3002");
+    }
+  }
+  const inside = (event) => current && (event.target === current.control || current.control.contains(event.target));
+  const editorButton = (event) => event.target.closest?.("#project-menu button,.library-add button,#undo button,#redo button");
+  document.addEventListener("dblclick", (event) => {
+    if (!canEdit() || current) return;
+    const shell = event.target.closest?.("#canvas .component-shell");
+    if (!shell) return;
+    const node = getNode(shell.dataset.nodeId);
+    if (!node) return;
+    const region = regions(node).find(({ element }) => {
+      const r = element.getBoundingClientRect();
+      return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
+    });
+    if (region) {
+      event.preventDefault();
+      event.stopPropagation();
+      void open(node.id, region.property);
+    }
+  }, true);
+  document.addEventListener("pointerdown", (event) => {
+    if (!current) return;
+    if (inside(event) && !current.saving) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (!editorButton(event)) void finish();
+  }, true);
+  document.addEventListener("click", (event) => {
+    if (!current) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const button = editorButton(event);
+    if (button) void finish().then((saved) => {
+      if (saved && button.isConnected && !button.disabled) button.click();
+    });
+  }, true);
+  document.addEventListener("keydown", (event) => {
+    if (!current) return;
+    if (current.saving) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (event.isComposing || current.composing || event.keyCode === 229) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      close();
+    } else if (inside(event)) {
+      event.stopPropagation();
+      if (event.key === "Enter" && (current.region.control !== "textarea" || event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        void finish();
+      }
+    }
+  }, true);
+  document.addEventListener("beforeinput", (event) => {
+    if (!inside(event)) return;
+    if (current.saving || event.inputType.startsWith("format")) event.preventDefault();
+    else if (["insertParagraph", "insertLineBreak"].includes(event.inputType) && !current.native) {
+      event.preventDefault();
+      if (!current.composing) document.execCommand("insertText", false, current.region.control === "textarea" ? "\n" : " ");
+    }
+  }, true);
+  document.addEventListener("input", (event) => {
+    if (inside(event)) event.stopImmediatePropagation();
+  }, true);
+  document.addEventListener("paste", (event) => {
+    if (!inside(event)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (current.saving) return;
+    let text = event.clipboardData?.getData("text/plain") || "";
+    if (current.region.control !== "textarea") text = text.replace(/[\r\n]+/g, " ");
+    document.execCommand("insertText", false, text);
+  }, true);
+  for (const type of ["dragstart", "drop"]) document.addEventListener(type, (event) => {
+    if (current) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+  document.addEventListener("compositionstart", (event) => {
+    if (inside(event)) current.composing = true;
+  }, true);
+  document.addEventListener("compositionend", (event) => {
+    if (inside(event)) current.composing = false;
+  }, true);
+  document.addEventListener("focusout", (event) => {
+    if (!inside(event)) return;
+    const editing = current;
+    queueMicrotask(() => {
+      if (current === editing && document.activeElement !== editing.control && !editing.control.contains(document.activeElement)) void finish();
+    });
+  }, true);
+  return { open, finish, cancel: close, regions, get active() {
+    return !!current;
+  } };
+}
+
 // src/ui/app.js
 var $ = (selector, root = document) => root.querySelector(selector);
-var state = { page: null, library: null, loadedLibraryId: null, catalog: [], selection: null, preview: false, instances: /* @__PURE__ */ new Map(), uiSlots: /* @__PURE__ */ new Map(), editTimers: /* @__PURE__ */ new Map(), fullPropsDirty: false, dragging: null, searchQuery: "", leftTab: "components", viewport: "desktop", inspectorOpen: false, lastCommittedAt: 0, renderEpoch: 0, selectionEpoch: 0, mutating: 0, polling: false, runtime: null };
+var escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+var state = { page: null, library: null, loadedLibraryId: null, catalog: [], selection: null, selectedIds: /* @__PURE__ */ new Set(), preview: false, uiSlots: /* @__PURE__ */ new Map(), editTimers: /* @__PURE__ */ new Map(), fullPropsDirty: false, dragging: null, searchQuery: "", leftTab: "components", viewport: "desktop", inspectorOpen: false, lastCommittedAt: 0, renderEpoch: 0, selectionEpoch: 0, mutating: 0, polling: false, runtime: null };
+var workspaceId = new URL(location.href).searchParams.get("workspace") || null;
+var currentProject = null;
+var projectDialogOpen = false;
+var switchingProject = false;
+var workspaceEpoch = 0;
 var mutationQueue = Promise.resolve();
-var selectionQueue = Promise.resolve();
+var pendingSelections = 0;
+var inspectorRendering = false;
 var inspectorQueue = Promise.resolve();
 var labels = { column: "\u7EB5\u5411\u5E03\u5C40", row: "\u6A2A\u5411\u5E03\u5C40", columns: "\u5206\u680F\u5E03\u5C40" };
 var host = { app: null, status: "standalone", error: null };
@@ -15171,6 +16268,146 @@ var reloadingRuntime = false;
 var runtimeReloadFailed = false;
 var contextLease = null;
 var contextQueue = Promise.resolve();
+var contextNodeIds = [];
+var contextEpoch = 0;
+var inspectorKey = null;
+var renderedPageName = null;
+var contextStatusKind = "ready";
+var uiGenerations = /* @__PURE__ */ new Map();
+var canvasDrag = createCanvasDrag({
+  canStart: () => {
+    if (inlineEditor.active || state.preview || !state.page || state.mutating || state.editTimers.size || reloadingRuntime || runtimeReloadFailed) return false;
+    if (state.fullPropsDirty) {
+      toast("\u8BF7\u5148\u5E94\u7528\u6216\u53D6\u6D88\u5176\u4ED6\u8BBE\u7F6E\u7684\u4FEE\u6539\u3002", "error");
+      return false;
+    }
+    if (state.selectedIds.size > 1) {
+      toast("\u8BF7\u5148\u5355\u51FB\u8981\u79FB\u52A8\u7684\u7EC4\u4EF6\uFF0C\u518D\u62D6\u52A8\u3002", "error");
+      return false;
+    }
+    return true;
+  },
+  labelFor: (drag) => {
+    const node = drag.kind === "existing" ? findNode(state.page.root, drag.id)?.node : null;
+    return node ? node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label : drag.kind === "layout" ? labels[drag.id] : definition(drag.id)?.label;
+  },
+  onStart: (drag) => {
+    state.dragging = drag;
+    selectionToolbar.position();
+  },
+  onEnd: () => {
+    state.dragging = null;
+    selectionToolbar.position();
+  },
+  onDrop: (drag, parentId, index) => drag.kind === "existing" ? commit([{ type: "move", nodeId: drag.id, parentId, index }], "\u7EC4\u4EF6\u5DF2\u79FB\u52A8") : addNode(drag.kind, drag.id, parentId, index)
+});
+var canvasRenderer = createCanvasRenderer({
+  renderComponent: (component, target) => window.B2B.renderComponent(component, target),
+  beforeCommit: () => canvasDrag.cancel(false),
+  onSelect: (id, event) => {
+    if (state.dragging || reloadingRuntime || runtimeReloadFailed) return;
+    select(id === state.page.root.id ? null : id, event);
+  },
+  onDragStart: (event, id) => canvasDrag.begin(event, { kind: "existing", id }),
+  labelFor: (layout) => labels[layout]
+});
+var selectionToolbar = createSelectionToolbar({
+  canShow: () => !projectDialogOpen && !inlineEditor.active && !state.preview && !state.dragging && !reloadingRuntime,
+  clear: () => clearUiPrefix("node-action-"),
+  actions: (id) => state.selectedIds.size > 1 ? [
+    { key: "count", badge: true, label: `\u5DF2\u9009 ${state.selectedIds.size} \u9879` },
+    ...host.status === "connected" ? [{ key: "context", icon: "add_comment", label: `\u52A0\u5165 AI \u4E0A\u4E0B\u6587\uFF08${state.selectedIds.size}\uFF09`, run: () => attachContext() }] : []
+  ] : [
+    { key: "up", icon: "arrow_upward", label: "\u4E0A\u79FB", iconOnly: true, run: () => moveSibling(id, -1) },
+    { key: "down", icon: "arrow_downward", label: "\u4E0B\u79FB", iconOnly: true, run: () => moveSibling(id, 1) },
+    { key: "copy", icon: "content_copy", label: "\u590D\u5236", run: () => commit([{ type: "duplicate", nodeId: id }], "\u5DF2\u590D\u5236") },
+    { key: "delete", icon: "delete", label: "\u5220\u9664", variant: "secondary-danger", run: () => commit([{ type: "remove", nodeId: id }], "\u5DF2\u5220\u9664") },
+    ...host.status === "connected" ? [{ key: "context", icon: "add_comment", label: "\u52A0\u5165 AI \u4E0A\u4E0B\u6587", run: () => attachContext() }] : []
+  ],
+  mount: (element, action, id) => action.badge ? mountUi(`node-action-${id}-${action.key}`, element, "C-42", { variant: "status", type: "status", size: "small", color: "neutral", text: action.label, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: false, bordered: false, solid: false, disabled: false }) : mountUi(
+    `node-action-${id}-${action.key}`,
+    element,
+    action.iconOnly ? "C-04" : "C-02",
+    action.iconOnly ? iconProps(action.icon, action.label) : { ...buttonProps(action.label, action.variant || "secondary-gray", action.icon), size: "mini" },
+    { [action.iconOnly ? "b2b:icon-activate" : "b2b:button-activate"]: () => action.run() }
+  )
+});
+var inlineEditor = createInlineEditor({
+  canEdit: () => Boolean(state.page && !state.preview && !state.dragging && !state.mutating && !state.fullPropsDirty && !state.editTimers.size && !reloadingRuntime && !runtimeReloadFailed),
+  getNode: (id) => findNode(state.page.root, id)?.node,
+  getRevision: () => state.page.revision,
+  definition,
+  labelFor: componentPropLabel,
+  select,
+  onChange: () => {
+    lockInspector();
+    selectionToolbar.position();
+  },
+  status: (message) => {
+    const hint = $("#selection-hint");
+    if (hint) {
+      hint.textContent = message || "\u2318 / Ctrl + \u70B9\u51FB\u591A\u9009";
+      hint.setAttribute("role", "status");
+      hint.setAttribute("aria-live", "polite");
+    }
+  },
+  save: (node, property, value, expectedRevision) => {
+    const run = async () => {
+      state.mutating += 1;
+      lockInspector();
+      setSaving("saving", "\u6B63\u5728\u4FDD\u5B58");
+      try {
+        const rule = definition(node.componentId).props[property];
+        const next = value === "" && rule.type.includes("null") ? null : value;
+        const result2 = await api(`./api/pages/${state.page.pageId}/operations`, { method: "POST", body: JSON.stringify({ expectedRevision, operations: [{ type: "updateProps", nodeId: node.id, props: componentPatch(node, property, next) }] }) });
+        acceptSavedPage(result2, state.selectionEpoch);
+        state.lastCommittedAt = Date.now();
+        await renderAll();
+        await syncModelContext();
+        setSaving("", "\u5DF2\u4FDD\u5B58");
+      } catch (error40) {
+        setSaving("error", "\u672A\u4FDD\u5B58");
+        throw error40;
+      } finally {
+        state.mutating -= 1;
+        lockInspector();
+      }
+    };
+    const result = mutationQueue.then(run);
+    mutationQueue = result.catch(() => {
+    });
+    return result;
+  }
+});
+function validIds(ids) {
+  return [...new Set(ids)].filter((id) => id && state.page && findNode(state.page.root, id));
+}
+function setSelection(nodeId, preserveGroup = false) {
+  const ids = validIds(state.selectedIds);
+  if (preserveGroup || nodeId === state.selection) {
+    state.selectedIds = new Set(ids.length ? ids : validIds([nodeId]));
+    state.selection = state.selectedIds.has(nodeId) ? nodeId : [...state.selectedIds].at(-1) || null;
+  } else {
+    state.selection = nodeId;
+    state.selectedIds = new Set(validIds([nodeId]));
+  }
+}
+async function attachContext(ids = [...state.selectedIds]) {
+  if (host.status === "failed" && !host.app) await connectHost();
+  contextNodeIds = validIds(ids);
+  contextEpoch += 1;
+  contextLease?.claim();
+  await syncModelContext();
+}
+function contextReadyStatus(force = false) {
+  if (host.status !== "connected") return;
+  if (!force && ["connecting", "failed"].includes(contextStatusKind)) return;
+  const nodes = validIds(contextNodeIds).map((id) => findNode(state.page.root, id).node);
+  const label = nodes.length > 1 ? `${nodes.length} \u9879` : nodes[0] && (nodes[0].kind === "layout" ? labels[nodes[0].layout] : definition(nodes[0].componentId)?.label);
+  const same = nodes.length > 0 && nodes.length === state.selectedIds.size && nodes.every((node) => state.selectedIds.has(node.id));
+  const action = same ? "\u91CD\u65B0\u540C\u6B65" : state.selectedIds.size > 1 ? `\u52A0\u5165 AI \u4E0A\u4E0B\u6587\uFF08${state.selectedIds.size}\uFF09` : "\u52A0\u5165 AI \u4E0A\u4E0B\u6587";
+  setContextStatus(nodes.length ? "synced" : "ready", nodes.length ? `\u5BF9\u8BDD\u5DF2\u5F15\u7528\uFF1A${label}` : "\u9009\u4E2D\u540E\u70B9\u51FB\u6309\u94AE\u52A0\u5165 AI \u4E0A\u4E0B\u6587", action);
+}
 function clearPublishedContext() {
   contextQueue = contextQueue.catch(() => {
   }).then(async () => {
@@ -15193,9 +16430,18 @@ function startup(message) {
 async function nativeApi(path, options) {
   if (path === "./api/health") return native.runtime;
   if (path === "./api/catalog") return { components: native.catalog };
-  const input = JSON.parse(options.body || "{}");
+  const input = { ...JSON.parse(options.body || "{}"), ...options.workspaceId || !options.unscoped && workspaceId ? { workspaceId: options.workspaceId || workspaceId } : {} };
   let name, args = input;
-  if (path === "./api/libraries") name = "component_library_list";
+  if (path === "./api/projects") name = options.method === "POST" ? "project_create" : "project_list";
+  else if (path === "./api/projects/choose-directory") name = "project_choose_directory";
+  else if (path === "./api/projects/directory-choice") name = "project_directory_choice";
+  else if (path === "./api/projects/cancel-directory-choice") name = "project_cancel_directory_choice";
+  else if (path === "./api/projects/open") name = "project_open";
+  else if (path === "./api/projects/relink") name = "project_relink";
+  else if (path === "./api/projects/settings") name = "project_update";
+  else if (path === "./api/projects/current") name = "project_get";
+  else if (path === "./api/import") name = "page_import";
+  else if (path === "./api/libraries") name = "component_library_list";
   else if (path === "./api/libraries/refresh") name = "component_library_refresh";
   else if (path === "./api/pages") name = options.method === "POST" ? "page_create" : "page_list";
   else {
@@ -15215,6 +16461,8 @@ async function nativeApi(path, options) {
 }
 async function api(path, options = {}) {
   if (native) return nativeApi(path, options);
+  const requestWorkspace = options.workspaceId || !options.unscoped && workspaceId;
+  if (requestWorkspace) path += `${path.includes("?") ? "&" : "?"}workspace=${encodeURIComponent(requestWorkspace)}`;
   const response = await fetch(path, { headers: { "content-type": "application/json", ...options.headers || {} }, ...options });
   const payload = await response.json();
   if (!response.ok) {
@@ -15226,6 +16474,7 @@ async function api(path, options = {}) {
   return payload;
 }
 function clearUiSlot(key) {
+  uiGenerations.set(key, (uiGenerations.get(key) || 0) + 1);
   const slot = state.uiSlots.get(key);
   if (!slot) return;
   slot.listeners.forEach(([name, listener]) => slot.host.removeEventListener(name, listener));
@@ -15235,21 +16484,25 @@ function clearUiSlot(key) {
   state.uiSlots.delete(key);
 }
 function clearUiPrefix(prefix) {
-  for (const key of [...state.uiSlots.keys()]) if (key.startsWith(prefix)) clearUiSlot(key);
+  for (const key of [.../* @__PURE__ */ new Set([...state.uiSlots.keys(), ...uiGenerations.keys()])]) if (key.startsWith(prefix)) clearUiSlot(key);
 }
 async function mountUi(key, hostElement, component, props, handlers = {}) {
   const epoch = runtimeEpoch;
   clearUiSlot(key);
+  const generation = uiGenerations.get(key);
   const hostElementRef = typeof hostElement === "string" ? $(hostElement) : hostElement;
   if (!hostElementRef) return null;
   hostElementRef.replaceChildren();
-  const listeners = Object.entries(handlers).map(([name, listener]) => {
+  const listeners = Object.entries(handlers).map(([name, handler]) => {
+    const listener = (event) => {
+      if (epoch === runtimeEpoch && generation === uiGenerations.get(key)) handler(event);
+    };
     hostElementRef.addEventListener(name, listener);
     return [name, listener];
   });
   try {
     const result = await window.B2B.renderComponent({ component, props }, hostElementRef);
-    if (epoch !== runtimeEpoch || !hostElementRef.isConnected) {
+    if (epoch !== runtimeEpoch || generation !== uiGenerations.get(key) || !hostElementRef.isConnected) {
       result.instance.destroy();
       listeners.forEach(([name, listener]) => hostElementRef.removeEventListener(name, listener));
       return null;
@@ -15282,7 +16535,8 @@ function setSaving(kind, text) {
 function timeout(promise2, ms, message) {
   return Promise.race([promise2, new Promise((_2, reject) => setTimeout(() => reject(new Error(message)), ms))]);
 }
-function setContextStatus(kind, text, action = "\u52A0\u5165\u5BF9\u8BDD") {
+function setContextStatus(kind, text, action = "\u52A0\u5165 AI \u4E0A\u4E0B\u6587") {
+  contextStatusKind = kind;
   const el = $("#context-status");
   const button = $("#sync-context");
   if (!el || !button) return;
@@ -15290,11 +16544,7 @@ function setContextStatus(kind, text, action = "\u52A0\u5165\u5BF9\u8BDD") {
   const disabled = kind === "connecting" || kind === "standalone" || kind === "unsupported" || !state.selection && kind !== "failed";
   const color = kind === "failed" ? "red" : kind === "synced" ? "green" : kind === "connecting" ? "orange" : "neutral";
   void mountUi("context-status", el, "C-42", { variant: "status", type: "status", size: "extra-small", color, text, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: kind === "connecting", bordered: false, solid: false, disabled: false });
-  void mountUi("sync-context", button, "C-02", { label: action, variant: "secondary-blue", size: "mini", icon: null, disabled, loading: kind === "connecting", width: "default" }, { "b2b:button-activate": async () => {
-    if (host.status === "failed" && !host.app) await connectHost();
-    contextLease?.claim();
-    await syncModelContext(state.selectionEpoch);
-  } });
+  void mountUi("sync-context", button, "C-02", { label: action, variant: "secondary-blue", size: "mini", icon: null, disabled, loading: kind === "connecting", width: "default" }, { "b2b:button-activate": () => attachContext(kind === "failed" && contextNodeIds.length ? contextNodeIds : void 0) });
 }
 function nodeCount(node) {
   return 1 + (node.kind === "layout" ? node.children.reduce((sum, child) => sum + nodeCount(child), 0) : 0);
@@ -15310,6 +16560,105 @@ function findNode(node, id, parent = null) {
 function definition(id) {
   return state.catalog.find((item) => item.id === id);
 }
+var projectManager = createProjectManager({
+  api,
+  mountUi,
+  clearUiPrefix,
+  inputProps,
+  buttonProps,
+  current: () => ({ project: currentProject, page: state.page }),
+  setOpen: (value) => {
+    projectDialogOpen = value;
+    document.body.classList.toggle("is-project-home", value);
+    selectionToolbar.position();
+  },
+  changed: async (project) => {
+    if (currentProject?.workspaceId === project.workspaceId) {
+      currentProject = project;
+      await renderChrome();
+    }
+  },
+  settle: async () => {
+    if (switchingProject || reloadingRuntime || refreshingLibrary) return false;
+    if (!await inlineEditor.finish()) return false;
+    if (state.fullPropsDirty) {
+      toast("\u8BF7\u5148\u5E94\u7528\u6216\u53D6\u6D88\u5176\u4ED6\u8BBE\u7F6E\u7684\u4FEE\u6539\uFF0C\u518D\u5207\u6362\u9879\u76EE\u3002", "error");
+      return false;
+    }
+    canvasDrag.cancel(false);
+    const deadline = Date.now() + 5e3;
+    while ((state.editTimers.size || state.mutating || pendingSelections || state.polling) && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 40));
+    await mutationQueue;
+    await inspectorQueue;
+    if (state.editTimers.size || state.mutating || pendingSelections || state.polling) {
+      toast("\u6B63\u5728\u4FDD\u5B58\uFF0C\u8BF7\u7A0D\u540E\u6253\u5F00\u9879\u76EE\u3002", "error");
+      return false;
+    }
+    return true;
+  },
+  enter: async (project, pageId) => {
+    if (switchingProject) return;
+    switchingProject = true;
+    workspaceEpoch += 1;
+    state.selectionEpoch += 1;
+    const previousWorkspace = workspaceId, previousProject = currentProject, previousPageId = state.page.pageId, previousUrl = location.href;
+    try {
+      workspaceId = project?.workspaceId || null;
+      currentProject = project;
+      if (!pageId) pageId = (await api("./api/pages", { method: "POST", body: JSON.stringify({ name: "\u9996\u9875" }) })).page.pageId;
+      const next = await api(`./api/pages/${pageId}`);
+      const url2 = new URL(location.href);
+      if (!native) {
+        if (workspaceId) url2.searchParams.set("workspace", workspaceId);
+        else url2.searchParams.delete("workspace");
+        url2.searchParams.set("page", pageId);
+        window.history.replaceState(null, "", url2);
+      }
+      await contextLease?.close();
+      contextNodeIds = [];
+      contextEpoch += 1;
+      if (!native && state.loadedLibraryId !== next.library.snapshotId) {
+        location.reload();
+        return;
+      }
+      state.preview = false;
+      state.fullPropsDirty = false;
+      inspectorKey = null;
+      renderedPageName = null;
+      setSelection(null, true);
+      await loadPage(pageId);
+      await renderChrome();
+      await renderLibrarySettings();
+      renderLibrary();
+      contextLease = contextOwner(`${workspaceId || "legacy"}:${pageId}`, () => {
+        contextNodeIds = [];
+        contextEpoch += 1;
+        return clearPublishedContext();
+      });
+      contextReadyStatus(true);
+      setSaving("", "\u5DF2\u4FDD\u5B58");
+      startup(null);
+    } catch (error40) {
+      workspaceId = previousWorkspace;
+      currentProject = previousProject;
+      if (!native) window.history.replaceState(null, "", previousUrl);
+      try {
+        await loadPage(previousPageId);
+        await renderChrome();
+        runtimeReloadFailed = false;
+        for (const selector of [".topbar", ".workspace", ".right-panel", "#component-list", "#layout-list", "#tree"]) if ($(selector)) $(selector).inert = false;
+        lockInspector();
+        startup(null);
+      } catch {
+        $(".workspace").inert = true;
+        startup("\u9879\u76EE\u5207\u6362\u5931\u8D25\uFF0C\u5F53\u524D\u753B\u5E03\u5DF2\u505C\u6B62\u7F16\u8F91\u3002\u8BF7\u91CD\u65B0\u6253\u5F00\u642D\u5EFA\u5668\uFF0C\u5DF2\u4FDD\u5B58\u5185\u5BB9\u4ECD\u5728\u672C\u5730\u3002");
+      }
+      throw error40;
+    } finally {
+      switchingProject = false;
+    }
+  }
+});
 async function bootstrap() {
   if (native) {
     startup("\u6B63\u5728\u8FDE\u63A5\u63D2\u4EF6\u670D\u52A1\u2026");
@@ -15317,6 +16666,7 @@ async function bootstrap() {
     if (!host.app) throw host.error || new Error("\u63D2\u4EF6\u670D\u52A1\u672A\u8FDE\u63A5");
   }
   startup("\u6B63\u5728\u8BFB\u53D6\u5DF2\u4FDD\u5B58\u9875\u9762\u2026");
+  if (workspaceId) currentProject = (await api("./api/projects/current")).project;
   const [health, catalog, pages] = await Promise.all([api("./api/health"), api("./api/catalog"), api("./api/pages")]);
   state.runtime = health;
   state.catalog = catalog.components;
@@ -15330,12 +16680,16 @@ async function bootstrap() {
   renderLibrary();
   $("#provider-status").textContent = `\u771F\u5B9E B2B Renderer \xB7 ${state.catalog.length} \u4E2A\u5DF2\u9002\u914D\u7EC4\u4EF6 \xB7 ${health.pluginVersion}`;
   if (!native) await connectHost();
-  contextLease = contextOwner(state.page.pageId, () => {
-    setContextStatus("ready", "\u9009\u533A\u5DF2\u7531\u53E6\u4E00\u4E2A\u9762\u677F\u63A5\u7BA1");
+  contextLease = contextOwner(`${workspaceId || "legacy"}:${state.page.pageId}`, () => {
+    contextNodeIds = [];
+    contextEpoch += 1;
+    setContextStatus("ready", "\u4E0A\u4E0B\u6587\u5DF2\u7531\u53E6\u4E00\u4E2A\u9762\u677F\u63A5\u7BA1");
     return clearPublishedContext();
   });
   const cleared = await clearPublishedContext();
-  if (cleared && host.status === "connected") setContextStatus("ready", "\u70B9\u51FB\u7EC4\u4EF6\u540E\u540C\u6B65\u5230\u5BF9\u8BDD");
+  if (cleared) contextReadyStatus(true);
+  selectionToolbar.reset();
+  await renderSelection();
   startup(null);
   window.setInterval(refreshFromDisk, 700);
 }
@@ -15388,15 +16742,18 @@ async function loadPage(pageId) {
   state.page = result.page;
   if (result.components) state.catalog = result.components;
   state.library = result.library || state.runtime?.componentLibrary || null;
-  state.selection = result.selection.nodeId;
+  setSelection(result.selection.nodeId);
   await loadRuntime(state.library);
   await renderAll();
 }
 async function rebuildNativePage(result, assets) {
   runtimeEpoch += 1;
   state.renderEpoch += 1;
-  for (const instance of state.instances.values()) if (!instance.destroyed) instance.destroy();
-  state.instances.clear();
+  inlineEditor.cancel();
+  canvasRenderer.reset();
+  selectionToolbar.reset();
+  inspectorKey = null;
+  renderedPageName = null;
   clearUiPrefix("");
   clearTimeout(toast.timer);
   runtimeTransport?.dispose();
@@ -15406,7 +16763,7 @@ async function rebuildNativePage(result, assets) {
   state.page = result.page;
   state.library = result.library;
   state.catalog = result.components;
-  state.selection = result.selection?.nodeId ?? null;
+  setSelection(result.selection?.nodeId ?? null, true);
   state.selectionEpoch += 1;
   await loadRuntime(state.library, assets);
   await renderAll();
@@ -15418,6 +16775,7 @@ async function rebuildNativePage(result, assets) {
   setSaving("", "\u5DF2\u4FDD\u5B58");
 }
 async function reloadNativePage(result) {
+  canvasDrag.cancel(false);
   const previous = { page: state.page, library: state.library, components: state.catalog, selection: { nodeId: state.selection } };
   const previousAssets = runtimeAssets, settingsOpen = $(".library-settings")?.open;
   reloadingRuntime = true;
@@ -15430,7 +16788,7 @@ async function reloadNativePage(result) {
     rebuilding = true;
     await rebuildNativePage({ ...result, selection: result.selection || previous.selection }, assets);
     runtimeReloadFailed = false;
-    await syncModelContext(state.selectionEpoch);
+    await syncModelContext();
   } catch (error40) {
     runtimeReloadFailed = true;
     if (rebuilding && previousAssets) {
@@ -15451,6 +16809,8 @@ async function reloadNativePage(result) {
     startup(null);
     if ($(".library-settings")) $(".library-settings").open = settingsOpen;
     for (const selector of [".topbar", ".workspace", ".right-panel", "#component-list", "#layout-list", "#tree"]) if ($(selector)) $(selector).inert = runtimeReloadFailed;
+    lockInspector();
+    selectionToolbar.position();
   }
 }
 async function connectHost() {
@@ -15462,7 +16822,13 @@ async function connectHost() {
   if (window.B2B) setContextStatus("connecting", "\u6B63\u5728\u8FDE\u63A5 Codex \u5BF9\u8BDD\u4E0A\u4E0B\u6587\u2026");
   const app = new i({ name: "page-builder-development-ui", version: state.runtime?.pluginVersion || "development" });
   app.onteardown = async () => {
+    inlineEditor.cancel();
+    canvasDrag.cancel(false);
     state.selectionEpoch += 1;
+    contextEpoch += 1;
+    contextNodeIds = [];
+    selectionToolbar.reset();
+    canvasRenderer.reset();
     if (contextLease) await contextLease.close();
     else await clearPublishedContext();
     return {};
@@ -15485,38 +16851,43 @@ async function connectHost() {
   }
 }
 function modelContext() {
-  if (!state.page) return { content: [] };
-  const found = state.selection ? findNode(state.page.root, state.selection) : null;
-  if (!found) return { content: [] };
-  const node = found.node;
-  const summary = { pageId: state.page.pageId, nodeId: node.id, revision: state.page.revision, kind: node.kind, ...node.kind === "component" ? { componentId: node.componentId, props: node.props } : { layout: node.layout, gap: node.gap, columns: node.columns ?? null } };
-  const label = node.kind === "component" ? `${node.componentId} ${definition(node.componentId)?.label || "\u7EC4\u4EF6"}` : labels[node.layout];
-  return { content: [{ type: "text", text: `\u9875\u9762\u642D\u5EFA\u5668\u5F53\u524D\u9009\u533A\uFF1A${label}\uFF1BpageId=${summary.pageId}\uFF1BnodeId=${summary.nodeId}\uFF1Brevision=${summary.revision}\u3002` }], structuredContent: { pageBuilderSelection: summary }, presentation: { composerLabel: `\u9875\u9762\u642D\u5EFA\u5668 \xB7 ${label}` } };
+  const nodes = validIds(contextNodeIds).map((id) => {
+    const { node, parent } = findNode(state.page.root, id);
+    return { nodeId: node.id, parentId: parent?.id ?? null, kind: node.kind, ...node.kind === "component" ? { componentId: node.componentId, props: node.props } : { layout: node.layout, gap: node.gap, columns: node.columns ?? null } };
+  });
+  if (!nodes.length) return { content: [] };
+  const summary = { ...currentProject ? { workspaceId, projectId: currentProject.projectId, projectName: currentProject.name } : {}, pageId: state.page.pageId, revision: state.page.revision, nodeIds: nodes.map((node) => node.nodeId), nodes, ...nodes.length === 1 ? nodes[0] : {} };
+  const label = nodes.length > 1 ? `${nodes.length} \u9879\u9009\u4E2D\u5185\u5BB9` : nodes[0].kind === "component" ? `${nodes[0].componentId} ${definition(nodes[0].componentId)?.label || "\u7EC4\u4EF6"}` : labels[nodes[0].layout];
+  const identity = nodes.length === 1 ? `nodeId=${nodes[0].nodeId}` : `nodeIds=${summary.nodeIds.join(",")}`;
+  return { content: [{ type: "text", text: `\u9875\u9762\u642D\u5EFA\u5668\u5F15\u7528\u7EC4\u4EF6\uFF1A${label}\uFF1B${workspaceId ? `workspaceId=${workspaceId}\uFF1B` : ""}pageId=${summary.pageId}\uFF1B${identity}\uFF1Brevision=${summary.revision}\u3002` }], structuredContent: { pageBuilderSelection: summary }, presentation: { composerLabel: `\u9875\u9762\u642D\u5EFA\u5668 \xB7 ${label}` } };
 }
-function syncModelContext(epoch = state.selectionEpoch) {
+function syncModelContext() {
+  const epoch = contextEpoch;
   contextQueue = contextQueue.catch(() => {
   }).then(() => publishModelContext(epoch));
   return contextQueue;
 }
 async function publishModelContext(epoch) {
-  if (host.status !== "connected" || !host.app || !contextLease?.active || epoch !== state.selectionEpoch) return;
-  setContextStatus("connecting", state.selection ? "\u6B63\u5728\u540C\u6B65\u5F53\u524D\u7EC4\u4EF6\u2026" : "\u6B63\u5728\u6E05\u9664\u5BF9\u8BDD\u9009\u533A\u2026");
+  if (host.status !== "connected" || !host.app || !contextLease?.active || epoch !== contextEpoch) return;
+  contextNodeIds = validIds(contextNodeIds);
+  setContextStatus("connecting", contextNodeIds.length ? "\u6B63\u5728\u540C\u6B65\u5F15\u7528\u7EC4\u4EF6\u2026" : "\u6B63\u5728\u6E05\u9664\u5BF9\u8BDD\u5F15\u7528\u2026");
   try {
     await host.app.request({ method: "ui/update-model-context", params: modelContext() }, EmptyResultSchema, { timeout: 3e3 });
-    if (epoch !== state.selectionEpoch || !contextLease?.active) return;
-    setContextStatus("synced", state.selection ? "\u5DF2\u540C\u6B65\u5230\u5BF9\u8BDD\u4E0A\u4E0B\u6587" : "\u5DF2\u6E05\u9664\u5BF9\u8BDD\u9009\u533A", state.selection ? "\u91CD\u65B0\u540C\u6B65" : "\u52A0\u5165\u5BF9\u8BDD");
+    if (epoch !== contextEpoch || !contextLease?.active) return;
+    contextReadyStatus(true);
   } catch (error40) {
-    if (epoch !== state.selectionEpoch || !contextLease?.active) return;
+    if (epoch !== contextEpoch || !contextLease?.active) return;
     host.error = error40;
     setContextStatus("failed", `\u540C\u6B65\u5931\u8D25\uFF1A${error40.message}`, "\u91CD\u8BD5\u540C\u6B65");
   }
 }
 async function refreshFromDisk() {
-  if (!state.page || state.mutating || state.polling || reloadingRuntime || runtimeReloadFailed) return;
+  if (projectDialogOpen || switchingProject || !state.page || state.fullPropsDirty || inlineEditor.active || state.dragging || state.mutating || pendingSelections || state.polling || reloadingRuntime || runtimeReloadFailed) return;
   state.polling = true;
+  const scopeEpoch = workspaceEpoch;
   try {
     const result = await api(`./api/pages/${state.page.pageId}`);
-    if (state.mutating || reloadingRuntime) return;
+    if (scopeEpoch !== workspaceEpoch || projectDialogOpen || switchingProject || state.fullPropsDirty || inlineEditor.active || state.dragging || state.mutating || pendingSelections || reloadingRuntime) return;
     const nextLibrary = result.library || state.runtime?.componentLibrary || null;
     if (nextLibrary?.snapshotId && state.library?.snapshotId && nextLibrary.snapshotId !== state.library.snapshotId) {
       if (state.fullPropsDirty || state.editTimers.size) return;
@@ -15530,11 +16901,12 @@ async function refreshFromDisk() {
       state.page = result.page;
       if (result.components) state.catalog = result.components;
       state.library = nextLibrary;
-      state.selection = result.selection.nodeId;
+      setSelection(result.selection.nodeId);
       state.selectionEpoch += 1;
-      if (pageChanged) await renderAll();
-      else renderSelection();
-      await syncModelContext(state.selectionEpoch);
+      if (pageChanged) {
+        await renderAll();
+        await syncModelContext();
+      } else renderSelection();
     }
   } catch (error40) {
     if (runtimeReloadFailed) $("#library-update-status").textContent = `\u7EC4\u4EF6\u5E93\u91CD\u8F7D\u5931\u8D25\uFF0C\u4FDD\u7559\u539F\u663E\u793A\uFF0C\u8BF7\u91CD\u8BD5\uFF1A${error40.message}`;
@@ -15563,6 +16935,9 @@ function selectProps(items, value, placeholder) {
   return { variant: "\u57FA\u7840\u5355\u9009", items, selected: value == null ? [] : [String(value)], multiple: false, open: false, placeholder, clearable: false, searchable: false, creatable: false, query: "", size: "medium", state: "default", position: "bottom-left" };
 }
 async function renderChrome() {
+  await mountUi("project-menu", "#project-menu", "C-02", buttonProps(currentProject?.name || "\u9879\u76EE", "secondary-gray", "folder_open"), { "b2b:button-activate": () => projectManager.show() });
+  $("#project-menu").title = currentProject?.directory || "\u521B\u5EFA\u6216\u6253\u5F00\u672C\u5730\u9879\u76EE";
+  $("#breadcrumb").textContent = currentProject ? `${currentProject.name} / \u9879\u76EE\u753B\u5E03 / \u9875\u9762` : "\u5386\u53F2\u9875\u9762";
   const family = await window.B2B.describeComponentFamily("button");
   document.body.dataset.buttonFamily = family?.family || "button";
   const pageNameChange = (event) => {
@@ -15570,6 +16945,8 @@ async function renderChrome() {
     if (value && value !== state.page.name) scheduleEdit("page-name", () => commit([{ type: "rename", name: value }]));
   };
   await mountUi("page-name", "#page-name", "C-21", inputProps("\u9875\u9762\u540D\u79F0", state.page.name), { "b2b:input-change": pageNameChange });
+  renderedPageName = state.page.name;
+  $(".brand-mark").replaceChildren(libraryIcon("dashboard_customize"));
   await mountUi("undo", "#undo", "C-04", iconProps("undo", "\u64A4\u9500"), { "b2b:icon-activate": () => history("undo") });
   await mountUi("redo", "#redo", "C-04", iconProps("redo", "\u91CD\u505A"), { "b2b:icon-activate": () => history("redo") });
   const desktopPanel = document.createElement("span");
@@ -15581,6 +16958,7 @@ async function renderChrome() {
   await mountUi("toggle-inspector", "#toggle-inspector", "C-04", iconProps("tune", "\u663E\u793A\u6216\u9690\u85CF\u5C5E\u6027\u9762\u677F"), { "b2b:icon-activate": () => {
     state.inspectorOpen = !state.inspectorOpen;
     $("#app").classList.toggle("is-inspector-open", state.inspectorOpen);
+    selectionToolbar.position();
   } });
   await renderPreviewButton();
   await mountUi("export", "#export", "C-02", buttonProps("\u5BFC\u51FA", "primary", "download"), { "b2b:button-activate": async () => {
@@ -15606,6 +16984,7 @@ async function renderChrome() {
 }
 async function renderPreviewButton() {
   await mountUi("preview", "#preview", "C-02", buttonProps(state.preview ? "\u8FD4\u56DE\u7F16\u8F91" : "\u9884\u89C8", "secondary-gray", state.preview ? "edit" : "visibility"), { "b2b:button-activate": async () => {
+    if (inlineEditor.active) return;
     state.preview = !state.preview;
     await renderPreviewButton();
     await renderAll();
@@ -15625,8 +17004,8 @@ async function renderLibrarySettings() {
 }
 async function refreshLibrarySource() {
   const status = $("#library-update-status");
-  if (refreshingLibrary || state.mutating || state.editTimers.size || state.fullPropsDirty) {
-    status.textContent = state.fullPropsDirty ? "\u8BF7\u5148\u5E94\u7528\u5168\u90E8\u7EC4\u4EF6\u5C5E\u6027\uFF0C\u518D\u5237\u65B0\u7EC4\u4EF6\u5E93\u3002" : "\u6B63\u5728\u4FDD\u5B58\u5F53\u524D\u7F16\u8F91\uFF0C\u8BF7\u7A0D\u540E\u5237\u65B0\u3002";
+  if (inlineEditor.active || refreshingLibrary || state.mutating || state.editTimers.size || state.fullPropsDirty) {
+    status.textContent = state.fullPropsDirty ? "\u8BF7\u5148\u5E94\u7528\u5176\u4ED6\u8BBE\u7F6E\uFF0C\u518D\u5237\u65B0\u7EC4\u4EF6\u5E93\u3002" : "\u6B63\u5728\u4FDD\u5B58\u5F53\u524D\u7F16\u8F91\uFF0C\u8BF7\u7A0D\u540E\u5237\u65B0\u3002";
     return;
   }
   if (!librarySource.trim()) {
@@ -15652,6 +17031,7 @@ async function refreshLibrarySource() {
   } finally {
     refreshingLibrary = false;
     state.mutating -= 1;
+    lockInspector();
   }
 }
 function renderLibrary() {
@@ -15665,6 +17045,11 @@ function renderLibrary() {
   layouts.replaceChildren();
   for (const [id, label] of Object.entries(labels)) layouts.append(libraryItem(id, label, id === "columns" ? "2\u20134 \u5217\u54CD\u5E94\u5F0F\u5BB9\u5668" : "\u63A5\u6536\u7EC4\u4EF6\u4E0E\u5E03\u5C40", "layout"));
 }
+function libraryIcon(name) {
+  return window.B2B.components.runtime.icon(name);
+}
+var componentIcons = { "C-02": "smart_button", "C-21": "input", "C-23": "list_alt", "C-34": "web_asset", "C-42": "sell" };
+var layoutIcons = { column: "view_agenda", row: "view_week", columns: "view_column" };
 function libraryItem(id, label, description, kind) {
   const item = document.createElement("div");
   item.className = "library-item";
@@ -15672,12 +17057,9 @@ function libraryItem(id, label, description, kind) {
   item.tabIndex = 0;
   item.setAttribute("role", "button");
   item.setAttribute("aria-label", `${label}\uFF0C${description}`);
-  item.innerHTML = `<span class="library-icon">${kind === "layout" ? "\u25A6" : id.slice(2)}</span><span class="library-copy"><strong>${label}</strong><small>${description}</small></span><span class="library-add ui-control"></span>`;
-  item.addEventListener("dragstart", (event) => {
-    state.dragging = { kind, id };
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData("text/plain", `${kind}:${id}`);
-  });
+  item.innerHTML = `<span class="library-icon"></span><span class="library-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(description)}</small></span><span class="library-add ui-control"></span>`;
+  $(".library-icon", item).append(libraryIcon(kind === "layout" ? layoutIcons[id] : componentIcons[id] || "widgets"));
+  item.addEventListener("dragstart", (event) => canvasDrag.begin(event, { kind, id }));
   const addHost = $(".library-add", item);
   addHost.addEventListener("click", (event) => event.stopPropagation());
   void mountUi(`library-${kind}-${id}`, addHost, "C-04", iconProps("add", `\u6DFB\u52A0${label}`), { "b2b:icon-activate": (event) => {
@@ -15689,181 +17071,143 @@ function libraryItem(id, label, description, kind) {
   });
   return item;
 }
-async function addNode(kind, id, selectedId) {
+async function addNode(kind, id, selectedId, index) {
   let parentId = state.page.root.id;
   const selected = selectedId ? findNode(state.page.root, selectedId)?.node : null;
   if (selected?.kind === "layout") parentId = selected.id;
-  const node = kind === "layout" ? { kind: "layout", layout: id, gap: "medium", ...id === "columns" ? { columns: 2 } : {} } : { kind: "component", componentId: id, props: { "C-02": { label: "\u6309\u94AE" }, "C-21": { label: "\u8F93\u5165\u5185\u5BB9", placeholder: "\u8BF7\u8F93\u5165" }, "C-23": { placeholder: "\u8BF7\u9009\u62E9", items: ["\u9009\u9879\u4E00", "\u9009\u9879\u4E8C", "\u9009\u9879\u4E09"] }, "C-34": { title: "\u5361\u7247\u6807\u9898", body: "\u5728\u5C5E\u6027\u9762\u677F\u4E2D\u7F16\u8F91\u5361\u7247\u5185\u5BB9\u3002" }, "C-42": { text: "\u6807\u7B7E" } }[id] || {} };
-  await commit([{ type: "add", parentId, node }], `${kind === "layout" ? labels[id] : definition(id).label}\u5DF2\u6DFB\u52A0`);
+  const node = kind === "layout" ? { kind: "layout", layout: id, gap: "medium", ...id === "columns" ? { columns: 2 } : {} } : { kind: "component", componentId: id, props: { "C-02": { label: "\u6309\u94AE" }, "C-21": { label: "\u8F93\u5165\u5185\u5BB9", placeholder: "\u8BF7\u8F93\u5165" }, "C-23": { placeholder: "\u8BF7\u9009\u62E9", items: ["\u9009\u9879\u4E00", "\u9009\u9879\u4E8C", "\u9009\u9879\u4E09"] }, "C-34": { title: "\u5361\u7247\u6807\u9898", body: "\u53CC\u51FB\u8FD9\u91CC\u7F16\u8F91\u5361\u7247\u5185\u5BB9\u3002" }, "C-42": { text: "\u6807\u7B7E" } }[id] || {} };
+  await commit([{ type: "add", parentId, ...index === void 0 ? {} : { index }, node }], `${kind === "layout" ? labels[id] : definition(id).label}\u5DF2\u6DFB\u52A0`);
 }
-function commit(operations, success2) {
-  mutationQueue = mutationQueue.then(() => commitNow(operations, success2));
+function commit(operations, success2, applyDraft = false) {
+  if (inlineEditor.active) return inlineEditor.finish().then((saved) => saved ? commit(operations, success2, applyDraft) : void 0);
+  if (state.fullPropsDirty && !applyDraft) {
+    toast("\u8BF7\u5148\u5E94\u7528\u6216\u53D6\u6D88\u5176\u4ED6\u8BBE\u7F6E\u7684\u4FEE\u6539\u3002", "error");
+    return Promise.resolve();
+  }
+  mutationQueue = mutationQueue.then(() => commitNow(operations, success2, applyDraft));
   return mutationQueue;
 }
-async function commitNow(operations, success2) {
+function lockInspector() {
+  const inspector = $("#inspector");
+  if (inspector) inspector.inert = Boolean(inlineEditor.active || state.mutating || inspectorRendering || runtimeReloadFailed);
+}
+function acceptSavedPage(result, epoch, keepSelection = true) {
+  state.page = result.page;
+  if (epoch === state.selectionEpoch || state.selection && !findNode(result.page.root, state.selection)) {
+    setSelection(result.selection?.nodeId ?? (keepSelection && state.selection && findNode(result.page.root, state.selection) ? state.selection : null), keepSelection);
+    state.selectionEpoch += 1;
+  }
+}
+async function commitNow(operations, success2, applyDraft) {
+  const epoch = state.selectionEpoch;
   state.mutating += 1;
+  lockInspector();
   try {
     setSaving("saving", "\u6B63\u5728\u4FDD\u5B58");
     const result = await api(`./api/pages/${state.page.pageId}/operations`, { method: "POST", body: JSON.stringify({ expectedRevision: state.page.revision, operations }) });
-    state.page = result.page;
-    state.selection = result.selection?.nodeId ?? (state.selection && findNode(result.page.root, state.selection) ? state.selection : null);
-    state.selectionEpoch += 1;
+    acceptSavedPage(result, epoch);
     state.lastCommittedAt = Date.now();
+    if (applyDraft) {
+      state.fullPropsDirty = false;
+      inspectorKey = null;
+    }
     await renderAll();
-    await syncModelContext(state.selectionEpoch);
+    await syncModelContext();
     setSaving("", "\u5DF2\u4FDD\u5B58");
     if (success2) toast(success2);
   } catch (error40) {
     if (error40.code === "REVISION_CONFLICT") await loadPage(state.page.pageId);
+    else if (!state.fullPropsDirty) await renderSelection(true);
     fail(error40);
   } finally {
     state.mutating -= 1;
+    lockInspector();
   }
 }
-async function history(direction) {
-  state.mutating += 1;
-  try {
-    const result = await api(`./api/pages/${state.page.pageId}/${direction}`, { method: "POST", body: JSON.stringify({ expectedRevision: state.page.revision }) });
-    state.page = result.page;
-    state.selection = result.selection?.nodeId ?? null;
-    state.selectionEpoch += 1;
-    await renderAll();
-    await syncModelContext(state.selectionEpoch);
-    toast(direction === "undo" ? "\u5DF2\u64A4\u9500" : "\u5DF2\u91CD\u505A");
-  } catch (error40) {
-    fail(error40);
-  } finally {
-    state.mutating -= 1;
+function history(direction) {
+  if (inlineEditor.active) return inlineEditor.finish().then((saved) => saved ? history(direction) : void 0);
+  if (state.fullPropsDirty) {
+    toast("\u8BF7\u5148\u5E94\u7528\u6216\u53D6\u6D88\u5176\u4ED6\u8BBE\u7F6E\u7684\u4FEE\u6539\u3002", "error");
+    return Promise.resolve();
   }
+  mutationQueue = mutationQueue.then(async () => {
+    const epoch = state.selectionEpoch;
+    state.mutating += 1;
+    lockInspector();
+    try {
+      setSaving("saving", "\u6B63\u5728\u4FDD\u5B58");
+      const result = await api(`./api/pages/${state.page.pageId}/${direction}`, { method: "POST", body: JSON.stringify({ expectedRevision: state.page.revision }) });
+      acceptSavedPage(result, epoch, false);
+      await renderAll();
+      await syncModelContext();
+      setSaving("", "\u5DF2\u4FDD\u5B58");
+      toast(direction === "undo" ? "\u5DF2\u64A4\u9500" : "\u5DF2\u91CD\u505A");
+    } catch (error40) {
+      fail(error40);
+    } finally {
+      state.mutating -= 1;
+      lockInspector();
+    }
+  });
+  return mutationQueue;
 }
 function fail(error40) {
   setSaving("error", "\u4FDD\u5B58\u5931\u8D25");
   toast(error40.message, "error");
   console.error(error40);
 }
-function select(nodeId) {
-  contextLease?.claim();
+function select(nodeId, event = {}) {
+  if (inlineEditor.active) return Promise.resolve();
+  if (state.fullPropsDirty) {
+    toast("\u8BF7\u5148\u5E94\u7528\u6216\u53D6\u6D88\u5176\u4ED6\u8BBE\u7F6E\uFF0C\u518D\u9009\u62E9\u7EC4\u4EF6\u3002", "error");
+    return Promise.resolve();
+  }
+  const ids = new Set(validIds(state.selectedIds));
+  const toggle = nodeId && (event.metaKey || event.ctrlKey) && nodeId !== state.page.root.id;
+  if (!toggle) {
+    ids.clear();
+    if (nodeId) ids.add(nodeId);
+  } else {
+    ids.delete(state.page.root.id);
+    if (ids.has(nodeId)) ids.delete(nodeId);
+    else ids.add(nodeId);
+  }
+  state.selectedIds = ids;
+  nodeId = ids.has(nodeId) ? nodeId : [...ids].at(-1) || null;
   const epoch = ++state.selectionEpoch;
   state.selection = nodeId;
   renderSelection();
-  selectionQueue = selectionQueue.then(async () => {
+  pendingSelections += 1;
+  mutationQueue = mutationQueue.then(async () => {
     const result = await api(`./api/pages/${state.page.pageId}/selection`, { method: "POST", body: JSON.stringify({ nodeId, expectedRevision: state.page.revision }) });
     if (epoch !== state.selectionEpoch) return;
-    state.selection = result.selection.nodeId;
-    await syncModelContext(epoch);
+    setSelection(result.selection.nodeId);
   }).catch(async (error40) => {
     if (epoch !== state.selectionEpoch) return;
     if (error40.code === "REVISION_CONFLICT") await loadPage(state.page.pageId);
     fail(error40);
+  }).finally(() => {
+    pendingSelections -= 1;
   });
-  return selectionQueue;
+  return mutationQueue;
 }
 async function renderAll() {
   const epoch = ++state.renderEpoch;
-  const nextInstances = /* @__PURE__ */ new Map();
-  const fragment = document.createDocumentFragment();
-  for (const instance of state.instances.values()) if (!instance.destroyed) instance.destroy();
-  state.instances.clear();
-  clearUiPrefix("node-action-");
-  clearUiPrefix("field-");
-  clearUiPrefix("delete-");
-  void mountUi("page-name", "#page-name", "C-21", inputProps("\u9875\u9762\u540D\u79F0", state.page.name), { "b2b:input-change": (event) => {
-    const value = String(event.detail?.value ?? "").trim();
-    if (value && value !== state.page.name) scheduleEdit("page-name", () => commit([{ type: "rename", name: value }]));
-  } });
-  void mountUi("revision", "#revision-badge", "C-42", { variant: "status", type: "status", size: "extra-small", color: "neutral", text: `Revision ${state.page.revision}`, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: false, bordered: true, solid: false, disabled: false });
+  if (renderedPageName !== state.page.name && !state.editTimers.has("page-name")) {
+    renderedPageName = state.page.name;
+    await mountUi("page-name", "#page-name", "C-21", inputProps("\u9875\u9762\u540D\u79F0", state.page.name), { "b2b:input-change": (event) => {
+      const value = String(event.detail?.value ?? "").trim();
+      if (value && value !== state.page.name) scheduleEdit("page-name", () => commit([{ type: "rename", name: value }]));
+    } });
+  }
+  const canvas = $("#canvas");
+  canvas.classList.toggle("is-preview", state.preview);
+  const rendered = await canvasRenderer.render(state.page.root, canvas, { preview: state.preview, identity: `${workspaceId || "legacy"}:${state.page.pageId}:${state.loadedLibraryId}` });
+  if (!rendered || epoch !== state.renderEpoch) return;
+  await mountUi("revision", "#revision-badge", "C-42", { variant: "status", type: "status", size: "extra-small", color: "neutral", text: `Revision ${state.page.revision}`, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: false, bordered: true, solid: false, disabled: false });
   $("#node-count").textContent = `${nodeCount(state.page.root) - 1} \u4E2A\u8282\u70B9`;
-  $("#canvas").classList.toggle("is-preview", state.preview);
-  await renderNode(state.page.root, fragment, true, { epoch, instances: nextInstances });
-  if (epoch !== state.renderEpoch) {
-    for (const instance of nextInstances.values()) if (!instance.destroyed) instance.destroy();
-    return;
-  }
-  state.instances = nextInstances;
-  $("#canvas").replaceChildren(fragment);
   renderTree();
-  renderSelection();
-}
-async function renderNode(node, target, isRoot = false, context) {
-  const shell = document.createElement("div");
-  shell.className = `node-shell ${node.kind === "layout" ? "layout-shell" : "component-shell"}${isRoot ? " is-root" : ""}`;
-  shell.dataset.nodeId = node.id;
-  shell.draggable = !isRoot && !state.preview;
-  if (!state.preview) {
-    shell.addEventListener("click", (event) => {
-      event.stopPropagation();
-      select(node.id);
-    });
-    shell.addEventListener("dragstart", (event) => {
-      event.stopPropagation();
-      state.dragging = { kind: "existing", id: node.id };
-      event.dataTransfer.setData("text/plain", `existing:${node.id}`);
-    });
-    shell.append(nodeActions(node, isRoot));
-  }
-  if (node.kind === "layout") {
-    shell.classList.add(`layout-node`, `layout-${node.layout}`, `gap-${node.gap}`);
-    if (node.columns) shell.style.setProperty("--columns", node.columns);
-    shell.addEventListener("dragover", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      shell.querySelector(":scope > .drop-hint")?.classList.add("is-dragover");
-    });
-    shell.addEventListener("dragleave", () => shell.querySelector(":scope > .drop-hint")?.classList.remove("is-dragover"));
-    shell.addEventListener("drop", async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!state.dragging) return;
-      const drag = state.dragging;
-      state.dragging = null;
-      if (drag.kind === "existing") {
-        if (drag.id !== node.id) await commit([{ type: "move", nodeId: drag.id, parentId: node.id }], "\u7EC4\u4EF6\u5DF2\u79FB\u52A8");
-      } else await addNode(drag.kind, drag.id, node.id);
-    });
-    for (const child of node.children) await renderNode(child, shell, false, context);
-    if (!node.children.length && !state.preview) {
-      const hint = document.createElement("div");
-      hint.className = "drop-hint";
-      hint.textContent = isRoot ? "\u4ECE\u5DE6\u4FA7\u62D6\u5165\u7EC4\u4EF6\uFF0C\u6216\u70B9\u51FB + \u6DFB\u52A0" : "\u62D6\u5165\u7EC4\u4EF6";
-      shell.append(hint);
-    }
-  } else {
-    const host2 = document.createElement("div");
-    host2.className = "component-host";
-    shell.append(host2);
-    try {
-      const result = await window.B2B.renderComponent({ component: node.componentId, props: node.props }, host2);
-      if (context.epoch !== state.renderEpoch) {
-        result.instance.destroy();
-        return shell;
-      }
-      context.instances.set(node.id, result.instance);
-      shell.dataset.rendererValid = String(result.audit.valid);
-    } catch (error40) {
-      host2.className = "render-error";
-      host2.textContent = `\u6E32\u67D3\u5931\u8D25\uFF1A${error40.message}`;
-      console.error(error40);
-    }
-  }
-  target.append(shell);
-  return shell;
-}
-function nodeActions(node, isRoot) {
-  const actions = document.createElement("div");
-  actions.className = "node-actions";
-  if (!isRoot) {
-    for (const [suffix, icon, title, handler] of [["up", "arrow_upward", "\u4E0A\u79FB", () => moveSibling(node.id, -1)], ["down", "arrow_downward", "\u4E0B\u79FB", () => moveSibling(node.id, 1)], ["copy", "content_copy", "\u590D\u5236", () => commit([{ type: "duplicate", nodeId: node.id }], "\u5DF2\u590D\u5236")], ["delete", "delete", "\u5220\u9664", () => commit([{ type: "remove", nodeId: node.id }], "\u5DF2\u5220\u9664")]]) {
-      const control = document.createElement("span");
-      control.className = "ui-control";
-      control.addEventListener("click", (event) => event.stopPropagation());
-      actions.append(control);
-      void mountUi(`node-action-${node.id}-${suffix}`, control, "C-04", iconProps(icon, title), { "b2b:icon-activate": (event) => {
-        event.stopPropagation();
-        handler();
-      } });
-    }
-  }
-  return actions;
+  await renderSelection();
 }
 function moveSibling(id, delta) {
   const found = findNode(state.page.root, id);
@@ -15872,22 +17216,63 @@ function moveSibling(id, delta) {
   const next = Math.max(0, Math.min(found.parent.children.length - 1, index + delta));
   if (next !== index) commit([{ type: "move", nodeId: id, parentId: found.parent.id, index: next }], "\u987A\u5E8F\u5DF2\u8C03\u6574");
 }
-function renderSelection() {
-  inspectorQueue = inspectorQueue.then(renderSelectionNow).catch((error40) => console.error("\u5C5E\u6027\u9762\u677F\u6E32\u67D3\u5931\u8D25", error40));
+function renderSelection(force = false) {
+  selectionToolbar.invalidate(state.selection && state.selection !== state.page.root.id && !state.preview ? state.selection : null, JSON.stringify([...state.selectedIds]));
+  inspectorQueue = inspectorQueue.then(async () => {
+    inspectorRendering = true;
+    lockInspector();
+    try {
+      await renderSelectionNow(force);
+    } finally {
+      inspectorRendering = false;
+      lockInspector();
+    }
+  }).catch((error40) => console.error("\u5C5E\u6027\u9762\u677F\u6E32\u67D3\u5931\u8D25", error40));
   return inspectorQueue;
 }
-async function renderSelectionNow() {
+async function renderSelectionNow(force = false) {
+  const selectionId = state.selection, selectionKey = JSON.stringify([...state.selectedIds]);
+  document.querySelectorAll(".node-shell").forEach((el) => el.classList.toggle("is-selected", state.selectedIds.has(el.dataset.nodeId)));
+  document.querySelectorAll(".tree-item").forEach((el) => {
+    const selected = state.selectedIds.has(el.dataset.treeNodeId);
+    el.classList.toggle("is-selected", selected);
+    el.setAttribute("aria-pressed", String(selected));
+  });
+  await selectionToolbar.select(state.selection && state.selection !== state.page.root.id && !state.preview ? state.selection : null, JSON.stringify([...state.selectedIds]));
+  if (selectionId !== state.selection || selectionKey !== JSON.stringify([...state.selectedIds])) return;
+  const found = state.selection ? findNode(state.page.root, state.selection) : null;
+  const nodeKey = found && { ...found.node, children: void 0 };
+  const overview = !found && pageOverview();
+  const key = JSON.stringify([state.loadedLibraryId, nodeKey, selectionKey, overview]);
+  if (!force && (key === inspectorKey || state.fullPropsDirty)) return;
   state.fullPropsDirty = false;
-  document.querySelectorAll(".node-shell").forEach((el) => el.classList.toggle("is-selected", el.dataset.nodeId === state.selection));
+  inspectorKey = key;
   clearUiPrefix("field-");
   clearUiPrefix("delete-");
-  const found = state.selection ? findNode(state.page.root, state.selection) : null;
   const inspector = $("#inspector");
   inspector.replaceChildren();
+  contextReadyStatus();
+  $("#inspector-title").textContent = found ? "\u5C5E\u6027" : "\u9875\u9762";
   if (!found) {
-    $("#selection-type").textContent = "\u672A\u9009\u62E9";
-    inspector.innerHTML = `<div class="empty-inspector"><span class="empty-icon">\u25C7</span><p>\u9009\u62E9\u753B\u5E03\u4E2D\u7684\u7EC4\u4EF6</p><small>\u5728\u8FD9\u91CC\u4FEE\u6539\u5185\u5BB9\u3001\u53D8\u4F53\u548C\u72B6\u6001</small></div>`;
-    if (host.status === "connected") setContextStatus("ready", "\u5DF2\u8FDE\u63A5 \xB7 \u8BF7\u9009\u62E9\u7EC4\u4EF6");
+    await renderPageOverview(inspector, overview);
+    return;
+  }
+  if (state.selectedIds.size > 1) {
+    $("#selection-type").textContent = `\u5DF2\u9009 ${state.selectedIds.size} \u9879`;
+    const hint = document.createElement("p");
+    hint.textContent = "\u53EF\u4E00\u8D77\u52A0\u5165 AI \u4E0A\u4E0B\u6587\u3002\u5355\u51FB\u7EC4\u4EF6\u53EF\u6062\u590D\u5355\u9009\uFF0C\u7F16\u8F91\u5C5E\u6027\u6216\u79FB\u52A8\u3002";
+    const list = document.createElement("ul");
+    list.className = "selection-list";
+    for (const id of state.selectedIds) {
+      const item = findNode(state.page.root, id)?.node;
+      if (!item) continue;
+      const row = document.createElement("li");
+      const label = item.kind === "layout" ? labels[item.layout] : definition(item.componentId)?.label || "\u7EC4\u4EF6";
+      const text = item.props?.label || item.props?.title || item.props?.text;
+      row.textContent = `${label}${text ? ` \xB7 ${text}` : ""}`;
+      list.append(row);
+    }
+    inspector.append(hint, list);
     return;
   }
   const node = found.node;
@@ -15895,20 +17280,68 @@ async function renderSelectionNow() {
   if (node.kind === "layout") await renderLayoutInspector(node, inspector);
   else await renderComponentInspector(node, inspector);
 }
+function pageOverview() {
+  let components2 = 0, layouts = 0;
+  const visit = (node) => {
+    if (node.kind === "component") components2 += 1;
+    else {
+      if (node.id !== state.page.root.id) layouts += 1;
+      node.children.forEach(visit);
+    }
+  };
+  visit(state.page.root);
+  return { name: state.page.name, components: components2, layouts };
+}
+async function renderPageOverview(inspector, overview) {
+  $("#selection-type").textContent = "\u672A\u9009\u62E9";
+  const section = document.createElement("section");
+  section.className = "page-overview";
+  const info = document.createElement("dl");
+  info.className = "page-overview-info";
+  for (const [label, value] of [["\u9875\u9762\u540D\u79F0", overview.name], ["\u7EC4\u4EF6\u6570\u91CF", `${overview.components} \u4E2A\u7EC4\u4EF6`], ["\u5E03\u5C40\u6570\u91CF", `${overview.layouts} \u4E2A\u5E03\u5C40`]]) {
+    const term = document.createElement("dt"), detail = document.createElement("dd");
+    term.textContent = label;
+    detail.textContent = value;
+    info.append(term, detail);
+  }
+  const action = document.createElement("div"), hint = document.createElement("div");
+  hint.className = "page-overview-hint";
+  const title = document.createElement("strong");
+  title.append(libraryIcon("touch_app"), document.createTextNode("\u7F16\u8F91\u63D0\u793A"));
+  hint.append(title);
+  for (const text of ["\u5355\u51FB\u9009\u4E2D\u7EC4\u4EF6\uFF1B\u53CC\u51FB\u6587\u5B57\u53EF\u76F4\u63A5\u7F16\u8F91\uFF0C\u5931\u7126\u4FDD\u5B58\uFF0CEsc \u53D6\u6D88\u3002", "\u6309\u4F4F \u2318 / Ctrl \u70B9\u51FB\uFF0C\u53EF\u9009\u62E9\u591A\u4E2A\u7EC4\u4EF6\u3002", "\u70B9\u51FB\u753B\u5E03\u7A7A\u767D\u5904\u53D6\u6D88\u9009\u4E2D\uFF0C\u5DF2\u52A0\u5165 AI \u4E0A\u4E0B\u6587\u7684\u5F15\u7528\u4F1A\u4FDD\u7559\u3002", "\u9875\u9762\u540D\u79F0\u53EF\u5728\u9876\u90E8\u4FEE\u6539\u3002"]) {
+    const line = document.createElement("p");
+    line.textContent = text;
+    hint.append(line);
+  }
+  section.append(info, action, divider(), hint);
+  inspector.append(section);
+  await mountUi("field-page-overview-layout", action, "C-02", buttonProps("\u9875\u9762\u5E03\u5C40", "secondary-gray", "tune"), { "b2b:button-activate": () => select(state.page.root.id) });
+}
 async function field(parent, scope, label, key, value, rule, onChange) {
   const wrapper = document.createElement("div");
-  wrapper.className = rule?.type === "boolean" ? "check-field" : "field";
+  wrapper.className = rule?.type === "boolean" ? "pb-check-field" : "pb-field";
   const control = document.createElement("div");
-  control.className = "field-control";
+  control.className = "pb-field-control";
   wrapper.append(control);
   parent.append(wrapper);
+  wrapper.dataset.property = rule.propertyKey || key;
+  if (rule.description) {
+    const hint = document.createElement("small");
+    hint.textContent = rule.description;
+    wrapper.append(hint);
+  }
+  const change = onChange;
+  onChange = (next) => {
+    if (!rule.disabled) return change(next);
+  };
   const slot = `field-${scope}-${key}`;
   if (rule?.type === "boolean") {
-    await mountUi(slot, control, "C-11", { variant: "standalone", label, value: key, description: null, selectAllLabel: "\u5168\u9009", items: [], checked: Boolean(value), mixed: false, disabled: false, error: false, errorMessage: null, orientation: "vertical", compact: true }, { "b2b:checkbox-change": (event) => onChange(Boolean(event.detail?.checked)) });
+    await mountUi(slot, control, "C-11", { variant: "standalone", label, value: key, description: null, selectAllLabel: "\u5168\u9009", items: [], checked: Boolean(value), mixed: false, disabled: Boolean(rule.disabled), error: false, errorMessage: null, orientation: "vertical", compact: true }, { "b2b:checkbox-change": (event) => onChange(Boolean(event.detail?.checked)) });
     return wrapper;
   }
   const title = document.createElement("span");
-  title.className = "field-label";
+  title.className = "pb-field-label";
   title.id = `${slot}-label`;
   title.textContent = label;
   wrapper.prepend(title);
@@ -15916,10 +17349,10 @@ async function field(parent, scope, label, key, value, rule, onChange) {
   control.setAttribute("aria-labelledby", title.id);
   if (rule?.editorValues || rule?.values) {
     const values = rule.values || rule.editorValues;
-    const options = inspectorOptions(rule.componentId, rule.propertyKey || key, values);
+    const options = inspectorOptions(rule.componentId, rule.propertyKey || key, values, rule.options);
     const items = options.map((option) => ({ label: option.label, disabled: Boolean(rule.editorValues && !rule.editorValues.includes(option.value) && option.value !== value) }));
     const selected = options.find((option) => option.value === value)?.label;
-    await mountUi(slot, control, "C-23", selectProps(items, selected, label), { "b2b:select-change": (event) => {
+    await mountUi(slot, control, "C-23", { ...selectProps(items, selected, label), state: rule.disabled ? "disabled" : "default" }, { "b2b:select-change": (event) => {
       const next = options.find((option) => option.label === event.detail?.selected?.[0]);
       if (next && next.value !== value) onChange(next.value);
     } });
@@ -15930,23 +17363,84 @@ async function field(parent, scope, label, key, value, rule, onChange) {
     }
     return wrapper;
   }
-  const serialized = Array.isArray(value) ? value.join("\n") : value ?? "";
-  const variant = rule?.type === "number" ? "\u6570\u5B57\u8F93\u5165\u6846" : key === "body" || rule?.multiline || rule?.type === "array" ? "\u957F\u6587\u672C\u8F93\u5165\u6846" : "\u57FA\u7840\u8F93\u5165\u6846";
-  await mountUi(slot, control, "C-21", inputProps(label, serialized, variant), { "b2b:input-change": (event) => {
+  const variant = rule?.type === "number" ? "\u6570\u5B57\u8F93\u5165\u6846" : key === "body" && (!rule.control || rule.control === "auto") || rule?.multiline || rule?.type === "array" ? "\u957F\u6587\u672C\u8F93\u5165\u6846" : "\u57FA\u7840\u8F93\u5165\u6846";
+  const serialized = Array.isArray(value) ? value.join("\n") : variant === "\u6570\u5B57\u8F93\u5165\u6846" ? value ?? "" : String(value ?? "");
+  await mountUi(slot, control, "C-21", { ...inputProps(label, serialized, variant), ...rule?.type === "number" ? { min: -Number.MAX_SAFE_INTEGER, max: Number.MAX_SAFE_INTEGER } : {}, state: rule.disabled ? "disabled" : "default" }, { "b2b:input-change": (event) => {
     let next = event.detail?.value ?? "";
-    if (rule?.type === "number") next = Number(next);
+    if (rule?.type === "number" && (next !== "" || !rule.sourceType?.includes("string"))) next = Number(next);
     if (rule?.type === "array") next = String(next).split("\n").map((item) => item.trim()).filter(Boolean);
     if (rule?.immediate) onChange(next);
     else scheduleEdit(slot, () => onChange(next), 420);
   } });
+  if (rule.control === "image") {
+    const upload = document.createElement("div"), file2 = document.createElement("input");
+    file2.type = "file";
+    file2.accept = "image/png,image/jpeg,image/webp";
+    file2.hidden = true;
+    wrapper.append(upload, file2);
+    file2.addEventListener("change", async () => {
+      const image = file2.files?.[0];
+      if (!image) return;
+      try {
+        if (!["image/png", "image/jpeg", "image/webp"].includes(image.type) || image.size > 1024 * 1024) throw new Error("\u8BF7\u9009\u62E9 1 MB \u4EE5\u5185\u7684 PNG\u3001JPEG \u6216 WebP \u56FE\u7247\u3002");
+        const data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error("\u56FE\u7247\u8BFB\u53D6\u5931\u8D25"));
+          reader.readAsDataURL(image);
+        });
+        await onChange(data);
+      } catch (error40) {
+        fail(error40);
+      }
+    });
+    await mountUi(`${slot}-upload`, upload, "C-02", { ...buttonProps(`\u4E0A\u4F20${label}`), disabled: Boolean(rule.disabled) }, { "b2b:button-activate": () => file2.click() });
+  }
   return wrapper;
+}
+function editorRule(rule, editor, props, value) {
+  const control = editorControl(editor, props);
+  const type = control === "number" || control === "auto" && typeof value === "number" && rule.type?.includes("number") ? "number" : control === "switch" ? "boolean" : rule.type;
+  return { ...rule, ...editor, sourceType: rule.type, control, type, multiline: control === "textarea", disabled: !matchesConditions(editor.enabledWhen, props) };
+}
+async function renderContractInspector(node, inspector, def) {
+  const builder = def.builder;
+  const inline = await renderInlineLinks(node, inspector);
+  const groups = [...builder.groups || [], { id: void 0, label: "\u5176\u4ED6\u5C5E\u6027" }];
+  const entries = editorFields(def.props, builder.fields, { ...def.defaults, ...node.props }).filter(({ key, rule }) => !inline.has(key) && !rule.type.includes("object") && !rule.type.includes("array"));
+  for (const group of groups) {
+    const fields = entries.filter((item) => item.editor.group === group.id);
+    if (!fields.length) continue;
+    const section = document.createElement("section"), title = document.createElement("h3");
+    section.className = "inspector-group";
+    title.textContent = group.label;
+    section.append(title);
+    inspector.append(section);
+    for (const { key, rule, editor } of fields) {
+      const label = editor.label || componentPropLabel(node.componentId, key);
+      const value = Object.hasOwn(node.props, key) ? node.props[key] : rule.default;
+      await field(section, node.id, label, key, value, { ...editorRule(rule, editor, { ...def.defaults, ...node.props }, value), componentId: node.componentId, propertyKey: key }, (next) => {
+        try {
+          if (state.fullPropsDirty) throw new Error("\u8BF7\u5148\u5E94\u7528\u5176\u4ED6\u8BBE\u7F6E\uFF0C\u518D\u4FEE\u6539\u5355\u4E2A\u5C5E\u6027\u3002");
+          if (editor.control === "image" && native && next && !String(next).startsWith("data:image/")) throw new Error("\u539F\u751F\u9762\u677F\u4E0D\u80FD\u52A0\u8F7D\u5916\u90E8\u56FE\u7247\u5730\u5740\uFF0C\u8BF7\u4F7F\u7528\u4E0A\u4F20\u56FE\u7247\u3002");
+          return commit([{ type: "updateProps", nodeId: node.id, props: componentPatch(node, key, next === "" && rule.type.includes("null") ? null : next) }], "\u5C5E\u6027\u5DF2\u66F4\u65B0");
+        } catch (error40) {
+          fail(error40);
+        }
+      });
+    }
+  }
+  await renderFullProperties(node, inspector, def.props, { exclude: /* @__PURE__ */ new Set([...inline, ...entries.map((item) => item.key)]) });
+  inspector.append(divider(), deleteButton(node.id));
 }
 async function renderComponentInspector(node, inspector) {
   const def = definition(node.componentId);
+  if (def.builder) return renderContractInspector(node, inspector, def);
+  const inline = await renderInlineLinks(node, inspector);
   const actual = await window.B2B.describeComponent(node.componentId);
   for (const key of def.editable) {
     const rule = def.props[key];
-    if (!rule) continue;
+    if (!rule || inline.has(key)) continue;
     const sourceRule = actual.api.props[key];
     if (node.componentId === "C-23" && key === "items" && node.props.items.some((item) => typeof item === "object")) continue;
     let effective = { ...rule, ...sourceRule, componentId: node.componentId, propertyKey: key };
@@ -15984,51 +17478,97 @@ async function renderComponentInspector(node, inspector) {
     const save = (props) => commit([{ type: "updateProps", nodeId: node.id, props }], "\u5C5E\u6027\u5DF2\u66F4\u65B0");
     if (node.props.variant === "\u957F\u6587\u672C\u8F93\u5165\u6846") await field(inspector, node.id, "\u968F\u5185\u5BB9\u81EA\u52A8\u589E\u9AD8", "auto", node.props.auto, { type: "boolean" }, (value) => save({ auto: value }));
     if (node.props.variant === "\u5E26\u56FE\u6807\u8F93\u5165\u6846") await field(inspector, node.id, "\u524D\u7F6E\u56FE\u6807", "prefixIcon", node.props.prefixIcon, { type: "string" }, (value) => save({ prefixIcon: value }));
-    if (node.props.variant === "\u5E26\u5C5E\u6027\u8F93\u5165\u6846" && node.props.prefixAddon?.type === "text") await field(inspector, node.id, "\u524D\u7F00\u6587\u5B57", "prefixAddon", node.props.prefixAddon.text, { type: "string" }, (value) => save({ prefixAddon: { ...node.props.prefixAddon, text: value } }));
-    if (node.props.variant === "\u7EC4\u5408\u8F93\u5165\u6846") for (const [index, segment] of (node.props.composite?.segments || []).entries()) await field(inspector, node.id, segment.label, `segment-${index}`, segment.value, { type: "string" }, (value) => save({ composite: { ...node.props.composite, segments: node.props.composite.segments.map((item, i2) => i2 === index ? { ...item, value } : item) } }));
+    if (node.props.variant === "\u5E26\u5C5E\u6027\u8F93\u5165\u6846" && node.props.prefixAddon?.type === "text") await field(inspector, node.id, "\u524D\u7F00\u6587\u5B57", "prefixAddon", node.props.prefixAddon.text, { type: "string", propertyKey: "prefixAddon.text" }, (value) => save({ prefixAddon: { ...node.props.prefixAddon, text: value } }));
+    if (node.props.variant === "\u7EC4\u5408\u8F93\u5165\u6846") for (const [index, segment] of (node.props.composite?.segments || []).entries()) await field(inspector, node.id, segment.label, `segment-${index}`, segment.value, { type: "string", propertyKey: `composite.segments.${index}.value` }, (value) => save({ composite: { ...node.props.composite, segments: node.props.composite.segments.map((item, i2) => i2 === index ? { ...item, value } : item) } }));
   }
   if (node.componentId === "C-34") await renderCardFields(node, inspector);
-  await renderFullProperties(node, inspector, actual.api.props);
+  const shown = /* @__PURE__ */ new Set([...inline, ...[...inspector.querySelectorAll("[data-property]")].map((el) => el.dataset.property)]);
+  await renderFullProperties(node, inspector, actual.api.props, { exclude: shown });
   inspector.append(divider(), deleteButton(node.id));
 }
-async function renderFullProperties(node, inspector, rules) {
+async function renderInlineLinks(node, inspector) {
+  const regions = inlineEditor.regions(node), keys = new Set(regions.map((item) => item.property));
+  if (!keys.size) return keys;
+  const section = document.createElement("section"), hint = document.createElement("p"), actions = document.createElement("div");
+  section.className = "canvas-content-links";
+  hint.textContent = "\u5185\u5BB9\u53EF\u5728\u753B\u5E03\u4E2D\u53CC\u51FB\u7F16\u8F91\uFF0C\u4E5F\u53EF\u4ECE\u8FD9\u91CC\u5B9A\u4F4D\u3002";
+  actions.className = "canvas-content-actions";
+  section.append(hint, actions);
+  inspector.append(section);
+  for (const key of keys) {
+    const target = document.createElement("div");
+    actions.append(target);
+    await mountUi(`field-${node.id}-inline-${key}`, target, "C-02", { ...buttonProps(`\u7F16\u8F91${componentPropLabel(node.componentId, key)}`, "secondary-gray", "edit"), size: "mini" }, { "b2b:button-activate": () => {
+      regions.find((item) => item.property === key)?.element.scrollIntoView({ block: "nearest" });
+      return inlineEditor.open(node.id, key);
+    } });
+  }
+  return keys;
+}
+async function renderFullProperties(node, inspector, rules, settings = {}) {
+  const excluded = settings.exclude || /* @__PURE__ */ new Set();
+  const def = definition(node.componentId), builder = def.builder;
+  const original = structuredClone({ ...def.defaults, ...node.props });
+  if (!editorFields(rules, builder?.fields, original).some(({ key }) => !excluded.has(key))) return;
   const details = document.createElement("details"), summary = document.createElement("summary");
-  summary.textContent = "\u5168\u90E8\u7EC4\u4EF6\u5C5E\u6027";
+  const prefix = settings.slotPrefix || "full";
+  summary.textContent = settings.title || "\u5176\u4ED6\u8BBE\u7F6E";
   details.append(summary);
   inspector.append(details);
-  let draft = structuredClone({ ...definition(node.componentId).defaults, ...node.props });
+  let draft = structuredClone(original);
+  const conditionKeys = /* @__PURE__ */ new Set();
+  function collectConditions(fields) {
+    for (const editor of Object.values(fields || {})) {
+      for (const condition of [...editor.visibleWhen || [], ...editor.enabledWhen || [], ...(editor.controlWhen || []).flatMap((item) => item.when)]) conditionKeys.add(condition.property);
+      collectConditions(editor.fields);
+      if (editor.item) collectConditions({ item: editor.item });
+    }
+  }
+  collectConditions(builder?.fields);
   const body = document.createElement("div");
   details.append(body);
   let built = false;
-  const seed = (rule) => "default" in rule ? structuredClone(rule.default) : rule.values?.[0] ?? (rule.type?.includes("array") ? [] : rule.type?.includes("object") ? {} : rule.type === "boolean" ? false : rule.type === "number" ? 0 : "");
-  async function build(container, name, value, rule, write, depth = 0, propertyKey = "") {
+  const seed = (rule) => "default" in rule ? structuredClone(rule.default) : rule.values?.[0] ?? (rule.type?.includes("array") ? [] : rule.fields || rule.type?.includes("object") ? {} : rule.type === "boolean" ? false : rule.type === "number" ? 0 : "");
+  async function build(container, name, value, rule, write, depth = 0, propertyKey = "", editor = {}) {
+    if (excluded.has(propertyKey)) return;
     if (depth > 8) return;
+    if (!matchesConditions(editor.visibleWhen, draft)) return;
+    const disabled = !matchesConditions(editor.enabledWhen, draft);
     const type = rule.type || (Array.isArray(value) ? "array" : value && typeof value === "object" ? "object" : typeof value);
     if (type.includes("object") || type.includes("array")) {
       const box = document.createElement("fieldset"), title = document.createElement("legend");
       title.textContent = name;
+      box.disabled = disabled;
       box.append(title);
       container.append(box);
+      if (editor.description || rule.description) {
+        const hint = document.createElement("small");
+        hint.textContent = editor.description || rule.description;
+        box.append(hint);
+      }
       if (value === null || value === void 0) {
         const target = document.createElement("div");
         box.append(target);
-        await mountUi(`field-${node.id}-full-${name}-enable`, target, "C-02", buttonProps(`\u914D\u7F6E${name}`), { "b2b:button-activate": async () => {
+        await mountUi(`field-${node.id}-${prefix}-${propertyKey}-enable`, target, "C-02", { ...buttonProps(`\u914D\u7F6E${name}`), disabled }, { "b2b:button-activate": async () => {
+          if (disabled) return;
           const next = type.includes("array") ? [] : {};
           write(next);
-          box.remove();
-          await build(container, name, next, rule, write, depth, propertyKey);
+          await rebuild();
         } });
         return;
       }
       if (Array.isArray(value)) {
         for (const [index, item] of value.entries()) {
           await build(box, `${name} ${index + 1}`, item, rule.item || { type: typeof item === "object" ? "object" : typeof item }, (next) => {
-            value[index] = next;
-            write(value);
-          }, depth + 1);
+            if (!disabled) {
+              value[index] = next;
+              write(value);
+            }
+          }, depth + 1, `${propertyKey}.${index}`, editor.item || {});
           const remove = document.createElement("div");
           box.append(remove);
-          await mountUi(`field-${node.id}-full-${name}-${index}-remove`, remove, "C-02", buttonProps(`\u5220\u9664 ${name} ${index + 1}`), { "b2b:button-activate": async () => {
+          await mountUi(`field-${node.id}-${prefix}-${propertyKey}-${index}-remove`, remove, "C-02", { ...buttonProps(`\u5220\u9664 ${name} ${index + 1}`), disabled }, { "b2b:button-activate": async () => {
+            if (disabled) return;
             value.splice(index, 1);
             write(value);
             await rebuild();
@@ -16036,7 +17576,8 @@ async function renderFullProperties(node, inspector, rules) {
         }
         const add = document.createElement("div");
         box.append(add);
-        await mountUi(`field-${node.id}-full-${name}-add`, add, "C-02", buttonProps(`\u6DFB\u52A0${name}`), { "b2b:button-activate": async () => {
+        await mountUi(`field-${node.id}-${prefix}-${propertyKey}-add`, add, "C-02", { ...buttonProps(`\u6DFB\u52A0${name}`), disabled }, { "b2b:button-activate": async () => {
+          if (disabled) return;
           value.push(seed(rule.item || { type: "string" }));
           write(value);
           await rebuild();
@@ -16044,43 +17585,64 @@ async function renderFullProperties(node, inspector, rules) {
       } else {
         const declared = rule.item?.fields || rule.fields || {};
         const names = [.../* @__PURE__ */ new Set([...Object.keys(value), ...Array.isArray(declared) ? declared : Object.keys(declared)])];
+        names.sort((a, b2) => (editor.fields?.[a]?.order ?? 0) - (editor.fields?.[b2]?.order ?? 0));
         for (const key of names) {
           const child = !Array.isArray(declared) && declared[key] || { type: typeof value[key] === "boolean" ? "boolean" : typeof value[key] === "number" ? "number" : typeof value[key] === "object" && value[key] ? "object" : "string" };
-          await build(box, `${name} \xB7 ${propLabel(key)}`, value[key], child, (next) => {
-            value[key] = next;
-            write(value);
-          }, depth + 1);
+          await build(box, `${name} \xB7 ${editor.fields?.[key]?.label || propLabel(key)}`, value[key], child, (next) => {
+            if (!disabled) {
+              value[key] = next;
+              write(value);
+            }
+          }, depth + 1, `${propertyKey}.${key}`, editor.fields?.[key] || {});
         }
       }
       if (type.includes("null")) {
         const target = document.createElement("div");
         box.append(target);
-        await mountUi(`field-${node.id}-full-${name}-clear`, target, "C-02", buttonProps(`\u6E05\u7A7A${name}`), { "b2b:button-activate": async () => {
+        await mountUi(`field-${node.id}-${prefix}-${propertyKey}-clear`, target, "C-02", { ...buttonProps(`\u6E05\u7A7A${name}`), disabled }, { "b2b:button-activate": async () => {
+          if (disabled) return;
           write(null);
           await rebuild();
         } });
       }
       return;
     }
-    const scalarRule = typeof value === "number" && type.includes("number") ? { ...rule, type: "number" } : rule;
-    await field(container, node.id, name, `full-${name}`, value, { ...scalarRule, componentId: node.componentId, propertyKey, immediate: true }, (next) => write(next === "" && type.includes("null") ? null : next));
+    const scalarRule = { ...rule, type: typeof value === "number" && type.includes("number") ? "number" : type };
+    await field(container, node.id, name, `${prefix}-${propertyKey || name}`, value, { ...editorRule(scalarRule, editor, draft), componentId: node.componentId, propertyKey, immediate: true }, (next) => write(next === "" && type.includes("null") ? null : next));
   }
   async function rebuild() {
-    clearUiPrefix(`field-${node.id}-full-`);
+    clearUiPrefix(`field-${node.id}-${prefix}-`);
     body.replaceChildren();
     const hint = document.createElement("p");
-    hint.textContent = "\u8FD9\u91CC\u5217\u51FA\u7EC4\u4EF6\u5E93\u516C\u5F00\u7684\u5168\u90E8\u5C5E\u6027\u3002\u7EC4\u5408\u4FEE\u6539\u540E\u70B9\u51FB\u5E94\u7528\uFF1B\u65E0\u6548\u7EC4\u5408\u4E0D\u4F1A\u4FDD\u5B58\u3002";
+    hint.textContent = "\u5176\u4F59\u8BBE\u7F6E\u4E0E\u5217\u8868\u5185\u5BB9\u3002\u4FEE\u6539\u540E\u70B9\u51FB\u5E94\u7528\uFF1B\u65E0\u6548\u7EC4\u5408\u4E0D\u4F1A\u4FDD\u5B58\u3002";
     body.append(hint);
-    for (const [key, rule] of Object.entries(rules)) await build(body, componentPropLabel(node.componentId, key), draft[key], rule, (value) => {
-      draft[key] = value;
-      state.fullPropsDirty = true;
-    }, 0, key);
+    for (const { key, rule, editor } of editorFields(rules, builder?.fields, draft)) await build(body, editor.label || componentPropLabel(node.componentId, key), draft[key], rule, (value) => {
+      try {
+        const patch = contractPatch(definition(node.componentId), draft, key, value);
+        Object.assign(draft, patch || { [key]: value });
+        state.fullPropsDirty = true;
+        if (patch || conditionKeys.has(key)) void rebuild();
+      } catch (error40) {
+        fail(error40);
+      }
+    }, 0, key, editor);
     const target = document.createElement("div");
     body.append(target);
-    await mountUi(`field-${node.id}-full-apply`, target, "C-02", buttonProps("\u5E94\u7528\u5168\u90E8\u5C5E\u6027", "primary"), { "b2b:button-activate": () => {
+    await mountUi(`field-${node.id}-${prefix}-apply`, target, "C-02", buttonProps("\u5E94\u7528\u5176\u4ED6\u8BBE\u7F6E", "primary"), { "b2b:button-activate": () => {
+      const props = Object.fromEntries(Object.keys(draft).filter((key) => JSON.stringify(draft[key]) !== JSON.stringify(original[key])).map((key) => [key, draft[key]]));
+      if (!Object.keys(props).length) {
+        state.fullPropsDirty = false;
+        return renderSelection(true);
+      }
       for (const timer of state.editTimers.values()) clearTimeout(timer);
       state.editTimers.clear();
-      return commit([{ type: "updateProps", nodeId: node.id, props: draft }], "\u5C5E\u6027\u5DF2\u66F4\u65B0");
+      return commit([{ type: "updateProps", nodeId: node.id, props }], "\u5C5E\u6027\u5DF2\u66F4\u65B0", true);
+    } });
+    const cancel = document.createElement("div");
+    body.append(cancel);
+    await mountUi(`field-${node.id}-${prefix}-cancel`, cancel, "C-02", buttonProps("\u53D6\u6D88\u4FEE\u6539"), { "b2b:button-activate": () => {
+      state.fullPropsDirty = false;
+      return renderSelection(true);
     } });
   }
   details.addEventListener("toggle", () => {
@@ -16124,7 +17686,7 @@ async function renderCardFields(node, inspector) {
   });
   await mountUi(`field-${node.id}-upload`, upload, "C-02", buttonProps("\u4E0A\u4F20\u5A92\u4F53\u56FE\u7247"), { "b2b:button-activate": () => file2.click() });
   if (p2.coverImage) await field(inspector, node.id, "\u56FE\u7247\u8BF4\u660E", "coverAlt", p2.coverAlt, { type: "string" }, (value) => save({ coverAlt: value }));
-  if (p2.avatar) await field(inspector, node.id, "\u5934\u50CF\u6587\u5B57", "avatar-text", p2.avatar.text, { type: "string" }, (value) => save({ avatar: { ...p2.avatar, text: value } }));
+  if (p2.avatar) await field(inspector, node.id, "\u5934\u50CF\u6587\u5B57", "avatar-text", p2.avatar.text, { type: "string", propertyKey: "avatar.text" }, (value) => save({ avatar: { ...p2.avatar, text: value } }));
   if (["external-grid", "content-grid"].includes(p2.variant)) await field(inspector, node.id, "\u5361\u7247\u5217\u6570", "columns", p2.columns, { type: "number", values: [2, 3, 4] }, (value) => save({ columns: value }));
   const listKey = ["external-grid", "content-grid", "nested"].includes(p2.variant) ? "items" : p2.variant === "tabs" ? "tabs" : p2.variant === "actions" ? "actions" : null;
   if (!listKey) return;
@@ -16132,7 +17694,7 @@ async function renderCardFields(node, inspector) {
   const fields = listKey === "items" ? { title: "\u5B50\u5361\u7247\u6807\u9898", body: "\u5B50\u5361\u7247\u6B63\u6587", meta: "\u5B50\u5361\u7247\u8F85\u52A9\u4FE1\u606F" } : listKey === "tabs" ? { label: "\u9875\u7B7E\u6807\u9898", content: "\u9875\u7B7E\u5185\u5BB9" } : { label: "\u64CD\u4F5C\u540D\u79F0", icon: "\u64CD\u4F5C\u56FE\u6807" };
   for (const [index, entry] of entries.entries()) {
     inspector.append(divider());
-    for (const [key, label] of Object.entries(fields)) await field(inspector, node.id, `${label} ${index + 1}`, `${listKey}-${entry.id}-${key}`, entry[key], { type: "string", multiline: ["body", "content"].includes(key) }, (value) => save({ [listKey]: entries.map((item) => item.id === entry.id ? { ...item, [key]: value } : item) }));
+    for (const [key, label] of Object.entries(fields)) await field(inspector, node.id, `${label} ${index + 1}`, `${listKey}-${entry.id}-${key}`, entry[key], { type: "string", propertyKey: `${listKey}.${index}.${key}`, multiline: ["body", "content"].includes(key) }, (value) => save({ [listKey]: entries.map((item) => item.id === entry.id ? { ...item, [key]: value } : item) }));
     if (entries.length > 1) {
       const target2 = document.createElement("div");
       inspector.append(target2);
@@ -16152,10 +17714,14 @@ async function renderCardFields(node, inspector) {
   if (listKey === "tabs") await field(inspector, node.id, "\u9ED8\u8BA4\u9875\u7B7E\uFF08\u6807\u8BC6\uFF09", "activeTabId", p2.activeTabId, { values: entries.map((item) => item.id) }, (value) => save({ activeTabId: value }));
 }
 function componentPropLabel(componentId, key) {
+  const declared = definition(componentId)?.builder?.fields?.[key]?.label;
+  if (declared) return declared;
   const labels2 = { "C-34": { title: "\u5361\u7247\u6807\u9898", body: "\u5361\u7247\u6B63\u6587", meta: "\u8F85\u52A9\u4FE1\u606F", selected: "\u9009\u4E2D\u72B6\u6001" }, "C-21": { label: "\u8F93\u5165\u6846\u540D\u79F0", value: "\u8F93\u5165\u5185\u5BB9", placeholder: "\u5360\u4F4D\u63D0\u793A" } };
   return labels2[componentId]?.[key] || propLabel(key);
 }
 function componentPatch(node, key, value) {
+  const patch = contractPatch(definition(node.componentId), { ...definition(node.componentId).defaults, ...node.props }, key, value);
+  if (patch) return patch;
   if (key === "variant") {
     const def = definition(node.componentId), variants = def.variantDefaults || {};
     const keys = [...new Set(Object.values(variants).flatMap(Object.keys))];
@@ -16202,18 +17768,21 @@ function renderTree() {
   tree.replaceChildren();
   const visit = (node, depth) => {
     const item = document.createElement("div");
-    item.className = `tree-item${node.id === state.selection ? " is-selected" : ""}`;
+    item.dataset.treeNodeId = node.id;
+    item.setAttribute("aria-pressed", String(state.selectedIds.has(node.id)));
+    item.className = `tree-item${state.selectedIds.has(node.id) ? " is-selected" : ""}`;
     item.tabIndex = 0;
     item.setAttribute("role", "button");
     item.style.setProperty("--depth", depth);
-    item.innerHTML = `<span class="tree-indent"></span><span>${node.kind === "layout" ? "\u25A6" : "\u25C7"}</span><span>${node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label}</span>`;
-    item.addEventListener("click", () => select(node.id));
+    item.innerHTML = `<span class="tree-indent"></span><span class="tree-icon"></span><span>${escapeHtml(node.kind === "layout" ? labels[node.layout] : definition(node.componentId)?.label)}</span>`;
+    item.addEventListener("click", (event) => select(node.id, event));
     item.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        select(node.id);
+        select(node.id, event);
       }
     });
+    $(".tree-icon", item).append(libraryIcon(node.kind === "layout" ? layoutIcons[node.layout] : componentIcons[node.componentId] || "widgets"));
     tree.append(item);
     if (node.kind === "layout") node.children.forEach((child) => visit(child, depth + 1));
   };
@@ -16223,6 +17792,12 @@ window.addEventListener("error", (event) => {
   if (!state.page) startup(`\u542F\u52A8\u5931\u8D25\uFF1A${event.message}`);
 });
 window.addEventListener("pagehide", () => contextLease?.close(), { once: true });
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element) || !target.closest(".canvas-scroll") || target.closest(".node-shell,[inert]")) return;
+  if (!state.page || state.preview || state.dragging || reloadingRuntime || runtimeReloadFailed) return;
+  if (state.selection || state.selectedIds.size) select(null);
+});
 bootstrap().catch((error40) => {
   startup(`\u542F\u52A8\u5931\u8D25\uFF1A${error40.message}`);
   console.error(error40);

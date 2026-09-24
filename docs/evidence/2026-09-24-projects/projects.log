@@ -1,0 +1,14 @@
+
+> page-builder-mcp-plugin@0.1.1+codex.20260924071459 test:projects
+> node --import tsx --test tests/projects.test.ts && node tests/projects.test.mjs
+
+✔ project creation rolls back its own incomplete directory and never overwrites an existing folder (10.350541ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 88.689333
+{"ok":true,"directory":"/var/folders/8s/jrvr4t450qxgvccn_47kky380000gn/T/page-builder-projects-sfcu7o","cases":["native create/edit/context","page create/switch/copy","desktop/narrow","portable files","clone isolation","invalid project preservation","cross-process reopen","HTTP scope","corrupt resources","fresh cache open"]}

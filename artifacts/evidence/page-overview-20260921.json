@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-21",
+  "pluginVersion": "0.1.1+codex.20260921094936",
+  "QA": {
+    "typecheck": "pass",
+    "multi-context": "pass including blank root gap, canvas padding, outer workspace, retained references, source-backed layout control and counts",
+    "incremental-canvas": "pass",
+    "host-bridge": "pass",
+    "native-refresh": "pass including deselection after repeated reload and error recovery",
+    "plugin-validator": "pass"
+  },
+  "browser": "Browser plugin not available; existing Playwright and Chrome",
+  "nativeResource": "strict CSP, no HTTP, isolated MCP data",
+  "viewports": [
+    "1440x900 with 1420px iframe",
+    "680x900 with 660px iframe"
+  ],
+  "screenshotsVisuallyReviewed": true,
+  "selfReview": "hit target boundaries, null multi-toggle, draft/preview guards, late selection results, overview memoization and listener lifetime; no independent agent review",
+  "backup": "/Users/wangkewei/Documents/Page Builder Backups/page-overview-20260921-175045",
+  "userFilesUnchanged": 325,
+  "actualCodexHostReloaded": false,
+  "installation": {
+    "officialCLI": "pass",
+    "matchingRuntimeFiles": 13,
+    "isolatedInstalledMcpResourceCharacters": 736857,
+    "actualCodexHostReloaded": false
+  }
+}

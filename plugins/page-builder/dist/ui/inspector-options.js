@@ -19,9 +19,9 @@ const components = {
   }
 };
 
-export function inspectorOptions(componentId, key, values) {
+export function inspectorOptions(componentId, key, values, metadata) {
   const labels = components[componentId]?.[key] || shared[key] || {};
-  const options = values.map(value => ({ value, label: Object.hasOwn(labels, value) ? labels[value] : String(value) }));
+  const options = values.map(value => ({ value, label: metadata?.find(option => option.value === value)?.label ?? (Object.hasOwn(labels, value) ? labels[value] : String(value)) }));
   const counts = new Map();
   for (const { label } of options) counts.set(label, (counts.get(label) || 0) + 1);
   const used = new Set();

@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "data": "/var/folders/8s/jrvr4t450qxgvccn_47kky380000gn/T/page-builder-inline-sucmuN",
+  "assertions": [
+    "double click / single click",
+    "source C-21 editor",
+    "unique property paths",
+    "localized updates",
+    "Esc / multiline / IME / blur",
+    "numeric types",
+    "failure draft and retry",
+    "undo redo",
+    "revision conflict",
+    "preview",
+    "desktop and narrow"
+  ],
+  "installed": {
+    "version": "0.1.1+codex.20260922093539",
+    "installed": "/Users/wangkewei/.codex/plugins/cache/page-builder-development/page-builder/0.1.1+codex.20260922093539",
+    "matchingFiles": 15,
+    "installedMcpResource": true,
+    "htmlCharacters": 751863,
+    "actualCodexHostReloaded": false
+  },
+  "userdata": {
+    "backup": "/Users/wangkewei/Documents/Page Builder Backups/inline-editing-20260922-173539",
+    "files": 327,
+    "version": "0.1.1+codex.20260922093539",
+    "changedFiles": [],
+    "unchanged": true
+  },
+  "review": "self-review; no independent agent review",
+  "additionalPassingChecks": [
+    "typecheck",
+    "25 TS behavior tests",
+    "2 MCP and isolated-package tests",
+    "browser",
+    "incremental-canvas",
+    "drag-preview",
+    "host-bridge with inline edits",
+    "multi-context",
+    "native-resource with 10 card style/geometry comparisons",
+    "builder-inspector",
+    "builder-source: 37 variants, 4 tag types",
+    "native-refresh with source-only anchor changes and fallback",
+    "library-refresh",
+    "plugin validator",
+    "skill validator",
+    "source inline author validator",
+    "source builder validator and 80 tests"
+  ],
+  "screenshots": [
+    "inline-desktop-20260922.png",
+    "inline-narrow-20260922.png"
+  ],
+  "visualReview": "Both inspected with view_image; desktop 1440x1000 and narrow 520x800."
+}

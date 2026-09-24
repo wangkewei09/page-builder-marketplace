@@ -1688,11 +1688,11 @@ var require_defaults = __commonJS({
       }
     }
     exports.assignDefaults = assignDefaults;
-    function assignDefault(it, prop, defaultValue) {
+    function assignDefault(it, prop2, defaultValue) {
       const { gen, compositeRule, data, opts } = it;
       if (defaultValue === void 0)
         return;
-      const childData = (0, codegen_1._)`${data}${(0, codegen_1.getProperty)(prop)}`;
+      const childData = (0, codegen_1._)`${data}${(0, codegen_1.getProperty)(prop2)}`;
       if (compositeRule) {
         (0, util_1.checkStrictMode)(it, `default is ignored for: ${childData}`);
         return;
@@ -1716,16 +1716,16 @@ var require_code2 = __commonJS({
     var util_1 = require_util();
     var names_1 = require_names();
     var util_2 = require_util();
-    function checkReportMissingProp(cxt, prop) {
+    function checkReportMissingProp(cxt, prop2) {
       const { gen, data, it } = cxt;
-      gen.if(noPropertyInData(gen, data, prop, it.opts.ownProperties), () => {
-        cxt.setParams({ missingProperty: (0, codegen_1._)`${prop}` }, true);
+      gen.if(noPropertyInData(gen, data, prop2, it.opts.ownProperties), () => {
+        cxt.setParams({ missingProperty: (0, codegen_1._)`${prop2}` }, true);
         cxt.error();
       });
     }
     exports.checkReportMissingProp = checkReportMissingProp;
     function checkMissingProp({ gen, data, it: { opts } }, properties, missing) {
-      return (0, codegen_1.or)(...properties.map((prop) => (0, codegen_1.and)(noPropertyInData(gen, data, prop, opts.ownProperties), (0, codegen_1._)`${missing} = ${prop}`)));
+      return (0, codegen_1.or)(...properties.map((prop2) => (0, codegen_1.and)(noPropertyInData(gen, data, prop2, opts.ownProperties), (0, codegen_1._)`${missing} = ${prop2}`)));
     }
     exports.checkMissingProp = checkMissingProp;
     function reportMissingProp(cxt, missing) {
@@ -2147,8 +2147,8 @@ var require_json_schema_traverse = __commonJS({
             }
           } else if (key in traverse.propsKeywords) {
             if (sch && typeof sch == "object") {
-              for (var prop in sch)
-                _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema, prop);
+              for (var prop2 in sch)
+                _traverse(opts, pre, post, sch[prop2], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop2), rootSchema, jsonPtr, key, schema, prop2);
             }
           } else if (key in traverse.keywords || opts.allKeys && !(key in traverse.skipKeywords)) {
             _traverse(opts, pre, post, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema);
@@ -3262,8 +3262,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path10) {
-      let input = path10;
+    function removeDotSegments(path12) {
+      let input = path12;
       const output2 = [];
       let nextSlash = -1;
       let len = 0;
@@ -3672,8 +3672,8 @@ var require_schemes = __commonJS({
       }
       if (wsComponent.resourceName) {
         const queryIndex = wsComponent.resourceName.indexOf("?");
-        const path10 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
-        wsComponent.path = path10 && path10 !== "/" ? path10 : void 0;
+        const path12 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
+        wsComponent.path = path12 && path12 !== "/" ? path12 : void 0;
         wsComponent.query = queryIndex === -1 ? void 0 : wsComponent.resourceName.slice(queryIndex + 1);
         wsComponent.resourceName = void 0;
       }
@@ -4625,7 +4625,7 @@ var require_core = __commonJS({
       errorsText(errors = this.errors, { separator = ", ", dataVar = "data" } = {}) {
         if (!errors || errors.length === 0)
           return "No errors";
-        return errors.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text, msg) => text + separator + msg);
+        return errors.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text2, msg) => text2 + separator + msg);
       }
       $dataMetaSchema(metaSchema, keywordsJsonPointers) {
         const rules = this.RULES.all;
@@ -5229,8 +5229,8 @@ var require_required = __commonJS({
           if (useLoop || $data) {
             cxt.block$data(codegen_1.nil, loopAllRequired);
           } else {
-            for (const prop of schema) {
-              (0, code_1.checkReportMissingProp)(cxt, prop);
+            for (const prop2 of schema) {
+              (0, code_1.checkReportMissingProp)(cxt, prop2);
             }
           }
         }
@@ -5247,9 +5247,9 @@ var require_required = __commonJS({
           }
         }
         function loopAllRequired() {
-          gen.forOf("prop", schemaCode, (prop) => {
-            cxt.setParams({ missingProperty: prop });
-            gen.if((0, code_1.noPropertyInData)(gen, data, prop, opts.ownProperties), () => cxt.error());
+          gen.forOf("prop", schemaCode, (prop2) => {
+            cxt.setParams({ missingProperty: prop2 });
+            gen.if((0, code_1.noPropertyInData)(gen, data, prop2, opts.ownProperties), () => cxt.error());
           });
         }
         function loopUntilMissing(missing, valid) {
@@ -5794,13 +5794,13 @@ var require_dependencies = __commonJS({
       if (Object.keys(propertyDeps).length === 0)
         return;
       const missing = gen.let("missing");
-      for (const prop in propertyDeps) {
-        const deps = propertyDeps[prop];
+      for (const prop2 in propertyDeps) {
+        const deps = propertyDeps[prop2];
         if (deps.length === 0)
           continue;
-        const hasProperty = (0, code_1.propertyInData)(gen, data, prop, it.opts.ownProperties);
+        const hasProperty = (0, code_1.propertyInData)(gen, data, prop2, it.opts.ownProperties);
         cxt.setParams({
-          property: prop,
+          property: prop2,
           depsCount: deps.length,
           deps: deps.join(", ")
         });
@@ -5821,13 +5821,13 @@ var require_dependencies = __commonJS({
     function validateSchemaDeps(cxt, schemaDeps = cxt.schema) {
       const { gen, data, keyword, it } = cxt;
       const valid = gen.name("valid");
-      for (const prop in schemaDeps) {
-        if ((0, util_1.alwaysValidSchema)(it, schemaDeps[prop]))
+      for (const prop2 in schemaDeps) {
+        if ((0, util_1.alwaysValidSchema)(it, schemaDeps[prop2]))
           continue;
         gen.if(
-          (0, code_1.propertyInData)(gen, data, prop, it.opts.ownProperties),
+          (0, code_1.propertyInData)(gen, data, prop2, it.opts.ownProperties),
           () => {
-            const schCxt = cxt.subschema({ keyword, schemaProp: prop }, valid);
+            const schCxt = cxt.subschema({ keyword, schemaProp: prop2 }, valid);
             cxt.mergeValidEvaluated(schCxt, valid);
           },
           () => gen.var(valid, true)
@@ -6009,8 +6009,8 @@ var require_properties = __commonJS({
           additionalProperties_1.default.code(new validate_1.KeywordCxt(it, additionalProperties_1.default, "additionalProperties"));
         }
         const allProps = (0, code_1.allSchemaProperties)(schema);
-        for (const prop of allProps) {
-          it.definedProperties.add(prop);
+        for (const prop2 of allProps) {
+          it.definedProperties.add(prop2);
         }
         if (it.opts.unevaluated && allProps.length && it.props !== true) {
           it.props = util_1.mergeEvaluated.props(gen, (0, util_1.toHash)(allProps), it.props);
@@ -6019,27 +6019,27 @@ var require_properties = __commonJS({
         if (properties.length === 0)
           return;
         const valid = gen.name("valid");
-        for (const prop of properties) {
-          if (hasDefault(prop)) {
-            applyPropertySchema(prop);
+        for (const prop2 of properties) {
+          if (hasDefault(prop2)) {
+            applyPropertySchema(prop2);
           } else {
-            gen.if((0, code_1.propertyInData)(gen, data, prop, it.opts.ownProperties));
-            applyPropertySchema(prop);
+            gen.if((0, code_1.propertyInData)(gen, data, prop2, it.opts.ownProperties));
+            applyPropertySchema(prop2);
             if (!it.allErrors)
               gen.else().var(valid, true);
             gen.endIf();
           }
-          cxt.it.definedProperties.add(prop);
+          cxt.it.definedProperties.add(prop2);
           cxt.ok(valid);
         }
-        function hasDefault(prop) {
-          return it.opts.useDefaults && !it.compositeRule && schema[prop].default !== void 0;
+        function hasDefault(prop2) {
+          return it.opts.useDefaults && !it.compositeRule && schema[prop2].default !== void 0;
         }
-        function applyPropertySchema(prop) {
+        function applyPropertySchema(prop2) {
           cxt.subschema({
             keyword: "properties",
-            schemaProp: prop,
-            dataProp: prop
+            schemaProp: prop2,
+            dataProp: prop2
           }, valid);
         }
       }
@@ -6090,9 +6090,9 @@ var require_patternProperties = __commonJS({
           }
         }
         function checkMatchingProperties(pat) {
-          for (const prop in checkProperties) {
-            if (new RegExp(pat).test(prop)) {
-              (0, util_1.checkStrictMode)(it, `property ${prop} matches pattern ${pat} (use allowMatchingProperties)`);
+          for (const prop2 in checkProperties) {
+            if (new RegExp(pat).test(prop2)) {
+              (0, util_1.checkStrictMode)(it, `property ${prop2} matches pattern ${pat} (use allowMatchingProperties)`);
             }
           }
         }
@@ -7173,8 +7173,8 @@ var require_dist = __commonJS({
         return ajv;
       }
       const [formats, exportName] = opts.mode === "fast" ? [formats_1.fastFormats, fastName] : [formats_1.fullFormats, fullName];
-      const list = opts.formats || formats_1.formatNames;
-      addFormats(ajv, list, formats, exportName);
+      const list2 = opts.formats || formats_1.formatNames;
+      addFormats(ajv, list2, formats, exportName);
       if (opts.keywords)
         (0, limit_1.default)(ajv);
       return ajv;
@@ -7186,11 +7186,11 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs, exportName) {
+    function addFormats(ajv, list2, fs, exportName) {
       var _a2;
       var _b2;
       (_a2 = (_b2 = ajv.opts.code).formats) !== null && _a2 !== void 0 ? _a2 : _b2.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
-      for (const f of list)
+      for (const f of list2)
         ajv.addFormat(f, fs[f]);
     }
     module.exports = exports = formatsPlugin;
@@ -7198,6 +7198,14 @@ var require_dist = __commonJS({
     exports.default = formatsPlugin;
   }
 });
+
+// src/directory-picker.ts
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { randomUUID as randomUUID2 } from "node:crypto";
+import { realpath, stat } from "node:fs/promises";
+import { homedir } from "node:os";
+import path from "node:path";
 
 // src/domain.ts
 import { randomUUID } from "node:crypto";
@@ -7633,6 +7641,588 @@ function validatePage(page, catalog = COMPONENTS) {
   return page;
 }
 
+// src/directory-picker.ts
+var prompts = { create: "\u9009\u62E9\u9879\u76EE\u7684\u4FDD\u5B58\u6587\u4EF6\u5939", open: "\u9009\u62E9\u8981\u6253\u5F00\u7684\u9879\u76EE\u6587\u4EF6\u5939", relink: "\u9009\u62E9\u79FB\u52A8\u540E\u7684\u9879\u76EE\u6587\u4EF6\u5939" };
+var run = promisify(execFile);
+var MAC_DIALOG = `ObjC.import('AppKit');
+function run(argv) {
+  const options = JSON.parse(argv[0]);
+  const app = $.NSApplication.sharedApplication;
+  app.setActivationPolicy($.NSApplicationActivationPolicyAccessory);
+  app.activateIgnoringOtherApps(true);
+  const panel = $.NSOpenPanel.openPanel;
+  panel.title = '\u9875\u9762\u642D\u5EFA\u5668';
+  panel.message = options.message;
+  panel.prompt = '\u9009\u62E9\u6587\u4EF6\u5939';
+  panel.canChooseDirectories = true;
+  panel.canChooseFiles = false;
+  panel.allowsMultipleSelection = false;
+  panel.canCreateDirectories = options.create;
+  panel.directoryURL = $.NSURL.fileURLWithPath(options.initialDirectory);
+  const result = panel.runModal;
+  return JSON.stringify(result === $.NSModalResponseOK ? { directory: ObjC.unwrap(panel.URL.path) } : { directory: null });
+}`;
+var nativeDirectoryDialog = async ({ purpose, initialDirectory, signal }) => {
+  if (process.platform !== "darwin") throw new Error("\u5F53\u524D\u7CFB\u7EDF\u6682\u4E0D\u652F\u6301\u6587\u4EF6\u5939\u9009\u62E9\uFF0C\u8BF7\u5728 macOS \u684C\u9762\u7248\u4E2D\u4F7F\u7528\u3002");
+  const { stdout } = await run("/usr/bin/osascript", ["-l", "JavaScript", "-e", MAC_DIALOG, JSON.stringify({ message: prompts[purpose], create: purpose === "create", initialDirectory })], { signal, encoding: "utf8", maxBuffer: 64 * 1024 });
+  const result = JSON.parse(stdout.trim());
+  if (result.directory !== null && typeof result.directory !== "string") throw new Error("\u7CFB\u7EDF\u6CA1\u6709\u8FD4\u56DE\u6709\u6548\u7684\u6587\u4EF6\u5939\u3002");
+  return result.directory;
+};
+async function startingDirectory(value) {
+  let directory = value?.startsWith("~/") ? path.join(homedir(), value.slice(2)) : value;
+  if (!directory || !path.isAbsolute(directory)) return homedir();
+  while (true) {
+    if (await stat(directory).then((info) => info.isDirectory(), () => false)) return directory;
+    const parent = path.dirname(directory);
+    if (parent === directory) return homedir();
+    directory = parent;
+  }
+}
+var DirectoryPicker = class {
+  constructor(dialog = nativeDirectoryDialog, timeoutMs = 18e4) {
+    this.dialog = dialog;
+    this.timeoutMs = timeoutMs;
+  }
+  dialog;
+  timeoutMs;
+  jobs = /* @__PURE__ */ new Map();
+  active = null;
+  start(purpose, initialDirectory) {
+    if (!Object.hasOwn(prompts, purpose)) throw new DomainError("INVALID_DIRECTORY_PURPOSE", "\u6587\u4EF6\u5939\u9009\u62E9\u7528\u9014\u65E0\u6548\u3002");
+    if (initialDirectory !== void 0 && typeof initialDirectory !== "string") throw new DomainError("INVALID_DIRECTORY", "\u521D\u59CB\u6587\u4EF6\u5939\u4F4D\u7F6E\u65E0\u6548\u3002");
+    if (this.active) throw new DomainError("DIRECTORY_PICKER_BUSY", "\u6587\u4EF6\u5939\u9009\u62E9\u7A97\u53E3\u5DF2\u6253\u5F00\uFF0C\u8BF7\u5148\u5B8C\u6210\u6216\u53D6\u6D88\u9009\u62E9\u3002");
+    if (this.jobs.size >= 16) this.jobs.delete(this.jobs.keys().next().value);
+    const requestId = randomUUID2(), abort = new AbortController();
+    const job = { result: { requestId, status: "pending" }, abort };
+    this.jobs.set(requestId, job);
+    this.active = requestId;
+    const timer = setTimeout(() => {
+      if (job.result.status === "pending") {
+        job.result = { requestId, status: "failed", message: "\u6587\u4EF6\u5939\u9009\u62E9\u5DF2\u8D85\u65F6\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u3002" };
+        abort.abort();
+      }
+    }, this.timeoutMs);
+    timer.unref();
+    void (async () => {
+      try {
+        const initial = await startingDirectory(initialDirectory);
+        if (abort.signal.aborted) return;
+        const selected = await this.dialog({ purpose, initialDirectory: initial, signal: abort.signal });
+        if (abort.signal.aborted) return;
+        if (selected === null) {
+          job.result = { requestId, status: "cancelled" };
+          return;
+        }
+        if (!path.isAbsolute(selected)) throw new Error("\u7CFB\u7EDF\u8FD4\u56DE\u7684\u6587\u4EF6\u5939\u4F4D\u7F6E\u65E0\u6548\u3002");
+        const directory = await realpath(selected);
+        if (!(await stat(directory)).isDirectory()) throw new Error("\u8BF7\u9009\u62E9\u6587\u4EF6\u5939\uFF0C\u4E0D\u80FD\u9009\u62E9\u6587\u4EF6\u3002");
+        if (!abort.signal.aborted) job.result = { requestId, status: "selected", directory };
+      } catch (error2) {
+        if (!abort.signal.aborted) job.result = { requestId, status: "failed", message: error2 instanceof Error ? error2.message : "\u65E0\u6CD5\u6253\u5F00\u6587\u4EF6\u5939\u9009\u62E9\u7A97\u53E3\uFF0C\u8BF7\u91CD\u8BD5\u3002" };
+      } finally {
+        clearTimeout(timer);
+        if (this.active === requestId) this.active = null;
+      }
+    })();
+    return { ...job.result };
+  }
+  status(requestId) {
+    const job = this.jobs.get(requestId);
+    if (!job) throw new DomainError("DIRECTORY_PICKER_NOT_FOUND", "\u8FD9\u6B21\u6587\u4EF6\u5939\u9009\u62E9\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u3002");
+    return { ...job.result };
+  }
+  cancel(requestId) {
+    const job = this.jobs.get(requestId);
+    if (job?.result.status === "pending") {
+      job.result = { requestId, status: "cancelled" };
+      job.abort.abort();
+    }
+    return this.status(requestId);
+  }
+  dispose() {
+    for (const requestId of this.jobs.keys()) this.cancel(requestId);
+  }
+};
+
+// src/projects.ts
+import { createHash, randomUUID as randomUUID4 } from "node:crypto";
+import { mkdir as mkdir2, readFile as readFile2, readdir as readdir2, realpath as realpath2, rename as rename2, rm, writeFile as writeFile2 } from "node:fs/promises";
+import path3 from "node:path";
+import { homedir as homedir2 } from "node:os";
+
+// src/store.ts
+import { mkdir, open, readFile, readdir, rename, stat as stat2, unlink, writeFile } from "node:fs/promises";
+import path2 from "node:path";
+import { randomUUID as randomUUID3 } from "node:crypto";
+function pageIdPart(pageId) {
+  if (!/^[A-Za-z0-9_-]+$/.test(pageId)) throw new DomainError("INVALID_PAGE_ID", "\u9875\u9762\u6807\u8BC6\u65E0\u6548\u3002");
+  return pageId;
+}
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function processIsAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error2) {
+    return error2.code === "EPERM";
+  }
+}
+var FilePersistence = class {
+  constructor(directory, stateDirectory) {
+    this.directory = directory;
+    this.stateDirectory = stateDirectory || path2.join(directory, ".page-builder-state");
+    this.lockDirectory = path2.join(this.stateDirectory, "locks");
+  }
+  directory;
+  stateDirectory;
+  lockDirectory;
+  file(pageId) {
+    return path2.join(this.directory, `${pageIdPart(pageId)}.json`);
+  }
+  historyFile(pageId, revision) {
+    return path2.join(this.stateDirectory, "history", pageIdPart(pageId), `${revision}.json`);
+  }
+  selectionFile(pageId, revision) {
+    return path2.join(this.stateDirectory, "selection", pageIdPart(pageId), `${revision}.json`);
+  }
+  async readJson(file) {
+    try {
+      return JSON.parse(await readFile(file, "utf8"));
+    } catch (error2) {
+      if (error2.code === "ENOENT") return null;
+      throw error2;
+    }
+  }
+  async saveJson(file, value) {
+    await mkdir(path2.dirname(file), { recursive: true });
+    const temporary = `${file}.${process.pid}.${randomUUID3()}.tmp`;
+    await writeFile(temporary, JSON.stringify(value, null, 2), { encoding: "utf8", mode: 384 });
+    await rename(temporary, file);
+  }
+  async list() {
+    await mkdir(this.directory, { recursive: true });
+    const names = (await readdir(this.directory)).filter((name) => name.endsWith(".json"));
+    const pages = [];
+    for (const name of names) {
+      try {
+        pages.push(validatePage(JSON.parse(await readFile(path2.join(this.directory, name), "utf8")), null));
+      } catch {
+      }
+    }
+    return pages;
+  }
+  async read(pageId) {
+    const value = await this.readJson(this.file(pageId));
+    return value ? validatePage(value, null) : null;
+  }
+  async save(page) {
+    await this.saveJson(this.file(page.pageId), page);
+  }
+  async readHistory(pageId, revision) {
+    return this.readJson(this.historyFile(pageId, revision));
+  }
+  async saveHistory(pageId, history) {
+    await this.saveJson(this.historyFile(pageId, history.headRevision), history);
+  }
+  async readSelection(pageId, revision) {
+    return this.readJson(this.selectionFile(pageId, revision));
+  }
+  async saveSelection(pageId, selection) {
+    await this.saveJson(this.selectionFile(pageId, selection.revision), selection);
+  }
+  async withPageLock(pageId, task) {
+    await mkdir(this.lockDirectory, { recursive: true });
+    const lock = path2.join(this.lockDirectory, `${pageIdPart(pageId)}.lock`);
+    const deadline = Date.now() + 1e4;
+    const token = randomUUID3();
+    let handle2;
+    while (!handle2) {
+      try {
+        handle2 = await open(lock, "wx", 384);
+        await handle2.writeFile(JSON.stringify({ token, pid: process.pid, createdAt: (/* @__PURE__ */ new Date()).toISOString() }));
+      } catch (error2) {
+        if (error2.code !== "EEXIST") throw error2;
+        try {
+          const info = await stat2(lock);
+          const owner = JSON.parse(await readFile(lock, "utf8"));
+          if (Date.now() - info.mtimeMs > 3e4 && !processIsAlive(owner.pid ?? 0)) await unlink(lock);
+        } catch (inspectionError) {
+          if (inspectionError.code !== "ENOENT") throw inspectionError;
+        }
+        if (Date.now() >= deadline) throw new DomainError("PAGE_LOCK_TIMEOUT", `\u9875\u9762 ${pageId} \u6B63\u7531\u53E6\u4E00\u4E2A\u8FDB\u7A0B\u5199\u5165\uFF0C\u8BF7\u91CD\u8BD5\u3002`);
+        await delay(20);
+      }
+    }
+    try {
+      return await task();
+    } finally {
+      await handle2.close().catch(() => void 0);
+      try {
+        const owner = JSON.parse(await readFile(lock, "utf8"));
+        if (owner.token === token) await unlink(lock);
+      } catch (error2) {
+        if (error2.code !== "ENOENT") throw error2;
+      }
+    }
+  }
+};
+function clone2(value) {
+  return structuredClone(value);
+}
+var PageStore = class {
+  constructor(persistence, libraryBinding, libraries2) {
+    this.persistence = persistence;
+    this.libraryBinding = libraryBinding;
+    this.libraries = libraries2;
+  }
+  persistence;
+  libraryBinding;
+  libraries;
+  async load() {
+    const pages = await this.persistence.list();
+    if (this.libraries) {
+      for (const page of pages) if (!page.componentLibrary) {
+        await this.persistence.withPageLock(page.pageId, async () => {
+          const current = await this.current(page.pageId);
+          if (current.componentLibrary) return;
+          const binding = await this.libraries.binding((await this.libraries.resolvePage(current)).snapshotId);
+          await this.persistence.save({ ...current, componentLibrary: binding });
+        });
+      }
+    }
+  }
+  async list() {
+    return (await this.persistence.list()).map((page) => ({ pageId: page.pageId, name: page.name, revision: page.revision, updatedAt: page.updatedAt }));
+  }
+  async get(pageId) {
+    const page = await this.persistence.read(pageId);
+    if (!page) throw new DomainError("PAGE_NOT_FOUND", `\u627E\u4E0D\u5230\u9875\u9762 ${pageId}\u3002`);
+    return clone2(page);
+  }
+  validHistory(current, history) {
+    if (!history || history.headRevision !== current.revision || !Array.isArray(history.past) || !Array.isArray(history.future)) return { headRevision: current.revision, past: [], future: [] };
+    return clone2(history);
+  }
+  validSelection(page, selection) {
+    const nodeId = selection?.revision === page.revision && (!selection.nodeId || findNode(page.root, selection.nodeId)) ? selection.nodeId : null;
+    return { revision: page.revision, nodeId, updatedAt: selection?.updatedAt ?? page.updatedAt };
+  }
+  async current(pageId) {
+    const page = await this.persistence.read(pageId);
+    if (!page) throw new DomainError("PAGE_NOT_FOUND", `\u627E\u4E0D\u5230\u9875\u9762 ${pageId}\u3002`);
+    return page;
+  }
+  async snapshot(pageId) {
+    return this.persistence.withPageLock(pageId, async () => {
+      const page = await this.current(pageId);
+      const selection = this.validSelection(page, await this.persistence.readSelection(pageId, page.revision));
+      return { page: clone2(page), selection: { pageId, nodeId: selection.nodeId, revision: page.revision } };
+    });
+  }
+  async create(name) {
+    const page = createPage(name, this.libraryBinding ? await this.libraryBinding() : void 0);
+    return this.persistence.withPageLock(page.pageId, async () => {
+      if (await this.persistence.read(page.pageId)) throw new DomainError("PAGE_EXISTS", `\u9875\u9762 ${page.pageId} \u5DF2\u5B58\u5728\u3002`);
+      await this.persistence.saveHistory(page.pageId, { headRevision: page.revision, past: [], future: [] });
+      await this.persistence.saveSelection(page.pageId, { revision: page.revision, nodeId: null, updatedAt: page.updatedAt });
+      await this.persistence.save(page);
+      return clone2(page);
+    });
+  }
+  async apply(pageId, expectedRevision, operations) {
+    return this.persistence.withPageLock(pageId, async () => {
+      const current = await this.current(pageId);
+      const next = applyOperations(current, expectedRevision, operations, this.libraries ? await this.libraries.catalogForPage(current) : void 0);
+      await this.libraries?.validatePage(next);
+      const history = this.validHistory(current, await this.persistence.readHistory(pageId, current.revision));
+      history.past.push(clone2(current));
+      if (history.past.length > 100) history.past.shift();
+      history.future = [];
+      history.headRevision = next.revision;
+      const priorSelection = this.validSelection(current, await this.persistence.readSelection(pageId, current.revision));
+      const nextSelection = { revision: next.revision, nodeId: priorSelection.nodeId && findNode(next.root, priorSelection.nodeId) ? priorSelection.nodeId : null, updatedAt: next.updatedAt };
+      await this.persistence.saveHistory(pageId, history);
+      await this.persistence.saveSelection(pageId, nextSelection);
+      await this.persistence.save(next);
+      return clone2(next);
+    });
+  }
+  async undo(pageId, expectedRevision) {
+    return this.restore(pageId, expectedRevision, "undo");
+  }
+  async redo(pageId, expectedRevision) {
+    return this.restore(pageId, expectedRevision, "redo");
+  }
+  async restore(pageId, expectedRevision, direction) {
+    return this.persistence.withPageLock(pageId, async () => {
+      const current = await this.current(pageId);
+      if (current.revision !== expectedRevision) throw new DomainError("REVISION_CONFLICT", `\u9875\u9762\u5DF2\u66F4\u65B0\u5230 revision ${current.revision}\u3002`, { currentRevision: current.revision });
+      const history = this.validHistory(current, await this.persistence.readHistory(pageId, current.revision));
+      const source = direction === "undo" ? history.past : history.future;
+      const target = source.pop();
+      if (!target) throw new DomainError(direction === "undo" ? "NOTHING_TO_UNDO" : "NOTHING_TO_REDO", direction === "undo" ? "\u6CA1\u6709\u53EF\u64A4\u9500\u7684\u64CD\u4F5C\u3002" : "\u6CA1\u6709\u53EF\u91CD\u505A\u7684\u64CD\u4F5C\u3002");
+      const restored = { ...clone2(target), componentLibrary: target.componentLibrary || current.componentLibrary, revision: current.revision + 1, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+      await this.libraries?.validatePage(restored);
+      (direction === "undo" ? history.future : history.past).push(clone2(current));
+      history.headRevision = restored.revision;
+      const priorSelection = this.validSelection(current, await this.persistence.readSelection(pageId, current.revision));
+      const nextSelection = { revision: restored.revision, nodeId: priorSelection.nodeId && findNode(restored.root, priorSelection.nodeId) ? priorSelection.nodeId : null, updatedAt: restored.updatedAt };
+      await this.persistence.saveHistory(pageId, history);
+      await this.persistence.saveSelection(pageId, nextSelection);
+      await this.persistence.save(restored);
+      return clone2(restored);
+    });
+  }
+  async select(pageId, nodeId, expectedRevision) {
+    return this.persistence.withPageLock(pageId, async () => {
+      const page = await this.current(pageId);
+      if (expectedRevision !== void 0 && page.revision !== expectedRevision) throw new DomainError("REVISION_CONFLICT", `\u9875\u9762\u5DF2\u66F4\u65B0\u5230 revision ${page.revision}\u3002`, { currentRevision: page.revision });
+      if (nodeId && !findNode(page.root, nodeId)) throw new DomainError("NODE_NOT_FOUND", `\u627E\u4E0D\u5230\u8282\u70B9 ${nodeId}\u3002`);
+      await this.persistence.saveSelection(pageId, { revision: page.revision, nodeId, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+      return { pageId, nodeId, revision: page.revision };
+    });
+  }
+  async selection(pageId) {
+    return (await this.snapshot(pageId)).selection;
+  }
+  async setLibrary(pageId, expectedRevision, binding) {
+    return this.persistence.withPageLock(pageId, async () => {
+      const current = await this.current(pageId);
+      if (current.revision !== expectedRevision) throw new DomainError("REVISION_CONFLICT", `\u9875\u9762\u5DF2\u66F4\u65B0\u5230 revision ${current.revision}\u3002`, { currentRevision: current.revision });
+      const next = { ...clone2(current), componentLibraryVersion: binding.sourceVersion || binding.digest, componentLibrary: clone2(binding), revision: current.revision + 1, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+      validatePage(next, this.libraries ? await this.libraries.catalogForPage(next) : void 0);
+      await this.libraries?.validatePage(next);
+      const history = this.validHistory(current, await this.persistence.readHistory(pageId, current.revision));
+      history.past.push(clone2(current));
+      if (history.past.length > 100) history.past.shift();
+      history.future = [];
+      history.headRevision = next.revision;
+      const priorSelection = this.validSelection(current, await this.persistence.readSelection(pageId, current.revision));
+      const nextSelection = { revision: next.revision, nodeId: priorSelection.nodeId, updatedAt: next.updatedAt };
+      await this.persistence.saveHistory(pageId, history);
+      await this.persistence.saveSelection(pageId, nextSelection);
+      await this.persistence.save(next);
+      return clone2(next);
+    });
+  }
+  async import(input, name) {
+    const raw = validatePage(clone2(input), this.libraries ? null : void 0);
+    const candidate = validatePage(raw, this.libraries ? await this.libraries.catalogForPage(raw) : void 0);
+    await this.libraries?.validatePage(candidate);
+    const page = validatePage({ ...candidate, pageId: createPage().pageId, name: name ?? `${candidate.name.slice(0, 76)}\uFF08\u5BFC\u5165\uFF09`, revision: 0, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }, null);
+    return this.persistence.withPageLock(page.pageId, async () => {
+      await this.persistence.saveHistory(page.pageId, { headRevision: page.revision, past: [], future: [] });
+      await this.persistence.saveSelection(page.pageId, { revision: page.revision, nodeId: null, updatedAt: page.updatedAt });
+      await this.persistence.save(page);
+      return clone2(page);
+    });
+  }
+};
+
+// src/projects.ts
+var MANIFEST = "page-builder.project.json";
+async function json(file) {
+  return JSON.parse(await readFile2(file, "utf8"));
+}
+async function atomic(file, value) {
+  await mkdir2(path3.dirname(file), { recursive: true });
+  const temporary = `${file}.${randomUUID4()}.tmp`;
+  try {
+    await writeFile2(temporary, JSON.stringify(value, null, 2), { mode: 384 });
+    await rename2(temporary, file);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+}
+function localPath(value) {
+  const expanded = value?.startsWith("~/") ? path3.join(homedir2(), value.slice(2)) : value;
+  if (!expanded || !path3.isAbsolute(expanded)) throw new DomainError("INVALID_PROJECT_PATH", "\u8BF7\u8F93\u5165\u5B8C\u6574\u7684\u672C\u5730\u6587\u4EF6\u5939\u8DEF\u5F84\u3002");
+  return path3.resolve(expanded);
+}
+async function readProject(directory) {
+  let value;
+  try {
+    value = await json(path3.join(directory, MANIFEST));
+  } catch {
+    throw new DomainError("INVALID_PROJECT", "\u8FD9\u4E2A\u6587\u4EF6\u5939\u6CA1\u6709\u6709\u6548\u7684\u642D\u5EFA\u5668\u9879\u76EE\u6587\u4EF6\uFF0C\u8BF7\u9009\u62E9\u9879\u76EE\u6839\u76EE\u5F55\u3002");
+  }
+  if (value.schemaVersion !== 1 || !/^project-[\w-]+$/.test(value.projectId) || typeof value.name !== "string" || !value.name.trim() || value.name.length > 80 || value.defaultCanvasId !== "main" || !/^b2b-[a-f0-9]{16}$/.test(value.componentLibrary?.snapshotId)) throw new DomainError("INVALID_PROJECT", "\u9879\u76EE\u683C\u5F0F\u65E0\u6548\u6216\u7248\u672C\u4E0D\u53D7\u652F\u6301\u3002");
+  validateSettings({ name: value.name, description: value.description ?? "", starred: value.starred ?? false, coverImage: value.coverImage ?? null });
+  if (value.revision !== void 0 && (!Number.isSafeInteger(value.revision) || value.revision < 0)) throw new DomainError("INVALID_PROJECT", "\u9879\u76EE\u7248\u672C\u65E0\u6548\u3002");
+  return value;
+}
+function validateSettings(value) {
+  if (typeof value.name !== "string" || !value.name.trim() || value.name.trim().length > 80 || /[\x00-\x1f]/.test(value.name)) throw new DomainError("INVALID_PROJECT_NAME", "\u9879\u76EE\u540D\u79F0\u8BF7\u586B\u5199 1\u201380 \u4E2A\u5B57\u7B26\u3002");
+  if (typeof value.description !== "string" || value.description.length > 240 || typeof value.starred !== "boolean") throw new DomainError("INVALID_PROJECT_SETTINGS", "\u9879\u76EE\u8BF4\u660E\u6700\u591A 240 \u4E2A\u5B57\u7B26\uFF0C\u6536\u85CF\u72B6\u6001\u5FC5\u987B\u4E3A\u5E03\u5C14\u503C\u3002");
+  if (value.coverImage !== null && (typeof value.coverImage !== "string" || value.coverImage.length > 14e5 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value.coverImage))) throw new DomainError("INVALID_PROJECT_COVER", "\u5C01\u9762\u8BF7\u4F7F\u7528 1 MB \u4EE5\u5185\u7684 PNG\u3001JPEG \u6216 WebP \u56FE\u7247\u3002");
+}
+async function validateLocalDirectories(directory) {
+  for (const relative of [".page-builder", ".page-builder/pages", ".page-builder/libraries", ".page-builder/local"]) {
+    try {
+      const resolved = await realpath2(path3.join(directory, relative));
+      if (!resolved.startsWith(`${directory}${path3.sep}`)) throw new DomainError("INVALID_PROJECT_PATH", "\u9879\u76EE\u6570\u636E\u76EE\u5F55\u4E0D\u80FD\u6307\u5411\u9879\u76EE\u5916\u7684\u6587\u4EF6\u5939\u3002");
+    } catch (error2) {
+      if (error2.code !== "ENOENT") throw error2;
+    }
+  }
+}
+var ProjectPersistence = class extends FilePersistence {
+  constructor(projectDirectory, libraries2) {
+    super(path3.join(projectDirectory, ".page-builder/pages"), path3.join(projectDirectory, ".page-builder/local"));
+    this.projectDirectory = projectDirectory;
+    this.libraries = libraries2;
+  }
+  projectDirectory;
+  libraries;
+  async save(page) {
+    const binding = page.componentLibrary;
+    if (!binding) throw new DomainError("PROJECT_LIBRARY_REQUIRED", "\u9879\u76EE\u9875\u9762\u5FC5\u987B\u7ED1\u5B9A\u7EC4\u4EF6\u5E93\u7248\u672C\u3002");
+    await this.libraries.exportSnapshot(binding.snapshotId, path3.join(this.projectDirectory, ".page-builder/libraries"));
+    await super.save(page);
+  }
+};
+var ProjectManager = class {
+  constructor(registryDirectory, legacy, libraries2, defaultDirectory = path3.join(homedir2(), "Documents", "Page Builder Projects")) {
+    this.registryDirectory = registryDirectory;
+    this.legacy = legacy;
+    this.libraries = libraries2;
+    this.defaultDirectory = defaultDirectory;
+  }
+  registryDirectory;
+  legacy;
+  libraries;
+  defaultDirectory;
+  entry(id) {
+    if (!/^workspace-[a-f0-9]{32}$/.test(id)) throw new DomainError("INVALID_WORKSPACE", "\u9879\u76EE\u5DE5\u4F5C\u533A\u6807\u8BC6\u65E0\u6548\u3002");
+    return path3.join(this.registryDirectory, `${id}.json`);
+  }
+  makeStore(workspace) {
+    return new PageStore(new ProjectPersistence(workspace.directory, this.libraries), () => this.libraries.binding(workspace.componentLibrary.snapshotId), this.libraries);
+  }
+  async resolve(workspaceId) {
+    let entry;
+    try {
+      entry = await json(this.entry(workspaceId));
+    } catch (error2) {
+      if (error2 instanceof DomainError) throw error2;
+      throw new DomainError("WORKSPACE_NOT_FOUND", "\u9879\u76EE\u672A\u6253\u5F00\u6216\u5DF2\u7ECF\u79FB\u52A8\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u9879\u76EE\u6587\u4EF6\u5939\u3002");
+    }
+    const directory = await realpath2(localPath(entry.directory)).catch(() => {
+      throw new DomainError("WORKSPACE_NOT_FOUND", "\u9879\u76EE\u6587\u4EF6\u5939\u5DF2\u79FB\u52A8\u6216\u4E0D\u53EF\u8BBF\u95EE\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u3002");
+    });
+    const project = await readProject(directory);
+    await validateLocalDirectories(directory);
+    if (project.projectId !== entry.projectId || this.id(directory) !== workspaceId) throw new DomainError("WORKSPACE_CHANGED", "\u9879\u76EE\u76EE\u5F55\u5185\u5BB9\u5DF2\u66FF\u6362\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u9879\u76EE\u3002");
+    return { ...project, workspaceId, directory };
+  }
+  async store(workspaceId) {
+    return workspaceId ? this.makeStore(await this.resolve(workspaceId)) : this.legacy;
+  }
+  id(directory) {
+    return `workspace-${createHash("sha256").update(directory).digest("hex").slice(0, 32)}`;
+  }
+  async list() {
+    await mkdir2(this.registryDirectory, { recursive: true });
+    const projects2 = [];
+    for (const file of await readdir2(this.registryDirectory)) if (/^workspace-[a-f0-9]{32}\.json$/.test(file)) {
+      try {
+        const entry = await json(path3.join(this.registryDirectory, file));
+        const project = await this.resolve(file.slice(0, -5));
+        const pages = await this.makeStore(project).list();
+        projects2.push({ ...project, pageCount: pages.length, lastOpenedAt: entry.lastOpenedAt, updatedAt: [project.updatedAt || project.createdAt, ...pages.map((page) => page.updatedAt)].sort().at(-1), available: true });
+      } catch {
+        try {
+          const entry = await json(path3.join(this.registryDirectory, file));
+          if (!/^project-[\w-]+$/.test(entry.projectId) || typeof entry.directory !== "string" || typeof entry.lastOpenedAt !== "string") continue;
+          projects2.push({ workspaceId: file.slice(0, -5), projectId: entry.projectId, directory: entry.directory, name: entry.name || path3.basename(entry.directory), description: "\u6587\u4EF6\u5939\u5DF2\u79FB\u52A8\u6216\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\uFF0C\u8BF7\u5728\u9879\u76EE\u8BBE\u7F6E\u4E2D\u91CD\u65B0\u5173\u8054\u8DEF\u5F84\u3002", lastOpenedAt: entry.lastOpenedAt, updatedAt: entry.lastOpenedAt, available: false, pageCount: null });
+        } catch {
+        }
+      }
+    }
+    return { projects: projects2.sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt)), defaultDirectory: this.defaultDirectory };
+  }
+  async update(workspaceId, expectedRevision, settings) {
+    validateSettings(settings);
+    const workspace = await this.resolve(workspaceId);
+    const persistence = new FilePersistence(path3.join(workspace.directory, ".page-builder/pages"), path3.join(workspace.directory, ".page-builder/local"));
+    return persistence.withPageLock("project-settings", async () => {
+      const latest = await this.resolve(workspaceId);
+      if ((latest.revision ?? 0) !== expectedRevision) throw new DomainError("PROJECT_REVISION_CONFLICT", "\u9879\u76EE\u8BBE\u7F6E\u5DF2\u5728\u5176\u4ED6\u7A97\u53E3\u66F4\u65B0\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u8BBE\u7F6E\u540E\u518D\u4FDD\u5B58\u3002");
+      const { workspaceId: _id, directory: _directory, ...manifest } = latest;
+      const next = { ...manifest, description: settings.description, starred: settings.starred, coverImage: settings.coverImage, name: settings.name.trim(), revision: (latest.revision ?? 0) + 1, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+      await atomic(path3.join(latest.directory, MANIFEST), next);
+      return { project: { ...next, workspaceId, directory: latest.directory } };
+    });
+  }
+  async relink(workspaceId, directory) {
+    const entry = await json(this.entry(workspaceId));
+    if (!/^project-[\w-]+$/.test(entry.projectId)) throw new DomainError("INVALID_PROJECT", "\u767B\u8BB0\u7684\u9879\u76EE\u8EAB\u4EFD\u65E0\u6548\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u9879\u76EE\u3002");
+    const opened = await this.open(directory, entry.projectId);
+    if (opened.project.workspaceId !== workspaceId) {
+      const missing = await realpath2(localPath(entry.directory)).then(() => false, (error2) => {
+        if (error2.code === "ENOENT") return true;
+        throw error2;
+      });
+      if (missing) await rm(this.entry(workspaceId), { force: true });
+    }
+    return opened;
+  }
+  async open(directoryInput, expectedProjectId) {
+    const directory = await realpath2(localPath(directoryInput)).catch(() => {
+      throw new DomainError("PROJECT_NOT_FOUND", "\u627E\u4E0D\u5230\u8FD9\u4E2A\u672C\u5730\u6587\u4EF6\u5939\u3002");
+    });
+    const project = await readProject(directory);
+    if (expectedProjectId && project.projectId !== expectedProjectId) throw new DomainError("PROJECT_ID_MISMATCH", "\u8FD9\u4E2A\u8DEF\u5F84\u5C5E\u4E8E\u53E6\u4E00\u4E2A\u9879\u76EE\uFF0C\u539F\u9879\u76EE\u5173\u8054\u672A\u6539\u53D8\u3002\u8BF7\u4F7F\u7528\u6253\u5F00\u672C\u5730\u9879\u76EE\u3002");
+    await validateLocalDirectories(directory);
+    const pagesDirectory = path3.join(directory, ".page-builder/pages");
+    const files = await readdir2(pagesDirectory).catch(() => {
+      throw new DomainError("INVALID_PROJECT", "\u9879\u76EE\u7F3A\u5C11\u9875\u9762\u76EE\u5F55\u3002");
+    });
+    const bindings = /* @__PURE__ */ new Map([[project.componentLibrary.snapshotId, project.componentLibrary]]);
+    for (const file of files.filter((file2) => file2.endsWith(".json"))) {
+      const page = validatePage(await json(path3.join(pagesDirectory, file)), null);
+      if (file !== `${page.pageId}.json` || !page.componentLibrary) throw new DomainError("INVALID_PROJECT", "\u9879\u76EE\u9875\u9762\u6587\u4EF6\u540D\u6216\u7EC4\u4EF6\u5E93\u7ED1\u5B9A\u65E0\u6548\u3002");
+      bindings.set(page.componentLibrary.snapshotId, page.componentLibrary);
+    }
+    for (const binding of bindings.values()) await this.libraries.importSnapshot(path3.join(directory, ".page-builder/libraries", binding.snapshotId), binding);
+    const workspace = { ...project, directory, workspaceId: this.id(directory) };
+    await atomic(this.entry(workspace.workspaceId), { directory, projectId: project.projectId, name: project.name, lastOpenedAt: (/* @__PURE__ */ new Date()).toISOString() });
+    return { project: workspace, pages: await this.makeStore(workspace).list() };
+  }
+  async create(nameInput, parentInput) {
+    const name = nameInput?.trim();
+    if (!name || name.length > 80 || /[\\/:*?"<>|\x00-\x1f]/.test(name) || name === "." || name === ".." || name.endsWith(".")) throw new DomainError("INVALID_PROJECT_NAME", "\u9879\u76EE\u540D\u79F0\u8BF7\u586B\u5199 1\u201380 \u4E2A\u5B57\u7B26\uFF0C\u4E0D\u80FD\u5305\u542B\u8DEF\u5F84\u5206\u9694\u7B26\u6216\u6587\u4EF6\u540D\u7279\u6B8A\u5B57\u7B26\u3002");
+    const parent = localPath(parentInput || this.defaultDirectory);
+    await mkdir2(parent, { recursive: true });
+    const canonicalParent = await realpath2(parent), directory = path3.join(canonicalParent, name);
+    try {
+      await mkdir2(directory);
+    } catch (error2) {
+      if (error2.code === "EEXIST") throw new DomainError("PROJECT_EXISTS", "\u540C\u540D\u6587\u4EF6\u5939\u5DF2\u5B58\u5728\uFF0C\u8BF7\u66F4\u6362\u540D\u79F0\uFF1B\u5DF2\u6709\u9879\u76EE\u8BF7\u4F7F\u7528\u6253\u5F00\u9879\u76EE\u3002");
+      throw error2;
+    }
+    let published = false;
+    try {
+      const project = { schemaVersion: 1, projectId: `project-${randomUUID4()}`, name, createdAt: (/* @__PURE__ */ new Date()).toISOString(), defaultCanvasId: "main", componentLibrary: await this.libraries.binding() };
+      const workspace = { ...project, directory, workspaceId: this.id(directory) };
+      const page = await this.makeStore(workspace).create("\u9996\u9875");
+      await atomic(path3.join(directory, ".page-builder/canvases/main.json"), { schemaVersion: 1, canvasId: "main", name: "\u9879\u76EE\u753B\u5E03", pageSource: "../pages", placements: {} });
+      await writeFile2(path3.join(directory, ".page-builder/.gitignore"), "local/\n*.tmp\n");
+      await atomic(path3.join(directory, MANIFEST), project);
+      published = true;
+      await atomic(this.entry(workspace.workspaceId), { directory, projectId: project.projectId, name: project.name, lastOpenedAt: (/* @__PURE__ */ new Date()).toISOString() });
+      return { project: workspace, page, pages: await this.makeStore(workspace).list() };
+    } catch (error2) {
+      if (!published) await rm(directory, { recursive: true, force: true });
+      throw error2;
+    }
+  }
+};
+
 // src/library-update.ts
 async function refreshLibrary(libraries2, store2, input) {
   const checked = await libraries2.check(input.sourcePath);
@@ -7644,10 +8234,10 @@ async function refreshLibrary(libraries2, store2, input) {
 }
 
 // src/server.ts
-import { homedir } from "node:os";
-import path9 from "node:path";
+import { homedir as homedir3 } from "node:os";
+import path11 from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFile as readFile9 } from "node:fs/promises";
+import { readFile as readFile10 } from "node:fs/promises";
 
 // ../../../../../Users/wangkewei/Desktop/page-builder-marketplace/plugins/page-builder/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -7793,10 +8383,10 @@ var util;
       return obj[e];
     });
   };
-  util2.objectKeys = typeof Object.keys === "function" ? (obj) => Object.keys(obj) : (object3) => {
+  util2.objectKeys = typeof Object.keys === "function" ? (obj) => Object.keys(obj) : (object4) => {
     const keys = [];
-    for (const key in object3) {
-      if (Object.prototype.hasOwnProperty.call(object3, key)) {
+    for (const key in object4) {
+      if (Object.prototype.hasOwnProperty.call(object4, key)) {
         keys.push(key);
       }
     }
@@ -7915,8 +8505,8 @@ var ZodIssueCode = util.arrayToEnum([
   "not_finite"
 ]);
 var quotelessJson = (obj) => {
-  const json2 = JSON.stringify(obj, null, 2);
-  return json2.replace(/"([^"]+)":/g, "$1:");
+  const json3 = JSON.stringify(obj, null, 2);
+  return json3.replace(/"([^"]+)":/g, "$1:");
 };
 var ZodError = class _ZodError extends Error {
   get errors() {
@@ -8127,8 +8717,8 @@ function getErrorMap() {
 
 // ../../../../../Users/wangkewei/Desktop/page-builder-marketplace/plugins/page-builder/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path10, errorMaps, issueData } = params;
-  const fullPath = [...path10, ...issueData.path || []];
+  const { data, path: path12, errorMaps, issueData } = params;
+  const fullPath = [...path12, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -8244,11 +8834,11 @@ var errorUtil;
 
 // ../../../../../Users/wangkewei/Desktop/page-builder-marketplace/plugins/page-builder/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path10, key) {
+  constructor(parent, value, path12, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path10;
+    this._path = path12;
     this._key = key;
   }
   get path() {
@@ -11767,7 +12357,7 @@ __export(util_exports, {
   captureStackTrace: () => captureStackTrace,
   cleanEnum: () => cleanEnum,
   cleanRegex: () => cleanRegex,
-  clone: () => clone2,
+  clone: () => clone3,
   createTransparentProxy: () => createTransparentProxy,
   defineLazy: () => defineLazy,
   esc: () => esc,
@@ -11857,19 +12447,19 @@ function floatSafeRemainder2(val, step) {
   const stepInt = Number.parseInt(step.toFixed(decCount).replace(".", ""));
   return valInt % stepInt / 10 ** decCount;
 }
-function defineLazy(object3, key, getter) {
+function defineLazy(object4, key, getter) {
   const set = false;
-  Object.defineProperty(object3, key, {
+  Object.defineProperty(object4, key, {
     get() {
       if (!set) {
         const value = getter();
-        object3[key] = value;
+        object4[key] = value;
         return value;
       }
       throw new Error("cached value already set");
     },
     set(v) {
-      Object.defineProperty(object3, key, {
+      Object.defineProperty(object4, key, {
         value: v
         // configurable: true,
       });
@@ -11877,18 +12467,18 @@ function defineLazy(object3, key, getter) {
     configurable: true
   });
 }
-function assignProp(target, prop, value) {
-  Object.defineProperty(target, prop, {
+function assignProp(target, prop2, value) {
+  Object.defineProperty(target, prop2, {
     value,
     writable: true,
     enumerable: true,
     configurable: true
   });
 }
-function getElementAtPath(obj, path10) {
-  if (!path10)
+function getElementAtPath(obj, path12) {
+  if (!path12)
     return obj;
-  return path10.reduce((acc, key) => acc?.[key], obj);
+  return path12.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12001,7 +12591,7 @@ var primitiveTypes = /* @__PURE__ */ new Set(["string", "number", "bigint", "boo
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-function clone2(inst, def, params) {
+function clone3(inst, def, params) {
   const cl = new inst._zod.constr(def ?? inst._zod.def);
   if (!def || params?.parent)
     cl._zod.parent = inst;
@@ -12026,33 +12616,33 @@ function normalizeParams(_params) {
 function createTransparentProxy(getter) {
   let target;
   return new Proxy({}, {
-    get(_, prop, receiver) {
+    get(_, prop2, receiver) {
       target ?? (target = getter());
-      return Reflect.get(target, prop, receiver);
+      return Reflect.get(target, prop2, receiver);
     },
-    set(_, prop, value, receiver) {
+    set(_, prop2, value, receiver) {
       target ?? (target = getter());
-      return Reflect.set(target, prop, value, receiver);
+      return Reflect.set(target, prop2, value, receiver);
     },
-    has(_, prop) {
+    has(_, prop2) {
       target ?? (target = getter());
-      return Reflect.has(target, prop);
+      return Reflect.has(target, prop2);
     },
-    deleteProperty(_, prop) {
+    deleteProperty(_, prop2) {
       target ?? (target = getter());
-      return Reflect.deleteProperty(target, prop);
+      return Reflect.deleteProperty(target, prop2);
     },
     ownKeys(_) {
       target ?? (target = getter());
       return Reflect.ownKeys(target);
     },
-    getOwnPropertyDescriptor(_, prop) {
+    getOwnPropertyDescriptor(_, prop2) {
       target ?? (target = getter());
-      return Reflect.getOwnPropertyDescriptor(target, prop);
+      return Reflect.getOwnPropertyDescriptor(target, prop2);
     },
-    defineProperty(_, prop, descriptor) {
+    defineProperty(_, prop2, descriptor) {
       target ?? (target = getter());
-      return Reflect.defineProperty(target, prop, descriptor);
+      return Reflect.defineProperty(target, prop2, descriptor);
     }
   });
 }
@@ -12090,7 +12680,7 @@ function pick(schema, mask) {
       continue;
     newShape[key] = currDef.shape[key];
   }
-  return clone2(schema, {
+  return clone3(schema, {
     ...schema._zod.def,
     shape: newShape,
     checks: []
@@ -12107,7 +12697,7 @@ function omit(schema, mask) {
       continue;
     delete newShape[key];
   }
-  return clone2(schema, {
+  return clone3(schema, {
     ...schema._zod.def,
     shape: newShape,
     checks: []
@@ -12127,10 +12717,10 @@ function extend(schema, shape) {
     checks: []
     // delete existing checks
   };
-  return clone2(schema, def);
+  return clone3(schema, def);
 }
 function merge(a, b) {
-  return clone2(a, {
+  return clone3(a, {
     ...a._zod.def,
     get shape() {
       const _shape = { ...a._zod.def.shape, ...b._zod.def.shape };
@@ -12165,7 +12755,7 @@ function partial(Class2, schema, mask) {
       }) : oldShape[key];
     }
   }
-  return clone2(schema, {
+  return clone3(schema, {
     ...schema._zod.def,
     shape,
     checks: []
@@ -12194,7 +12784,7 @@ function required(Class2, schema, mask) {
       });
     }
   }
-  return clone2(schema, {
+  return clone3(schema, {
     ...schema._zod.def,
     shape,
     // optional: [],
@@ -12208,11 +12798,11 @@ function aborted(x2, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path10, issues) {
+function prefixIssues(path12, issues) {
   return issues.map((iss) => {
     var _a2;
     (_a2 = iss).path ?? (_a2.path = []);
-    iss.path.unshift(path10);
+    iss.path.unshift(path12);
     return iss;
   });
 }
@@ -13434,10 +14024,10 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     const shape = def.shape;
     const propValues = {};
     for (const key in shape) {
-      const field = shape[key]._zod;
-      if (field.values) {
+      const field2 = shape[key]._zod;
+      if (field2.values) {
         propValues[key] ?? (propValues[key] = /* @__PURE__ */ new Set());
-        for (const v of field.values)
+        for (const v of field2.values)
           propValues[key].add(v);
       }
     }
@@ -14778,24 +15368,24 @@ var JSONSchemaGenerator = class {
         const _json = result.schema;
         switch (def.type) {
           case "string": {
-            const json2 = _json;
-            json2.type = "string";
+            const json3 = _json;
+            json3.type = "string";
             const { minimum, maximum, format, patterns, contentEncoding } = schema._zod.bag;
             if (typeof minimum === "number")
-              json2.minLength = minimum;
+              json3.minLength = minimum;
             if (typeof maximum === "number")
-              json2.maxLength = maximum;
+              json3.maxLength = maximum;
             if (format) {
-              json2.format = formatMap[format] ?? format;
-              if (json2.format === "")
-                delete json2.format;
+              json3.format = formatMap[format] ?? format;
+              if (json3.format === "")
+                delete json3.format;
             }
             if (contentEncoding)
-              json2.contentEncoding = contentEncoding;
+              json3.contentEncoding = contentEncoding;
             if (patterns && patterns.size > 0) {
               const regexes = [...patterns];
               if (regexes.length === 1)
-                json2.pattern = regexes[0].source;
+                json3.pattern = regexes[0].source;
               else if (regexes.length > 1) {
                 result.schema.allOf = [
                   ...regexes.map((regex) => ({
@@ -14808,41 +15398,41 @@ var JSONSchemaGenerator = class {
             break;
           }
           case "number": {
-            const json2 = _json;
+            const json3 = _json;
             const { minimum, maximum, format, multipleOf, exclusiveMaximum, exclusiveMinimum } = schema._zod.bag;
             if (typeof format === "string" && format.includes("int"))
-              json2.type = "integer";
+              json3.type = "integer";
             else
-              json2.type = "number";
+              json3.type = "number";
             if (typeof exclusiveMinimum === "number")
-              json2.exclusiveMinimum = exclusiveMinimum;
+              json3.exclusiveMinimum = exclusiveMinimum;
             if (typeof minimum === "number") {
-              json2.minimum = minimum;
+              json3.minimum = minimum;
               if (typeof exclusiveMinimum === "number") {
                 if (exclusiveMinimum >= minimum)
-                  delete json2.minimum;
+                  delete json3.minimum;
                 else
-                  delete json2.exclusiveMinimum;
+                  delete json3.exclusiveMinimum;
               }
             }
             if (typeof exclusiveMaximum === "number")
-              json2.exclusiveMaximum = exclusiveMaximum;
+              json3.exclusiveMaximum = exclusiveMaximum;
             if (typeof maximum === "number") {
-              json2.maximum = maximum;
+              json3.maximum = maximum;
               if (typeof exclusiveMaximum === "number") {
                 if (exclusiveMaximum <= maximum)
-                  delete json2.maximum;
+                  delete json3.maximum;
                 else
-                  delete json2.exclusiveMaximum;
+                  delete json3.exclusiveMaximum;
               }
             }
             if (typeof multipleOf === "number")
-              json2.multipleOf = multipleOf;
+              json3.multipleOf = multipleOf;
             break;
           }
           case "boolean": {
-            const json2 = _json;
-            json2.type = "boolean";
+            const json3 = _json;
+            json3.type = "boolean";
             break;
           }
           case "bigint": {
@@ -14890,23 +15480,23 @@ var JSONSchemaGenerator = class {
             break;
           }
           case "array": {
-            const json2 = _json;
+            const json3 = _json;
             const { minimum, maximum } = schema._zod.bag;
             if (typeof minimum === "number")
-              json2.minItems = minimum;
+              json3.minItems = minimum;
             if (typeof maximum === "number")
-              json2.maxItems = maximum;
-            json2.type = "array";
-            json2.items = this.process(def.element, { ...params, path: [...params.path, "items"] });
+              json3.maxItems = maximum;
+            json3.type = "array";
+            json3.items = this.process(def.element, { ...params, path: [...params.path, "items"] });
             break;
           }
           case "object": {
-            const json2 = _json;
-            json2.type = "object";
-            json2.properties = {};
+            const json3 = _json;
+            json3.type = "object";
+            json3.properties = {};
             const shape = def.shape;
             for (const key in shape) {
-              json2.properties[key] = this.process(shape[key], {
+              json3.properties[key] = this.process(shape[key], {
                 ...params,
                 path: [...params.path, "properties", key]
               });
@@ -14921,15 +15511,15 @@ var JSONSchemaGenerator = class {
               }
             }));
             if (requiredKeys.size > 0) {
-              json2.required = Array.from(requiredKeys);
+              json3.required = Array.from(requiredKeys);
             }
             if (def.catchall?._zod.def.type === "never") {
-              json2.additionalProperties = false;
+              json3.additionalProperties = false;
             } else if (!def.catchall) {
               if (this.io === "output")
-                json2.additionalProperties = false;
+                json3.additionalProperties = false;
             } else if (def.catchall) {
-              json2.additionalProperties = this.process(def.catchall, {
+              json3.additionalProperties = this.process(def.catchall, {
                 ...params,
                 path: [...params.path, "additionalProperties"]
               });
@@ -14937,15 +15527,15 @@ var JSONSchemaGenerator = class {
             break;
           }
           case "union": {
-            const json2 = _json;
-            json2.anyOf = def.options.map((x2, i2) => this.process(x2, {
+            const json3 = _json;
+            json3.anyOf = def.options.map((x2, i2) => this.process(x2, {
               ...params,
               path: [...params.path, "anyOf", i2]
             }));
             break;
           }
           case "intersection": {
-            const json2 = _json;
+            const json3 = _json;
             const a = this.process(def.left, {
               ...params,
               path: [...params.path, "allOf", 0]
@@ -14959,17 +15549,17 @@ var JSONSchemaGenerator = class {
               ...isSimpleIntersection(a) ? a.allOf : [a],
               ...isSimpleIntersection(b) ? b.allOf : [b]
             ];
-            json2.allOf = allOf;
+            json3.allOf = allOf;
             break;
           }
           case "tuple": {
-            const json2 = _json;
-            json2.type = "array";
+            const json3 = _json;
+            json3.type = "array";
             const prefixItems = def.items.map((x2, i2) => this.process(x2, { ...params, path: [...params.path, "prefixItems", i2] }));
             if (this.target === "draft-2020-12") {
-              json2.prefixItems = prefixItems;
+              json3.prefixItems = prefixItems;
             } else {
-              json2.items = prefixItems;
+              json3.items = prefixItems;
             }
             if (def.rest) {
               const rest = this.process(def.rest, {
@@ -14977,29 +15567,29 @@ var JSONSchemaGenerator = class {
                 path: [...params.path, "items"]
               });
               if (this.target === "draft-2020-12") {
-                json2.items = rest;
+                json3.items = rest;
               } else {
-                json2.additionalItems = rest;
+                json3.additionalItems = rest;
               }
             }
             if (def.rest) {
-              json2.items = this.process(def.rest, {
+              json3.items = this.process(def.rest, {
                 ...params,
                 path: [...params.path, "items"]
               });
             }
             const { minimum, maximum } = schema._zod.bag;
             if (typeof minimum === "number")
-              json2.minItems = minimum;
+              json3.minItems = minimum;
             if (typeof maximum === "number")
-              json2.maxItems = maximum;
+              json3.maxItems = maximum;
             break;
           }
           case "record": {
-            const json2 = _json;
-            json2.type = "object";
-            json2.propertyNames = this.process(def.keyType, { ...params, path: [...params.path, "propertyNames"] });
-            json2.additionalProperties = this.process(def.valueType, {
+            const json3 = _json;
+            json3.type = "object";
+            json3.propertyNames = this.process(def.keyType, { ...params, path: [...params.path, "propertyNames"] });
+            json3.additionalProperties = this.process(def.valueType, {
               ...params,
               path: [...params.path, "additionalProperties"]
             });
@@ -15018,17 +15608,17 @@ var JSONSchemaGenerator = class {
             break;
           }
           case "enum": {
-            const json2 = _json;
+            const json3 = _json;
             const values = getEnumValues(def.entries);
             if (values.every((v) => typeof v === "number"))
-              json2.type = "number";
+              json3.type = "number";
             if (values.every((v) => typeof v === "string"))
-              json2.type = "string";
-            json2.enum = values;
+              json3.type = "string";
+            json3.enum = values;
             break;
           }
           case "literal": {
-            const json2 = _json;
+            const json3 = _json;
             const vals = [];
             for (const val of def.values) {
               if (val === void 0) {
@@ -15049,23 +15639,23 @@ var JSONSchemaGenerator = class {
             if (vals.length === 0) {
             } else if (vals.length === 1) {
               const val = vals[0];
-              json2.type = val === null ? "null" : typeof val;
-              json2.const = val;
+              json3.type = val === null ? "null" : typeof val;
+              json3.const = val;
             } else {
               if (vals.every((v) => typeof v === "number"))
-                json2.type = "number";
+                json3.type = "number";
               if (vals.every((v) => typeof v === "string"))
-                json2.type = "string";
+                json3.type = "string";
               if (vals.every((v) => typeof v === "boolean"))
-                json2.type = "string";
+                json3.type = "string";
               if (vals.every((v) => v === null))
-                json2.type = "null";
-              json2.enum = vals;
+                json3.type = "null";
+              json3.enum = vals;
             }
             break;
           }
           case "file": {
-            const json2 = _json;
+            const json3 = _json;
             const file = {
               type: "string",
               format: "binary",
@@ -15079,15 +15669,15 @@ var JSONSchemaGenerator = class {
             if (mime) {
               if (mime.length === 1) {
                 file.contentMediaType = mime[0];
-                Object.assign(json2, file);
+                Object.assign(json3, file);
               } else {
-                json2.anyOf = mime.map((m) => {
+                json3.anyOf = mime.map((m) => {
                   const mFile = { ...file, contentMediaType: m };
                   return mFile;
                 });
               }
             } else {
-              Object.assign(json2, file);
+              Object.assign(json3, file);
             }
             break;
           }
@@ -15108,8 +15698,8 @@ var JSONSchemaGenerator = class {
             break;
           }
           case "success": {
-            const json2 = _json;
-            json2.type = "boolean";
+            const json3 = _json;
+            json3.type = "boolean";
             break;
           }
           case "default": {
@@ -15144,12 +15734,12 @@ var JSONSchemaGenerator = class {
             break;
           }
           case "template_literal": {
-            const json2 = _json;
+            const json3 = _json;
             const pattern = schema._zod.pattern;
             if (!pattern)
               throw new Error("Pattern not found in template literal");
-            json2.type = "string";
-            json2.pattern = pattern.source;
+            json3.type = "string";
+            json3.pattern = pattern.source;
             break;
           }
           case "pipe": {
@@ -15515,7 +16105,7 @@ var ZodMiniType = /* @__PURE__ */ $constructor("ZodMiniType", (inst, def) => {
       // { parent: true }
     );
   };
-  inst.clone = (_def, params) => clone2(inst, _def, params);
+  inst.clone = (_def, params) => clone3(inst, _def, params);
   inst.brand = () => inst;
   inst.register = ((reg, meta) => {
     reg.add(inst, meta);
@@ -15623,11 +16213,11 @@ function normalizeObjectSchema(schema) {
   }
   return void 0;
 }
-function getDotPath(path10) {
-  if (path10.length === 0) {
+function getDotPath(path12) {
+  if (path12.length === 0) {
     return "object root";
   }
-  return path10.reduce((acc, seg, index) => {
+  return path12.reduce((acc, seg, index) => {
     if (index === 0) {
       return String(seg);
     }
@@ -15797,7 +16387,7 @@ var ZodType2 = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
       // { parent: true }
     );
   };
-  inst.clone = (def2, params) => clone2(inst, def2, params);
+  inst.clone = (def2, params) => clone3(inst, def2, params);
   inst.brand = () => inst;
   inst.register = ((reg, meta) => {
     reg.add(inst, meta);
@@ -18660,11 +19250,11 @@ function parseMapDef(def, refs) {
 
 // ../../../../../Users/wangkewei/Desktop/page-builder-marketplace/plugins/page-builder/node_modules/zod-to-json-schema/dist/esm/parsers/nativeEnum.js
 function parseNativeEnumDef(def) {
-  const object3 = def.values;
+  const object4 = def.values;
   const actualKeys = Object.keys(def.values).filter((key) => {
-    return typeof object3[object3[key]] !== "number";
+    return typeof object4[object4[key]] !== "number";
   });
-  const actualValues = actualKeys.map((key) => object3[key]);
+  const actualValues = actualKeys.map((key) => object4[key]);
   const parsedTypes = Array.from(new Set(actualValues.map((values) => typeof values)));
   return {
     type: parsedTypes.length === 1 ? parsedTypes[0] === "string" ? "string" : "number" : ["string", "number"],
@@ -21473,11 +22063,11 @@ var McpServer = class {
       return EMPTY_COMPLETION_RESULT;
     }
     const promptShape = getObjectShape(prompt.argsSchema);
-    const field = promptShape?.[request.params.argument.name];
-    if (!isCompletable(field)) {
+    const field2 = promptShape?.[request.params.argument.name];
+    if (!isCompletable(field2)) {
       return EMPTY_COMPLETION_RESULT;
     }
-    const completer = getCompleter(field);
+    const completer = getCompleter(field2);
     if (!completer) {
       return EMPTY_COMPLETION_RESULT;
     }
@@ -21750,8 +22340,8 @@ var McpServer = class {
     };
     this._registeredPrompts[name] = registeredPrompt;
     if (argsSchema) {
-      const hasCompletable = Object.values(argsSchema).some((field) => {
-        const inner = field instanceof ZodOptional ? field._def?.innerType : field;
+      const hasCompletable = Object.values(argsSchema).some((field2) => {
+        const inner = field2 instanceof ZodOptional ? field2._def?.innerType : field2;
         return isCompletable(inner);
       });
       if (hasCompletable) {
@@ -21984,9 +22574,9 @@ function promptArgumentsFromSchema(schema) {
   const shape = getObjectShape(schema);
   if (!shape)
     return [];
-  return Object.entries(shape).map(([name, field]) => {
-    const description = getSchemaDescription(field);
-    const isOptional = isSchemaOptional(field);
+  return Object.entries(shape).map(([name, field2]) => {
+    const description = getSchemaDescription(field2);
+    const isOptional = isSchemaOptional(field2);
     return {
       name,
       description,
@@ -22119,8 +22709,8 @@ var StdioServerTransport = class {
   }
   send(message) {
     return new Promise((resolve) => {
-      const json2 = serializeMessage(message);
-      if (this._stdout.write(json2)) {
+      const json3 = serializeMessage(message);
+      if (this._stdout.write(json3)) {
         resolve();
       } else {
         this._stdout.once("drain", resolve);
@@ -22130,10 +22720,10 @@ var StdioServerTransport = class {
 };
 
 // src/capture.ts
-import { access, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { access, mkdtemp, readFile as readFile3, rm as rm2, stat as stat3 } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
-import path from "node:path";
+import path4 from "node:path";
 var CANDIDATES = [
   process.env.CHROME_PATH,
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -22173,7 +22763,7 @@ async function runUntilScreenshot(command, args, screenshot) {
     });
     const poll = setInterval(async () => {
       try {
-        if ((await stat(screenshot)).size > 100) finish();
+        if ((await stat3(screenshot)).size > 100) finish();
       } catch {
       }
     }, 100);
@@ -22183,25 +22773,25 @@ async function runUntilScreenshot(command, args, screenshot) {
 async function capturePage(page, editorUrl2, viewport) {
   const chrome = await findChrome();
   const dimensions = viewport === "narrow" ? { width: 680, height: 900 } : { width: 1440, height: 900 };
-  const directory = await mkdtemp(path.join(tmpdir(), "page-builder-capture-"));
-  const screenshot = path.join(directory, "page.png");
-  const profile = path.join(directory, "profile");
+  const directory = await mkdtemp(path4.join(tmpdir(), "page-builder-capture-"));
+  const screenshot = path4.join(directory, "page.png");
+  const profile = path4.join(directory, "profile");
   try {
     const url = new URL(editorUrl2);
     url.searchParams.set("page", page.pageId);
     url.searchParams.set("captureRevision", String(page.revision));
     await runUntilScreenshot(chrome, ["--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run", "--disable-extensions", `--user-data-dir=${profile}`, `--window-size=${dimensions.width},${dimensions.height}`, "--force-device-scale-factor=1", "--virtual-time-budget=5000", `--screenshot=${screenshot}`, url.href], screenshot);
-    return { png: await readFile(screenshot), viewport, dimensions, pageId: page.pageId, revision: page.revision };
+    return { png: await readFile3(screenshot), viewport, dimensions, pageId: page.pageId, revision: page.revision };
   } catch (error2) {
     throw new DomainError("CAPTURE_FAILED", error2 instanceof Error ? error2.message : "\u753B\u9762\u751F\u6210\u5931\u8D25\u3002");
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm2(directory, { recursive: true, force: true });
   }
 }
 
 // src/exporter.ts
-import { mkdir, readFile as readFile2, readdir, writeFile } from "node:fs/promises";
-import path2 from "node:path";
+import { mkdir as mkdir3, readFile as readFile4, readdir as readdir3, writeFile as writeFile3 } from "node:fs/promises";
+import path5 from "node:path";
 
 // ../../../../../Users/wangkewei/Desktop/page-builder-marketplace/plugins/page-builder/node_modules/fflate/esm/index.mjs
 import { createRequire } from "module";
@@ -22921,11 +23511,11 @@ function zipSync(data, opts) {
 
 // src/exporter.ts
 async function collect(directory, prefix, output2) {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const full = path2.join(directory, entry.name);
+  for (const entry of await readdir3(directory, { withFileTypes: true })) {
+    const full = path5.join(directory, entry.name);
     const relative = `${prefix}${entry.name}`;
     if (entry.isDirectory()) await collect(full, `${relative}/`, output2);
-    else output2[relative] = new Uint8Array(await readFile2(full));
+    else output2[relative] = new Uint8Array(await readFile4(full));
   }
 }
 var indexHtml = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>\u9875\u9762\u642D\u5EFA\u5668\u5BFC\u51FA</title><link rel="icon" href="data:,"><link rel="stylesheet" href="./styles.css"></head><body><main id="page"></main><script src="./vendor/b2b/components/runtime/loader.js"></script><script type="module" src="./app.js"></script><script type="module" src="./business.js"></script></body></html>`;
@@ -22946,8 +23536,8 @@ var readme = `# \u5BFC\u51FA\u7684\u9875\u9762\u5DE5\u7A0B
 `;
 async function exportPage(page, libraryDirectory, outputRoot) {
   const stamp = (/* @__PURE__ */ new Date()).toISOString().replaceAll(":", "-").replaceAll(".", "-");
-  const directory = path2.join(outputRoot, page.pageId, `r${page.revision}-${stamp}`);
-  await mkdir(directory, { recursive: true });
+  const directory = path5.join(outputRoot, page.pageId, `r${page.revision}-${stamp}`);
+  await mkdir3(directory, { recursive: true });
   const files = {
     "index.html": strToU8(indexHtml),
     "styles.css": strToU8(styles),
@@ -22963,23 +23553,23 @@ async function exportPage(page, libraryDirectory, outputRoot) {
     files["vendor/b2b/manifest.json"] = strToU8(JSON.stringify(manifest, null, 2));
   }
   const zip = zipSync(files, { level: 6 });
-  const zipPath = path2.join(directory, `page-builder-${page.pageId}-r${page.revision}.zip`);
-  await writeFile(zipPath, zip);
-  await writeFile(path2.join(directory, "page.json"), JSON.stringify(page, null, 2));
+  const zipPath = path5.join(directory, `page-builder-${page.pageId}-r${page.revision}.zip`);
+  await writeFile3(zipPath, zip);
+  await writeFile3(path5.join(directory, "page.json"), JSON.stringify(page, null, 2));
   return { pageId: page.pageId, revision: page.revision, zipPath, directory, fileCount: Object.keys(files).length, bytes: zip.length };
 }
 
 // src/http.ts
 import { createServer } from "node:http";
-import { readFile as readFile3, stat as stat2 } from "node:fs/promises";
-import path3 from "node:path";
+import { readFile as readFile5, stat as stat4 } from "node:fs/promises";
+import path6 from "node:path";
 var MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf", ".webp": "image/webp", ".gif": "image/gif", ".jpeg": "image/jpeg", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml" };
 function send(response, status, body, type = "application/json; charset=utf-8") {
   const payload = typeof body === "string" || Buffer.isBuffer(body) ? body : JSON.stringify(body);
   response.writeHead(status, { "content-type": type, "cache-control": "no-store", "access-control-allow-origin": "*" });
   response.end(payload);
 }
-async function json(request) {
+async function json2(request) {
   const chunks = [];
   let size = 0;
   for await (const chunk of request) {
@@ -22993,43 +23583,78 @@ async function json(request) {
     throw new DomainError("INVALID_JSON", "\u8BF7\u6C42\u4E0D\u662F\u5408\u6CD5 JSON\u3002");
   }
 }
-function createEditorServer(store2, uiDirectory2, exportDirectory2, runtime2, libraries2) {
+function createEditorServer(legacyStore, uiDirectory2, exportDirectory2, runtime2, libraries2, projects2, directoryPicker2 = new DirectoryPicker()) {
   const server2 = createServer(async (request, response) => {
     try {
       if (!request.url) return send(response, 404, { error: "NOT_FOUND" });
       const url = new URL(request.url, "http://127.0.0.1");
       const pathname = decodeURIComponent(url.pathname);
+      const origin = request.headers.origin;
+      const address = server2.address();
+      if (pathname.startsWith("/api/") && origin && origin !== `http://127.0.0.1:${address?.port}`) throw new DomainError("UNTRUSTED_ORIGIN", "\u53EA\u5141\u8BB8\u642D\u5EFA\u5668\u672C\u5730\u9875\u9762\u8BBF\u95EE\u9879\u76EE\u6587\u4EF6\u3002");
       if (request.method === "OPTIONS") {
         response.writeHead(204, { "access-control-allow-origin": "*", "access-control-allow-methods": "GET,POST,OPTIONS", "access-control-allow-headers": "content-type" });
         return response.end();
       }
+      if (pathname === "/api/projects/choose-directory" && request.method === "POST") {
+        const input = await json2(request);
+        return send(response, 200, directoryPicker2.start(input.purpose, input.initialDirectory));
+      }
+      if (pathname === "/api/projects/directory-choice" && request.method === "POST") {
+        const input = await json2(request);
+        return send(response, 200, directoryPicker2.status(input.requestId));
+      }
+      if (pathname === "/api/projects/cancel-directory-choice" && request.method === "POST") {
+        const input = await json2(request);
+        return send(response, 200, directoryPicker2.cancel(input.requestId));
+      }
+      const workspaceId = url.searchParams.get("workspace") || void 0;
+      const store2 = projects2 ? await projects2.store(workspaceId) : legacyStore;
+      if (pathname === "/api/projects" && request.method === "GET" && projects2) return send(response, 200, await projects2.list());
+      if (pathname === "/api/projects" && request.method === "POST" && projects2) {
+        const input = await json2(request);
+        return send(response, 201, await projects2.create(input.name, input.parentDirectory));
+      }
+      if (pathname === "/api/projects/open" && request.method === "POST" && projects2) {
+        const input = await json2(request);
+        return send(response, 200, await projects2.open(input.directory, input.expectedProjectId));
+      }
+      if (pathname === "/api/projects/relink" && request.method === "POST" && projects2) {
+        const input = await json2(request);
+        return send(response, 200, await projects2.relink(input.workspaceId, input.directory));
+      }
+      if (pathname === "/api/projects/settings" && request.method === "POST" && projects2) {
+        const input = await json2(request);
+        return send(response, 200, await projects2.update(input.workspaceId, input.expectedRevision, input));
+      }
+      if (pathname === "/api/projects/current" && request.method === "GET" && projects2 && workspaceId) return send(response, 200, { project: await projects2.resolve(workspaceId), pages: await store2.list() });
       if (pathname === "/api/health") return send(response, 200, { ok: true, ...runtime2, components: Object.keys(COMPONENTS), schemaVersion: 1, componentLibrary: await libraries2.current() });
       if (pathname === "/api/catalog" && request.method === "GET") return send(response, 200, { components: Object.values(await libraries2.catalog(url.searchParams.get("snapshotId") || void 0)) });
       if (pathname === "/api/libraries" && request.method === "GET") return send(response, 200, await libraries2.list());
-      if (pathname === "/api/libraries/refresh" && request.method === "POST") return send(response, 200, await refreshLibrary(libraries2, store2, await json(request)));
+      if (pathname === "/api/libraries/refresh" && request.method === "POST") return send(response, 200, await refreshLibrary(libraries2, store2, await json2(request)));
       if (pathname === "/api/libraries/check" && request.method === "POST") {
-        const input = await json(request);
+        const input = await json2(request);
         return send(response, 200, await libraries2.check(input.sourcePath));
       }
       if (pathname === "/api/libraries/apply" && request.method === "POST") {
-        const input = await json(request);
+        const input = await json2(request);
         return send(response, 200, await libraries2.apply(input.snapshotId, input.sourcePath));
       }
       const assetMatch = pathname.match(/^\/api\/libraries\/(b2b-[a-f0-9]{16})\/assets\/(.+)$/);
       if (assetMatch && request.method === "GET") {
         const resolved2 = await libraries2.asset(assetMatch[1], assetMatch[2]);
-        const info2 = await stat2(resolved2);
+        const info2 = await stat4(resolved2);
         if (!info2.isFile()) return send(response, 404, { error: "NOT_FOUND" });
-        return send(response, 200, await readFile3(resolved2), MIME[path3.extname(resolved2)] ?? "application/octet-stream");
+        return send(response, 200, await readFile5(resolved2), MIME[path6.extname(resolved2)] ?? "application/octet-stream");
       }
       if (pathname === "/api/pages" && request.method === "GET") return send(response, 200, { pages: await store2.list() });
       if (pathname === "/api/pages" && request.method === "POST") {
-        const input = await json(request);
+        const input = await json2(request);
         return send(response, 201, { page: await store2.create(input.name) });
       }
       if (pathname === "/api/import" && request.method === "POST") {
-        const input = await json(request);
-        return send(response, 201, { page: await store2.import(input.page ?? input) });
+        const input = await json2(request);
+        return send(response, 201, { page: await store2.import(input.page ?? input, input.name) });
       }
       const match = pathname.match(/^\/api\/pages\/([A-Za-z0-9_-]+)(?:\/(operations|undo|redo|selection|export|library))?$/);
       if (match) {
@@ -23039,26 +23664,26 @@ function createEditorServer(store2, uiDirectory2, exportDirectory2, runtime2, li
           return send(response, 200, { ...snapshot, library: await libraries2.resolvePage(snapshot.page), components: Object.values(await libraries2.catalogForPage(snapshot.page)) });
         }
         if (action === "operations" && request.method === "POST") {
-          const input = await json(request);
+          const input = await json2(request);
           const page = await store2.apply(pageId, input.expectedRevision, input.operations);
           return send(response, 200, { page, selection: await store2.selection(pageId) });
         }
         if (action === "undo" && request.method === "POST") {
-          const input = await json(request);
+          const input = await json2(request);
           const page = await store2.undo(pageId, input.expectedRevision);
           return send(response, 200, { page, selection: await store2.selection(pageId) });
         }
         if (action === "redo" && request.method === "POST") {
-          const input = await json(request);
+          const input = await json2(request);
           const page = await store2.redo(pageId, input.expectedRevision);
           return send(response, 200, { page, selection: await store2.selection(pageId) });
         }
         if (action === "selection" && request.method === "POST") {
-          const input = await json(request);
+          const input = await json2(request);
           return send(response, 200, { selection: await store2.select(pageId, input.nodeId ?? null, input.expectedRevision) });
         }
         if (action === "library" && request.method === "POST") {
-          const input = await json(request);
+          const input = await json2(request);
           const binding = await libraries2.binding(input.snapshotId);
           const page = await store2.setLibrary(pageId, input.expectedRevision, binding);
           return send(response, 200, { page, selection: await store2.selection(pageId), library: await libraries2.resolvePage(page) });
@@ -23069,11 +23694,11 @@ function createEditorServer(store2, uiDirectory2, exportDirectory2, runtime2, li
         }
       }
       const relative = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
-      const resolved = path3.resolve(uiDirectory2, relative);
-      if (!resolved.startsWith(`${path3.resolve(uiDirectory2)}${path3.sep}`) && resolved !== path3.join(path3.resolve(uiDirectory2), "index.html")) throw new DomainError("INVALID_PATH", "\u8D44\u6E90\u8DEF\u5F84\u65E0\u6548\u3002");
-      const info = await stat2(resolved);
+      const resolved = path6.resolve(uiDirectory2, relative);
+      if (!resolved.startsWith(`${path6.resolve(uiDirectory2)}${path6.sep}`) && resolved !== path6.join(path6.resolve(uiDirectory2), "index.html")) throw new DomainError("INVALID_PATH", "\u8D44\u6E90\u8DEF\u5F84\u65E0\u6548\u3002");
+      const info = await stat4(resolved);
       if (!info.isFile()) return send(response, 404, { error: "NOT_FOUND" });
-      return send(response, 200, await readFile3(resolved), MIME[path3.extname(resolved)] ?? "application/octet-stream");
+      return send(response, 200, await readFile5(resolved), MIME[path6.extname(resolved)] ?? "application/octet-stream");
     } catch (error2) {
       if (error2 instanceof DomainError) return send(response, error2.code === "PAGE_NOT_FOUND" || error2.code === "NODE_NOT_FOUND" ? 404 : error2.code === "REVISION_CONFLICT" ? 409 : 400, { error: { code: error2.code, message: error2.message, details: error2.details } });
       if (error2.code === "ENOENT") return send(response, 404, { error: { code: "NOT_FOUND", message: "\u672A\u627E\u5230\u8D44\u6E90\u3002" } });
@@ -23088,329 +23713,445 @@ function createEditorServer(store2, uiDirectory2, exportDirectory2, runtime2, li
       return `http://127.0.0.1:${port}`;
     },
     close() {
+      directoryPicker2.dispose();
       return new Promise((resolve, reject) => server2.close((error2) => error2 ? reject(error2) : resolve()));
     }
   };
 }
 
-// src/store.ts
-import { mkdir as mkdir2, open, readFile as readFile4, readdir as readdir2, rename, stat as stat3, unlink, writeFile as writeFile2 } from "node:fs/promises";
-import path4 from "node:path";
-import { randomUUID as randomUUID2 } from "node:crypto";
-function pageIdPart(pageId) {
-  if (!/^[A-Za-z0-9_-]+$/.test(pageId)) throw new DomainError("INVALID_PAGE_ID", "\u9875\u9762\u6807\u8BC6\u65E0\u6548\u3002");
-  return pageId;
+// src/library-schema.ts
+import vm from "node:vm";
+import { readFile as readFile6 } from "node:fs/promises";
+import path7 from "node:path";
+
+// src/builder-protocol.ts
+var forbidden = /* @__PURE__ */ new Set(["__proto__", "constructor", "prototype"]);
+function requireValid(valid, at, reason) {
+  if (!valid) throw new Error(`\u7F16\u8F91\u534F\u8BAE ${at}\uFF1A${reason}`);
 }
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function object3(value, at, keys) {
+  requireValid(value && typeof value === "object" && !Array.isArray(value), at, "\u5FC5\u987B\u4E3A\u5BF9\u8C61");
+  for (const key of Object.keys(value)) requireValid(!forbidden.has(key) && (!keys || keys.includes(key)), `${at}.${key}`, "\u4E0D\u652F\u6301\u7684\u5B57\u6BB5");
 }
-function processIsAlive(pid) {
-  if (!Number.isInteger(pid) || pid <= 0) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error2) {
-    return error2.code === "EPERM";
+function text(value, at) {
+  requireValid(typeof value === "string" && value.trim() && value.length <= 4e3, at, "\u5FC5\u987B\u4E3A\u975E\u7A7A\u6587\u672C\uFF08\u6700\u591A 4000 \u5B57\u7B26\uFF09");
+}
+function list(value, at) {
+  requireValid(Array.isArray(value) && value.length <= 500, at, "\u5FC5\u987B\u4E3A\u5217\u8868\uFF08\u6700\u591A 500 \u9879\uFF09");
+}
+function prop(rules, key, at) {
+  requireValid(typeof key === "string" && !forbidden.has(key) && Object.hasOwn(rules, key), at, `\u672A\u58F0\u660E\u7684\u7EC4\u4EF6\u5C5E\u6027 ${key}`);
+  return rules[key];
+}
+function matchesPropType(value, rule) {
+  if (rule.values) return rule.values.some((item) => item === value);
+  return (rule.type || (rule.fields ? "object" : "unknown")).split("|").some((type) => type === "unknown" || type === "null" && value === null || type === "array" && Array.isArray(value) || type === "object" && !!value && typeof value === "object" && !Array.isArray(value) || ["string", "boolean", "number"].includes(type) && typeof value === type && (type !== "number" || Number.isFinite(value)));
+}
+function conditions(value, rules, at) {
+  list(value, at);
+  for (const [i2, condition] of value.entries()) {
+    const key = `${at}[${i2}]`;
+    object3(condition, key, ["property", "values", "not"]);
+    const rule = prop(rules, condition.property, key);
+    list(condition.values, key);
+    requireValid(condition.values.length && condition.values.every((item) => (item === null || ["string", "number", "boolean"].includes(typeof item)) && matchesPropType(item, rule)), key, "\u6761\u4EF6\u503C\u4E0D\u5C5E\u4E8E\u6E90\u5C5E\u6027\u7C7B\u578B\u6216\u679A\u4E3E");
+    if (condition.not !== void 0) requireValid(typeof condition.not === "boolean", key, "not \u5FC5\u987B\u4E3A\u5E03\u5C14\u503C");
   }
 }
-var FilePersistence = class {
-  constructor(directory) {
-    this.directory = directory;
-    this.stateDirectory = path4.join(directory, ".page-builder-state");
-    this.lockDirectory = path4.join(this.stateDirectory, "locks");
+function overlap(left = [], right = [], rules) {
+  const all = [...left, ...right];
+  for (const name of new Set(all.map((item) => item.property))) {
+    const constraints = all.filter((item) => item.property === name), rule = rules[name];
+    let candidates = rule.values ? [...rule.values] : rule.type === "boolean" ? [false, true] : void 0;
+    for (const constraint of constraints.filter((item) => !item.not)) candidates = candidates ? candidates.filter((value) => constraint.values.includes(value)) : [...constraint.values];
+    if (candidates && !candidates.some((value) => constraints.every((item) => item.not ? !item.values.includes(value) : item.values.includes(value)))) return false;
   }
-  directory;
-  stateDirectory;
-  lockDirectory;
-  file(pageId) {
-    return path4.join(this.directory, `${pageIdPart(pageId)}.json`);
-  }
-  historyFile(pageId, revision) {
-    return path4.join(this.stateDirectory, "history", pageIdPart(pageId), `${revision}.json`);
-  }
-  selectionFile(pageId, revision) {
-    return path4.join(this.stateDirectory, "selection", pageIdPart(pageId), `${revision}.json`);
-  }
-  async readJson(file) {
-    try {
-      return JSON.parse(await readFile4(file, "utf8"));
-    } catch (error2) {
-      if (error2.code === "ENOENT") return null;
-      throw error2;
+  return true;
+}
+function inferred(value) {
+  return { type: value === null || value === void 0 ? "unknown" : Array.isArray(value) ? "array" : typeof value, ...value === void 0 ? {} : { default: value } };
+}
+function childRules(rule, sample = rule.default) {
+  const declared = rule.fields || rule.item?.fields || {};
+  const defaults = sample && typeof sample === "object" && !Array.isArray(sample) ? sample : {};
+  const keys = [.../* @__PURE__ */ new Set([...Object.keys(defaults), ...Array.isArray(declared) ? declared : Object.keys(declared)])];
+  return Object.fromEntries(keys.map((key) => [key, !Array.isArray(declared) && declared[key] || inferred(defaults[key])]));
+}
+function field(editor2, rule, rules, groups, at, depth = 0, conditional = false) {
+  requireValid(depth <= 8, at, "\u5D4C\u5957\u6700\u591A 8 \u5C42");
+  object3(editor2, at, ["label", "description", "group", "order", "control", "options", "visibleWhen", "enabledWhen", "controlWhen", "fields", "item"]);
+  for (const key of ["label", "description"]) if (editor2[key] !== void 0) text(editor2[key], `${at}.${key}`);
+  if (editor2.group !== void 0) requireValid(groups.has(editor2.group), at, "\u5F15\u7528\u672A\u58F0\u660E\u7684\u5206\u7EC4");
+  if (editor2.order !== void 0) requireValid(typeof editor2.order === "number" && Number.isFinite(editor2.order), at, "order \u5FC5\u987B\u4E3A\u6709\u9650\u6570\u5B57");
+  const control = editor2.control || "auto", types = (rule.type || (rule.fields ? "object" : "unknown")).split("|");
+  requireValid(["auto", "text", "textarea", "number", "switch", "select", "structured", "image"].includes(control), at, "\u672A\u77E5\u63A7\u4EF6\u7C7B\u578B");
+  const branch = (type) => types.includes(type) && (conditional || types.every((item) => item === type || item === "null"));
+  const compatible = control === "auto" || control === "select" && !!rule.values || control === "switch" && branch("boolean") || control === "number" && branch("number") || ["text", "textarea", "image"].includes(control) && branch("string") || control === "structured" && types.every((item) => ["object", "array", "null"].includes(item));
+  requireValid(compatible, at, "\u63A7\u4EF6\u4E0E\u6E90\u5C5E\u6027\u7C7B\u578B\u4E0D\u5339\u914D");
+  if (editor2.options !== void 0) {
+    list(editor2.options, `${at}.options`);
+    const used = /* @__PURE__ */ new Set();
+    for (const option of editor2.options) {
+      object3(option, at, ["value", "label"]);
+      text(option.label, at);
+      requireValid(rule.values?.includes(option.value) && !used.has(option.value), at, "\u9009\u9879\u5FC5\u987B\u552F\u4E00\u4E14\u5C5E\u4E8E\u6E90\u679A\u4E3E");
+      used.add(option.value);
     }
   }
-  async saveJson(file, value) {
-    await mkdir2(path4.dirname(file), { recursive: true });
-    const temporary = `${file}.${process.pid}.${randomUUID2()}.tmp`;
-    await writeFile2(temporary, JSON.stringify(value, null, 2), { encoding: "utf8", mode: 384 });
-    await rename(temporary, file);
+  for (const key of ["visibleWhen", "enabledWhen"]) if (editor2[key] !== void 0) conditions(editor2[key], rules, `${at}.${key}`);
+  if (editor2.controlWhen !== void 0) {
+    list(editor2.controlWhen, `${at}.controlWhen`);
+    for (const entry of editor2.controlWhen) {
+      object3(entry, at, ["when", "control"]);
+      conditions(entry.when, rules, at);
+      requireValid(entry.control, at, "\u6761\u4EF6\u63A7\u4EF6\u7F3A\u5C11 control");
+      field({ control: entry.control }, rule, rules, groups, `${at}.controlWhen`, depth, true);
+    }
+    for (let i2 = 0; i2 < editor2.controlWhen.length; i2++) for (let j = i2 + 1; j < editor2.controlWhen.length; j++) requireValid(!overlap(editor2.controlWhen[i2].when, editor2.controlWhen[j].when, rules), at, "\u591A\u4E2A\u63A7\u4EF6\u89C4\u5219\u53EF\u80FD\u540C\u65F6\u5339\u914D");
   }
-  async list() {
-    await mkdir2(this.directory, { recursive: true });
-    const names = (await readdir2(this.directory)).filter((name) => name.endsWith(".json"));
-    const pages = [];
-    for (const name of names) {
-      try {
-        pages.push(validatePage(JSON.parse(await readFile4(path4.join(this.directory, name), "utf8")), null));
-      } catch {
+  if (editor2.fields !== void 0) {
+    requireValid(types.includes("object") || types.includes("unknown"), at, "fields \u4EC5\u7528\u4E8E\u5BF9\u8C61");
+    object3(editor2.fields, `${at}.fields`);
+    const nested = childRules(rule);
+    for (const [key, child] of Object.entries(editor2.fields)) field(child, prop(nested, key, `${at}.${key}`), rules, groups, `${at}.${key}`, depth + 1);
+  }
+  if (editor2.item !== void 0) {
+    requireValid(types.includes("array") || types.includes("unknown"), at, "item \u4EC5\u7528\u4E8E\u5217\u8868");
+    const item = rule.item || inferred(Array.isArray(rule.default) ? rule.default[0] : void 0);
+    field(editor2.item, item, rules, groups, `${at}.item`, depth + 1);
+  }
+}
+function parseBuilderContract(input, schemas) {
+  const contract = input;
+  object3(contract, "root", ["schemaVersion", "libraryId", "components"]);
+  requireValid(contract.schemaVersion === 1, "schemaVersion", "\u4EC5\u652F\u6301\u7248\u672C 1");
+  requireValid(contract.libraryId === "b2b", "libraryId", "\u7EC4\u4EF6\u5E93\u6807\u8BC6\u4E0D\u5339\u914D");
+  object3(contract.components, "components");
+  for (const [id, raw] of Object.entries(contract.components)) {
+    const editor2 = raw, at = `components.${id}`, rules = schemas[id]?.props;
+    requireValid(rules, at, "\u6E90 API \u4E2D\u4E0D\u5B58\u5728\u6B64\u7EC4\u4EF6");
+    object3(editor2, at, ["label", "description", "groups", "fields", "transitions"]);
+    for (const key of ["label", "description"]) if (editor2[key] !== void 0) text(editor2[key], at);
+    const groups = /* @__PURE__ */ new Set();
+    if (editor2.groups !== void 0) {
+      list(editor2.groups, `${at}.groups`);
+      for (const group of editor2.groups) {
+        object3(group, at, ["id", "label"]);
+        text(group.id, at);
+        text(group.label, at);
+        requireValid(!groups.has(group.id), at, "\u5206\u7EC4\u6807\u8BC6\u91CD\u590D");
+        groups.add(group.id);
       }
     }
-    return pages;
-  }
-  async read(pageId) {
-    const value = await this.readJson(this.file(pageId));
-    return value ? validatePage(value, null) : null;
-  }
-  async save(page) {
-    await this.saveJson(this.file(page.pageId), page);
-  }
-  async readHistory(pageId, revision) {
-    return this.readJson(this.historyFile(pageId, revision));
-  }
-  async saveHistory(pageId, history) {
-    await this.saveJson(this.historyFile(pageId, history.headRevision), history);
-  }
-  async readSelection(pageId, revision) {
-    return this.readJson(this.selectionFile(pageId, revision));
-  }
-  async saveSelection(pageId, selection) {
-    await this.saveJson(this.selectionFile(pageId, selection.revision), selection);
-  }
-  async withPageLock(pageId, task) {
-    await mkdir2(this.lockDirectory, { recursive: true });
-    const lock = path4.join(this.lockDirectory, `${pageIdPart(pageId)}.lock`);
-    const deadline = Date.now() + 1e4;
-    const token = randomUUID2();
-    let handle2;
-    while (!handle2) {
-      try {
-        handle2 = await open(lock, "wx", 384);
-        await handle2.writeFile(JSON.stringify({ token, pid: process.pid, createdAt: (/* @__PURE__ */ new Date()).toISOString() }));
-      } catch (error2) {
-        if (error2.code !== "EEXIST") throw error2;
-        try {
-          const info = await stat3(lock);
-          const owner = JSON.parse(await readFile4(lock, "utf8"));
-          if (Date.now() - info.mtimeMs > 3e4 && !processIsAlive(owner.pid ?? 0)) await unlink(lock);
-        } catch (inspectionError) {
-          if (inspectionError.code !== "ENOENT") throw inspectionError;
+    if (editor2.fields !== void 0) {
+      object3(editor2.fields, `${at}.fields`);
+      for (const [key, item] of Object.entries(editor2.fields)) field(item, prop(rules, key, `${at}.${key}`), rules, groups, `${at}.${key}`);
+    }
+    if (editor2.transitions !== void 0) {
+      list(editor2.transitions, `${at}.transitions`);
+      for (const transition of editor2.transitions) {
+        object3(transition, at, ["property", "value", "when", "reset", "set", "ensure", "require"]);
+        const rule = prop(rules, transition.property, at);
+        requireValid(transition.value === null || ["string", "number", "boolean"].includes(typeof transition.value), at, "\u89E6\u53D1\u503C\u5FC5\u987B\u4E3A\u6807\u91CF");
+        requireValid(matchesPropType(transition.value, rule), at, "\u89E6\u53D1\u503C\u4E0D\u5C5E\u4E8E\u6E90\u5C5E\u6027\u7C7B\u578B\u6216\u679A\u4E3E");
+        if (transition.when !== void 0) conditions(transition.when, rules, at);
+        if (transition.reset !== void 0) {
+          list(transition.reset, at);
+          for (const key of transition.reset) requireValid(Object.hasOwn(prop(rules, key, at), "default"), at, "\u91CD\u7F6E\u5B57\u6BB5\u6CA1\u6709\u9ED8\u8BA4\u503C");
         }
-        if (Date.now() >= deadline) throw new DomainError("PAGE_LOCK_TIMEOUT", `\u9875\u9762 ${pageId} \u6B63\u7531\u53E6\u4E00\u4E2A\u8FDB\u7A0B\u5199\u5165\uFF0C\u8BF7\u91CD\u8BD5\u3002`);
-        await delay(20);
+        for (const key of ["set", "ensure"]) if (transition[key] !== void 0) {
+          object3(transition[key], at);
+          for (const [name, value] of Object.entries(transition[key])) requireValid(matchesPropType(value, prop(rules, name, at)), at, `\u8F6C\u6362\u8F93\u51FA ${name} \u7C7B\u578B\u4E0D\u5339\u914D`);
+        }
+        if (transition.require !== void 0) {
+          list(transition.require, at);
+          for (const item of transition.require) {
+            object3(item, at, ["property", "message"]);
+            prop(rules, item.property, at);
+            text(item.message, at);
+          }
+        }
       }
-    }
-    try {
-      return await task();
-    } finally {
-      await handle2.close().catch(() => void 0);
-      try {
-        const owner = JSON.parse(await readFile4(lock, "utf8"));
-        if (owner.token === token) await unlink(lock);
-      } catch (error2) {
-        if (error2.code !== "ENOENT") throw error2;
+      for (let i2 = 0; i2 < editor2.transitions.length; i2++) for (let j = i2 + 1; j < editor2.transitions.length; j++) {
+        const a = editor2.transitions[i2], b = editor2.transitions[j];
+        requireValid(a.property !== b.property || a.value !== b.value || !overlap(a.when, b.when, rules), at, "\u591A\u4E2A\u8F6C\u6362\u89C4\u5219\u53EF\u80FD\u540C\u65F6\u5339\u914D");
       }
     }
   }
-};
-function clone3(value) {
-  return structuredClone(value);
+  return contract;
 }
-var PageStore = class {
-  constructor(persistence, libraryBinding, libraries2) {
-    this.persistence = persistence;
-    this.libraryBinding = libraryBinding;
-    this.libraries = libraries2;
-  }
-  persistence;
-  libraryBinding;
-  libraries;
-  async load() {
-    const pages = await this.persistence.list();
-    if (this.libraries) {
-      for (const page of pages) if (!page.componentLibrary) {
-        await this.persistence.withPageLock(page.pageId, async () => {
-          const current = await this.current(page.pageId);
-          if (current.componentLibrary) return;
-          const binding = await this.libraries.binding((await this.libraries.resolvePage(current)).snapshotId);
-          await this.persistence.save({ ...current, componentLibrary: binding });
-        });
-      }
+
+// src/inline-protocol.ts
+function parseInlineContract(input, schemas) {
+  const fail = (message) => {
+    throw new Error(`\u753B\u5E03\u7F16\u8F91\u534F\u8BAE\uFF1A${message}`);
+  };
+  const object4 = (value, allowed) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) fail("\u5FC5\u987B\u4E3A\u5BF9\u8C61");
+    for (const key of Object.keys(value)) if (["__proto__", "constructor", "prototype"].includes(key) || allowed && !allowed.includes(key)) fail(`\u4E0D\u652F\u6301\u5B57\u6BB5 ${key}`);
+  };
+  const data = input;
+  object4(data, ["schemaVersion", "libraryId", "components"]);
+  if (data.schemaVersion !== 1 || data.libraryId !== "b2b") fail("\u4E0D\u652F\u6301\u7684\u7248\u672C\u6216\u7EC4\u4EF6\u5E93");
+  object4(data.components);
+  for (const [id, bindings] of Object.entries(data.components)) {
+    const rules = schemas[id]?.props;
+    if (!rules || !Array.isArray(bindings) || bindings.length > 100) fail(`\u65E0\u6548\u7EC4\u4EF6 ${id}`);
+    const seen = /* @__PURE__ */ new Set();
+    for (const binding of bindings) {
+      object4(binding, ["property", "selector", "control", "when"]);
+      const rule = Object.hasOwn(rules, binding.property) && rules[binding.property];
+      if (!rule || rule.values || !["text", "textarea", "number"].includes(binding.control) || !rule.type.split("|").includes(binding.control === "number" ? "number" : "string")) fail(`${id}.${binding.property} \u4E0D\u662F\u517C\u5BB9\u7684\u516C\u5F00\u5185\u5BB9\u5C5E\u6027`);
+      if (typeof binding.selector !== "string" || binding.selector.length > 400 || !/^:scope(?: > (?:[a-z][a-z0-9-]*|\.[a-zA-Z][\w-]*|\[data-[\w-]+(?:="[\w-]+")?\]))*$/.test(binding.selector)) fail(`${id} \u9009\u62E9\u5668\u5FC5\u987B\u662F :scope \u5F00\u5934\u7684\u76F4\u63A5\u5B50\u7EA7\u8DEF\u5F84`);
+      const key = JSON.stringify(binding);
+      if (seen.has(key)) fail(`${id} \u91CD\u590D\u6620\u5C04`);
+      seen.add(key);
+      if (binding.when) conditions(binding.when, rules, `${id}.${binding.property}.when`);
     }
   }
-  async list() {
-    return (await this.persistence.list()).map((page) => ({ pageId: page.pageId, name: page.name, revision: page.revision, updatedAt: page.updatedAt }));
-  }
-  async get(pageId) {
-    const page = await this.persistence.read(pageId);
-    if (!page) throw new DomainError("PAGE_NOT_FOUND", `\u627E\u4E0D\u5230\u9875\u9762 ${pageId}\u3002`);
-    return clone3(page);
-  }
-  validHistory(current, history) {
-    if (!history || history.headRevision !== current.revision || !Array.isArray(history.past) || !Array.isArray(history.future)) return { headRevision: current.revision, past: [], future: [] };
-    return clone3(history);
-  }
-  validSelection(page, selection) {
-    const nodeId = selection?.revision === page.revision && (!selection.nodeId || findNode(page.root, selection.nodeId)) ? selection.nodeId : null;
-    return { revision: page.revision, nodeId, updatedAt: selection?.updatedAt ?? page.updatedAt };
-  }
-  async current(pageId) {
-    const page = await this.persistence.read(pageId);
-    if (!page) throw new DomainError("PAGE_NOT_FOUND", `\u627E\u4E0D\u5230\u9875\u9762 ${pageId}\u3002`);
-    return page;
-  }
-  async snapshot(pageId) {
-    return this.persistence.withPageLock(pageId, async () => {
-      const page = await this.current(pageId);
-      const selection = this.validSelection(page, await this.persistence.readSelection(pageId, page.revision));
-      return { page: clone3(page), selection: { pageId, nodeId: selection.nodeId, revision: page.revision } };
-    });
-  }
-  async create(name) {
-    const page = createPage(name, this.libraryBinding ? await this.libraryBinding() : void 0);
-    return this.persistence.withPageLock(page.pageId, async () => {
-      if (await this.persistence.read(page.pageId)) throw new DomainError("PAGE_EXISTS", `\u9875\u9762 ${page.pageId} \u5DF2\u5B58\u5728\u3002`);
-      await this.persistence.saveHistory(page.pageId, { headRevision: page.revision, past: [], future: [] });
-      await this.persistence.saveSelection(page.pageId, { revision: page.revision, nodeId: null, updatedAt: page.updatedAt });
-      await this.persistence.save(page);
-      return clone3(page);
-    });
-  }
-  async apply(pageId, expectedRevision, operations) {
-    return this.persistence.withPageLock(pageId, async () => {
-      const current = await this.current(pageId);
-      const next = applyOperations(current, expectedRevision, operations, this.libraries ? await this.libraries.catalogForPage(current) : void 0);
-      await this.libraries?.validatePage(next);
-      const history = this.validHistory(current, await this.persistence.readHistory(pageId, current.revision));
-      history.past.push(clone3(current));
-      if (history.past.length > 100) history.past.shift();
-      history.future = [];
-      history.headRevision = next.revision;
-      const priorSelection = this.validSelection(current, await this.persistence.readSelection(pageId, current.revision));
-      const nextSelection = { revision: next.revision, nodeId: priorSelection.nodeId && findNode(next.root, priorSelection.nodeId) ? priorSelection.nodeId : null, updatedAt: next.updatedAt };
-      await this.persistence.saveHistory(pageId, history);
-      await this.persistence.saveSelection(pageId, nextSelection);
-      await this.persistence.save(next);
-      return clone3(next);
-    });
-  }
-  async undo(pageId, expectedRevision) {
-    return this.restore(pageId, expectedRevision, "undo");
-  }
-  async redo(pageId, expectedRevision) {
-    return this.restore(pageId, expectedRevision, "redo");
-  }
-  async restore(pageId, expectedRevision, direction) {
-    return this.persistence.withPageLock(pageId, async () => {
-      const current = await this.current(pageId);
-      if (current.revision !== expectedRevision) throw new DomainError("REVISION_CONFLICT", `\u9875\u9762\u5DF2\u66F4\u65B0\u5230 revision ${current.revision}\u3002`, { currentRevision: current.revision });
-      const history = this.validHistory(current, await this.persistence.readHistory(pageId, current.revision));
-      const source = direction === "undo" ? history.past : history.future;
-      const target = source.pop();
-      if (!target) throw new DomainError(direction === "undo" ? "NOTHING_TO_UNDO" : "NOTHING_TO_REDO", direction === "undo" ? "\u6CA1\u6709\u53EF\u64A4\u9500\u7684\u64CD\u4F5C\u3002" : "\u6CA1\u6709\u53EF\u91CD\u505A\u7684\u64CD\u4F5C\u3002");
-      const restored = { ...clone3(target), componentLibrary: target.componentLibrary || current.componentLibrary, revision: current.revision + 1, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
-      await this.libraries?.validatePage(restored);
-      (direction === "undo" ? history.future : history.past).push(clone3(current));
-      history.headRevision = restored.revision;
-      const priorSelection = this.validSelection(current, await this.persistence.readSelection(pageId, current.revision));
-      const nextSelection = { revision: restored.revision, nodeId: priorSelection.nodeId && findNode(restored.root, priorSelection.nodeId) ? priorSelection.nodeId : null, updatedAt: restored.updatedAt };
-      await this.persistence.saveHistory(pageId, history);
-      await this.persistence.saveSelection(pageId, nextSelection);
-      await this.persistence.save(restored);
-      return clone3(restored);
-    });
-  }
-  async select(pageId, nodeId, expectedRevision) {
-    return this.persistence.withPageLock(pageId, async () => {
-      const page = await this.current(pageId);
-      if (expectedRevision !== void 0 && page.revision !== expectedRevision) throw new DomainError("REVISION_CONFLICT", `\u9875\u9762\u5DF2\u66F4\u65B0\u5230 revision ${page.revision}\u3002`, { currentRevision: page.revision });
-      if (nodeId && !findNode(page.root, nodeId)) throw new DomainError("NODE_NOT_FOUND", `\u627E\u4E0D\u5230\u8282\u70B9 ${nodeId}\u3002`);
-      await this.persistence.saveSelection(pageId, { revision: page.revision, nodeId, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
-      return { pageId, nodeId, revision: page.revision };
-    });
-  }
-  async selection(pageId) {
-    return (await this.snapshot(pageId)).selection;
-  }
-  async setLibrary(pageId, expectedRevision, binding) {
-    return this.persistence.withPageLock(pageId, async () => {
-      const current = await this.current(pageId);
-      if (current.revision !== expectedRevision) throw new DomainError("REVISION_CONFLICT", `\u9875\u9762\u5DF2\u66F4\u65B0\u5230 revision ${current.revision}\u3002`, { currentRevision: current.revision });
-      const next = { ...clone3(current), componentLibraryVersion: binding.sourceVersion || binding.digest, componentLibrary: clone3(binding), revision: current.revision + 1, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
-      validatePage(next, this.libraries ? await this.libraries.catalogForPage(next) : void 0);
-      await this.libraries?.validatePage(next);
-      const history = this.validHistory(current, await this.persistence.readHistory(pageId, current.revision));
-      history.past.push(clone3(current));
-      if (history.past.length > 100) history.past.shift();
-      history.future = [];
-      history.headRevision = next.revision;
-      const priorSelection = this.validSelection(current, await this.persistence.readSelection(pageId, current.revision));
-      const nextSelection = { revision: next.revision, nodeId: priorSelection.nodeId, updatedAt: next.updatedAt };
-      await this.persistence.saveHistory(pageId, history);
-      await this.persistence.saveSelection(pageId, nextSelection);
-      await this.persistence.save(next);
-      return clone3(next);
-    });
-  }
-  async import(input) {
-    const raw = validatePage(clone3(input), this.libraries ? null : void 0);
-    const candidate = validatePage(raw, this.libraries ? await this.libraries.catalogForPage(raw) : void 0);
-    await this.libraries?.validatePage(candidate);
-    const page = { ...candidate, pageId: createPage().pageId, name: `${candidate.name}\uFF08\u5BFC\u5165\uFF09`, revision: 0, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
-    return this.persistence.withPageLock(page.pageId, async () => {
-      await this.persistence.saveHistory(page.pageId, { headRevision: page.revision, past: [], future: [] });
-      await this.persistence.saveSelection(page.pageId, { revision: page.revision, nodeId: null, updatedAt: page.updatedAt });
-      await this.persistence.save(page);
-      return clone3(page);
-    });
+  return data;
+}
+
+// src/inline-defaults.ts
+var legacyInline = {
+  "schemaVersion": 1,
+  "libraryId": "b2b",
+  "components": {
+    "C-02": [
+      {
+        "property": "label",
+        "selector": ":scope",
+        "control": "text"
+      }
+    ],
+    "C-42": [
+      {
+        "property": "text",
+        "selector": ":scope > .source-tag-label",
+        "control": "text"
+      }
+    ],
+    "C-21": [
+      {
+        "property": "value",
+        "selector": ":scope > input",
+        "control": "text",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "\u57FA\u7840\u8F93\u5165\u6846",
+              "\u5E26\u56FE\u6807\u8F93\u5165\u6846",
+              "\u5E26\u5C5E\u6027\u8F93\u5165\u6846"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "value",
+        "selector": ":scope > input",
+        "control": "number",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "\u6570\u5B57\u8F93\u5165\u6846"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "value",
+        "selector": ":scope > textarea",
+        "control": "textarea",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "\u957F\u6587\u672C\u8F93\u5165\u6846"
+            ]
+          }
+        ]
+      }
+    ],
+    "C-34": [
+      {
+        "property": "title",
+        "selector": ":scope > header > strong",
+        "control": "text"
+      },
+      {
+        "property": "title",
+        "selector": ":scope > strong",
+        "control": "text",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "interactive"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "title",
+        "selector": ":scope > .card-compact-person > .card-compact-copy",
+        "control": "text",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "compact"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "title",
+        "selector": ":scope > .card-meta > strong",
+        "control": "text",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "meta",
+              "actions"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "body",
+        "selector": ":scope > .card-body",
+        "control": "textarea"
+      },
+      {
+        "property": "body",
+        "selector": ":scope > small",
+        "control": "textarea",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "interactive"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "body",
+        "selector": ":scope > .card-meta > p",
+        "control": "textarea",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "meta",
+              "actions"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "meta",
+        "selector": ":scope > footer > small",
+        "control": "text"
+      },
+      {
+        "property": "meta",
+        "selector": ":scope > .card-meta > .card-meta-footer > .card-meta-name",
+        "control": "text",
+        "when": [
+          {
+            "property": "variant",
+            "values": [
+              "meta",
+              "actions"
+            ]
+          }
+        ]
+      },
+      {
+        "property": "extraActionLabel",
+        "selector": ':scope > header > [data-card-slot="extra"] > button',
+        "control": "text"
+      },
+      {
+        "property": "extraActionLabel",
+        "selector": ':scope > [data-card-slot="compact-action"] > button',
+        "control": "text"
+      },
+      {
+        "property": "footerActionLabel",
+        "selector": ':scope > footer > [data-card-slot="footer"] > button',
+        "control": "text"
+      }
+    ]
   }
 };
 
 // src/library-schema.ts
-import vm from "node:vm";
-import { readFile as readFile5 } from "node:fs/promises";
-import path5 from "node:path";
 async function readLibraryCatalog(directory) {
   const context = { window: { B2B: { components: {} } } };
-  vm.runInNewContext(await readFile5(path5.join(directory, "components/runtime/api-schema.js"), "utf8"), context, { timeout: 1e3 });
-  vm.runInNewContext(await readFile5(path5.join(directory, "components/runtime/presets.js"), "utf8"), context, { timeout: 1e3 });
+  vm.runInNewContext(await readFile6(path7.join(directory, "components/runtime/api-schema.js"), "utf8"), context, { timeout: 1e3 });
+  vm.runInNewContext(await readFile6(path7.join(directory, "components/runtime/presets.js"), "utf8"), context, { timeout: 1e3 });
   const presets = JSON.parse(JSON.stringify(context.window.B2B.components.rendererPresets));
   const schemas = JSON.parse(JSON.stringify(context.window.B2B.components.apiSchemas));
+  let contract;
+  try {
+    const text2 = await readFile6(path7.join(directory, "components/runtime/builder-contract.json"), "utf8");
+    if (Buffer.byteLength(text2) > 1024 * 1024) throw new Error("\u7EC4\u4EF6\u7F16\u8F91\u534F\u8BAE\u8D85\u8FC7 1 MiB\u3002");
+    contract = parseBuilderContract(JSON.parse(text2), schemas);
+  } catch (error2) {
+    if (error2.code !== "ENOENT") throw error2;
+  }
+  let inline = legacyInline;
+  try {
+    const text2 = await readFile6(path7.join(directory, "components/runtime/inline-editing.json"), "utf8");
+    if (Buffer.byteLength(text2) > 1024 * 1024) throw new Error("\u753B\u5E03\u7F16\u8F91\u534F\u8BAE\u8D85\u8FC7 1 MiB\u3002");
+    inline = parseInlineContract(JSON.parse(text2), schemas);
+  } catch (error2) {
+    if (error2.code !== "ENOENT") throw error2;
+  }
   const output2 = {};
   for (const [id, editor2] of Object.entries(COMPONENTS)) {
     const api = schemas[id];
     if (!api?.props) throw new Error(`${id} \u7F3A\u5C11\u7EC4\u4EF6\u5E93\u516C\u5F00\u534F\u8BAE\u3002`);
     const props = api.props;
     output2[id] = { id, name: api.name, rendererName: api.name, label: editor2.label, description: editor2.description, editable: editor2.editable, props, variantDefaults: Object.fromEntries(Object.entries(presets[id]?.variants || {}).map(([variant, values]) => [variant, Object.fromEntries(Object.entries(values).filter(([name]) => props[name] && (props[name].type === "boolean" || props[name].type === "enum")))])), defaults: Object.fromEntries(Object.entries(props).filter(([, rule]) => "default" in rule).map(([name, rule]) => [name, rule.default])) };
+    const builder = contract?.components[id];
+    if (builder) Object.assign(output2[id], { builder, label: builder.label ?? editor2.label, description: builder.description ?? editor2.description, editable: Object.keys(props) });
+    output2[id].inline = inline.components[id] || [];
   }
   return output2;
 }
 
 // src/renderer-validation.ts
-import { mkdir as mkdir3, writeFile as writeFile3, readFile as readFile7 } from "node:fs/promises";
-import path7 from "node:path";
+import { mkdir as mkdir4, writeFile as writeFile4, readFile as readFile8 } from "node:fs/promises";
+import path9 from "node:path";
 import { pathToFileURL } from "node:url";
-import { createHash } from "node:crypto";
+import { createHash as createHash2 } from "node:crypto";
 
 // src/native-resource.ts
-import { readFile as readFile6 } from "node:fs/promises";
-import path6 from "node:path";
+import { readFile as readFile7 } from "node:fs/promises";
+import path8 from "node:path";
 async function nativeAssets(libraries2, snapshotId) {
   const manifest = await libraries2.manifest(snapshotId);
-  return { snapshotId, assets: await readNativeAssets(path6.dirname(await libraries2.asset(snapshotId, "manifest.json")), manifest.files) };
+  return { snapshotId, assets: await readNativeAssets(path8.dirname(await libraries2.asset(snapshotId, "manifest.json")), manifest.files) };
 }
 async function readNativeAssets(directory, files) {
   const assets = {};
   const mime = { ".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml" };
   for (const file of files) {
-    const ext = path6.extname(file);
+    const ext = path8.extname(file);
     if (![".js", ".css", ...Object.keys(mime)].includes(ext)) continue;
-    const bytes = await readFile6(path6.join(directory, file));
+    const bytes = await readFile7(path8.join(directory, file));
     assets[file] = mime[ext] ? `data:${mime[ext]};base64,${bytes.toString("base64")}` : bytes.toString("utf8");
   }
   return assets;
 }
 async function nativeHtml(uiDirectory2, config2) {
-  const [template, css, js] = await Promise.all(["index.html", "styles.css", "app.js"].map((file) => readFile6(path6.join(uiDirectory2, file), "utf8")));
+  const [template, css, js] = await Promise.all(["index.html", "styles.css", "app.js"].map((file) => readFile7(path8.join(uiDirectory2, file), "utf8")));
   const escapeScript = (value) => value.replace(/<\/script/gi, "<\\/script");
   return template.replace('<link rel="stylesheet" href="./styles.css">', () => `<style>${css.replace(/<\/style/gi, "<\\/style")}</style>`).replace('<script type="module" src="./app.js"></script>', () => `<script>window.__pageBuilderNative=${JSON.stringify(config2).replace(/</g, "\\u003c")};</script><script>${escapeScript(js)}</script>`);
 }
@@ -23436,7 +24177,7 @@ var RendererValidator = class {
     await browser?.close();
   }
   check(directory, requests, files) {
-    const run = async () => {
+    const run2 = async () => {
       clearTimeout(this.idle);
       const remaining = requests.filter((r) => !this.valid.has(directory + JSON.stringify(r)));
       if (!remaining.length && !files) return;
@@ -23452,14 +24193,14 @@ var RendererValidator = class {
           page = await this.browser.newPage();
           if (files) {
             const assets = await readNativeAssets(directory, files);
-            const transport = await readFile7(this.transportFile, "utf8");
+            const transport = await readFile8(this.transportFile, "utf8");
             const literal2 = JSON.stringify(assets).replace(/</g, "\\u003c");
             const csp = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; base-uri 'none'";
             await page.setContent(`<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><div id="root"></div><script>${transport.replace(/<\/script/gi, "<\\/script")}</script><script>window.runtimeReady=PageBuilderResources.installLibraryTransport(${literal2}).script('components/runtime/loader.js').then(()=>B2B.componentRuntimeReady);</script>`);
           } else {
-            await mkdir3(this.workDirectory, { recursive: true });
-            const file = path7.join(this.workDirectory, createHash("sha256").update(directory).digest("hex") + ".html");
-            await writeFile3(file, `<!doctype html><meta charset="utf-8"><script src="${pathToFileURL(path7.join(directory, "components/runtime/loader.js")).href}"></script><div id="root"></div>`);
+            await mkdir4(this.workDirectory, { recursive: true });
+            const file = path9.join(this.workDirectory, createHash2("sha256").update(directory).digest("hex") + ".html");
+            await writeFile4(file, `<!doctype html><meta charset="utf-8"><script src="${pathToFileURL(path9.join(directory, "components/runtime/loader.js")).href}"></script><div id="root"></div>`);
             await page.goto(pathToFileURL(file).href);
           }
           this.pages.set(cacheKey, page);
@@ -23488,7 +24229,7 @@ var RendererValidator = class {
         this.idle.unref();
       }
     };
-    const result = this.tail.then(run);
+    const result = this.tail.then(run2);
     this.tail = result.catch(() => {
     });
     return result;
@@ -23496,9 +24237,9 @@ var RendererValidator = class {
 };
 
 // src/library.ts
-import { createHash as createHash2, randomUUID as randomUUID3 } from "node:crypto";
-import { mkdir as mkdir4, readFile as readFile8, readdir as readdir3, rename as rename2, rm as rm2, stat as stat4, writeFile as writeFile4 } from "node:fs/promises";
-import path8 from "node:path";
+import { createHash as createHash3, randomUUID as randomUUID5 } from "node:crypto";
+import { mkdir as mkdir5, readFile as readFile9, readdir as readdir4, rename as rename3, rm as rm3, stat as stat5, writeFile as writeFile5 } from "node:fs/promises";
+import path10 from "node:path";
 import vm2 from "node:vm";
 var EDITOR_COMPONENTS = [
   { component: "C-02", requiredProps: ["label", "variant", "size", "icon", "disabled", "loading", "width"], props: { label: "\u4FDD\u5B58", variant: "primary", size: "medium", icon: "save", disabled: false, loading: false, width: "default" } },
@@ -23512,21 +24253,21 @@ var EDITOR_COMPONENTS = [
 ];
 async function filesUnder(directory, prefix = "") {
   const output2 = [];
-  for (const entry of await readdir3(directory, { withFileTypes: true })) {
+  for (const entry of await readdir4(directory, { withFileTypes: true })) {
     const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
-    if (entry.isDirectory()) output2.push(...await filesUnder(path8.join(directory, entry.name), relative));
+    if (entry.isDirectory()) output2.push(...await filesUnder(path10.join(directory, entry.name), relative));
     else if (entry.isFile()) output2.push(relative);
   }
   return output2.sort();
 }
 async function atomicJson(file, value) {
-  await mkdir4(path8.dirname(file), { recursive: true });
-  const temporary = `${file}.${process.pid}.${randomUUID3()}.tmp`;
-  await writeFile4(temporary, JSON.stringify(value, null, 2), { mode: 384 });
-  await rename2(temporary, file);
+  await mkdir5(path10.dirname(file), { recursive: true });
+  const temporary = `${file}.${process.pid}.${randomUUID5()}.tmp`;
+  await writeFile5(temporary, JSON.stringify(value, null, 2), { mode: 384 });
+  await rename3(temporary, file);
 }
 function safeRelative(relative) {
-  if (!relative || path8.isAbsolute(relative) || relative.split(/[\\/]/).includes("..")) throw new DomainError("INVALID_LIBRARY_PATH", "\u7EC4\u4EF6\u5E93\u8D44\u6E90\u8DEF\u5F84\u65E0\u6548\u3002");
+  if (!relative || path10.isAbsolute(relative) || relative.split(/[\\/]/).includes("..")) throw new DomainError("INVALID_LIBRARY_PATH", "\u7EC4\u4EF6\u5E93\u8D44\u6E90\u8DEF\u5F84\u65E0\u6548\u3002");
   return relative.replaceAll("\\", "/");
 }
 var ComponentLibraryManager = class {
@@ -23534,9 +24275,9 @@ var ComponentLibraryManager = class {
     this.cacheDirectory = cacheDirectory;
     this.baselineDirectory = baselineDirectory;
     this.settingsLock = new FilePersistence(cacheDirectory);
-    this.snapshotsDirectory = path8.join(cacheDirectory, "snapshots");
-    this.settingsFile = path8.join(cacheDirectory, "settings.json");
-    this.validator = new RendererValidator(path8.join(cacheDirectory, "validation"), path8.resolve(baselineDirectory, "../../library-transport.bundle.js"));
+    this.snapshotsDirectory = path10.join(cacheDirectory, "snapshots");
+    this.settingsFile = path10.join(cacheDirectory, "settings.json");
+    this.validator = new RendererValidator(path10.join(cacheDirectory, "validation"), path10.resolve(baselineDirectory, "../../library-transport.bundle.js"));
   }
   cacheDirectory;
   baselineDirectory;
@@ -23547,7 +24288,7 @@ var ComponentLibraryManager = class {
   checked = /* @__PURE__ */ new Set();
   catalogs = /* @__PURE__ */ new Map();
   async initialize() {
-    await mkdir4(this.snapshotsDirectory, { recursive: true });
+    await mkdir5(this.snapshotsDirectory, { recursive: true });
     const before = await this.list();
     const bundled = await this.createSnapshot(this.baselineDirectory, "bundled", ["b2b-3.4.7"]);
     await this.settingsLock.withPageLock("library-settings", async () => {
@@ -23562,7 +24303,7 @@ var ComponentLibraryManager = class {
   }
   async readSettings() {
     try {
-      return JSON.parse(await readFile8(this.settingsFile, "utf8"));
+      return JSON.parse(await readFile9(this.settingsFile, "utf8"));
     } catch (error2) {
       if (error2.code === "ENOENT") return null;
       throw error2;
@@ -23570,18 +24311,18 @@ var ComponentLibraryManager = class {
   }
   snapshotDirectory(snapshotId) {
     if (!/^b2b-[a-f0-9]{16}$/.test(snapshotId)) throw new DomainError("INVALID_LIBRARY_ID", "\u7EC4\u4EF6\u5E93\u5FEB\u7167\u6807\u8BC6\u65E0\u6548\u3002");
-    return path8.join(this.snapshotsDirectory, snapshotId);
+    return path10.join(this.snapshotsDirectory, snapshotId);
   }
   async has(snapshotId) {
     try {
-      return (await stat4(path8.join(this.snapshotDirectory(snapshotId), "manifest.json"))).isFile();
+      return (await stat5(path10.join(this.snapshotDirectory(snapshotId), "manifest.json"))).isFile();
     } catch {
       return false;
     }
   }
   async manifest(snapshotId) {
     try {
-      return JSON.parse(await readFile8(path8.join(this.snapshotDirectory(snapshotId), "manifest.json"), "utf8"));
+      return JSON.parse(await readFile9(path10.join(this.snapshotDirectory(snapshotId), "manifest.json"), "utf8"));
     } catch {
       throw new DomainError("LIBRARY_NOT_FOUND", `\u627E\u4E0D\u5230\u7EC4\u4EF6\u5E93\u5FEB\u7167 ${snapshotId}\u3002`);
     }
@@ -23592,7 +24333,7 @@ var ComponentLibraryManager = class {
     return this.manifest(settings.currentSnapshotId);
   }
   async list() {
-    const names = await readdir3(this.snapshotsDirectory);
+    const names = await readdir4(this.snapshotsDirectory);
     const manifests = [];
     for (const name of names) {
       if (await this.has(name)) manifests.push(await this.manifest(name));
@@ -23601,11 +24342,11 @@ var ComponentLibraryManager = class {
     return { currentSnapshotId: settings?.currentSnapshotId ?? null, sourcePath: settings?.sourcePath ?? null, snapshots: manifests.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) };
   }
   async createSnapshot(sourceDirectory, sourceKind, aliases = []) {
-    const source = path8.resolve(sourceDirectory);
+    const source = path10.resolve(sourceDirectory);
     const files = (await filesUnder(source)).filter((file) => /^(components|foundations|styles|vendor)\//.test(file) && /\.(js|css|json|woff2?|ttf|png|jpe?g|webp|gif|svg)$/.test(file) || /^icons\/material-symbols\/variablefont\/.*\.woff2$/.test(file));
-    const hash = createHash2("sha256"), contents = /* @__PURE__ */ new Map();
+    const hash = createHash3("sha256"), contents = /* @__PURE__ */ new Map();
     for (const relative of files) {
-      const data = await readFile8(path8.join(source, relative));
+      const data = await readFile9(path10.join(source, relative));
       contents.set(relative, data);
       hash.update(relative);
       hash.update(data);
@@ -23617,43 +24358,43 @@ var ComponentLibraryManager = class {
       if (sourceKind === "local") await this.ensureCompatible(manifest);
       return manifest;
     }
-    const temporary = path8.join(this.snapshotsDirectory, `.candidate-${randomUUID3()}`);
-    await mkdir4(temporary, { recursive: true });
+    const temporary = path10.join(this.snapshotsDirectory, `.candidate-${randomUUID5()}`);
+    await mkdir5(temporary, { recursive: true });
     try {
       for (const relative of files) {
-        const target = path8.join(temporary, relative);
-        await mkdir4(path8.dirname(target), { recursive: true });
-        await writeFile4(target, contents.get(relative));
+        const target = path10.join(temporary, relative);
+        await mkdir5(path10.dirname(target), { recursive: true });
+        await writeFile5(target, contents.get(relative));
       }
-      const loader = await readFile8(path8.join(temporary, "components/runtime/loader.js"), "utf8");
+      const loader = await readFile9(path10.join(temporary, "components/runtime/loader.js"), "utf8");
       const sourceVersion = loader.match(/sourceVersion\s*=\s*"([^"]+)"/)?.[1] ?? null;
       await this.validateProtocol(temporary);
       await this.validateRendering(temporary, files);
       const manifest = { libraryId: "b2b", snapshotId, sourceVersion, digest, adapterVersion: "page-builder-adapter-v2", createdAt: (/* @__PURE__ */ new Date()).toISOString(), sourceKind, sourcePath: sourceKind === "bundled" ? "bundled://page-builder" : source, files, aliases };
-      await writeFile4(path8.join(temporary, "manifest.json"), JSON.stringify(manifest, null, 2));
+      await writeFile5(path10.join(temporary, "manifest.json"), JSON.stringify(manifest, null, 2));
       try {
-        await rename2(temporary, this.snapshotDirectory(snapshotId));
+        await rename3(temporary, this.snapshotDirectory(snapshotId));
       } catch (error2) {
         if (!["EEXIST", "ENOTEMPTY"].includes(error2.code || "") || !await this.has(snapshotId)) throw error2;
-        await rm2(temporary, { recursive: true, force: true });
+        await rm3(temporary, { recursive: true, force: true });
       }
       this.checked.add(snapshotId);
       return this.manifest(snapshotId);
     } catch (error2) {
-      await rm2(temporary, { recursive: true, force: true });
+      await rm3(temporary, { recursive: true, force: true });
       if (error2 instanceof DomainError) throw error2;
       throw new DomainError("LIBRARY_INVALID_SOURCE", `\u7EC4\u4EF6\u5E93\u8D44\u6E90\u6216\u516C\u5F00\u534F\u8BAE\u65E0\u6548\uFF1A${error2 instanceof Error ? error2.message.split("\n")[0] : String(error2)}`);
     }
   }
   async validateProtocol(directory) {
     const context = { window: { B2B: { components: {} } } };
-    vm2.runInNewContext(await readFile8(path8.join(directory, "components/runtime/api-schema.js"), "utf8"), context, { timeout: 1e3 });
+    vm2.runInNewContext(await readFile9(path10.join(directory, "components/runtime/api-schema.js"), "utf8"), context, { timeout: 1e3 });
     const schemas = context.window.B2B.components.apiSchemas ?? {};
     for (const id of Object.keys(COMPONENTS)) if (!schemas[id]?.props) throw new DomainError("INCOMPATIBLE_LIBRARY", `${id} \u7F3A\u5C11\u516C\u5F00 props \u534F\u8BAE\u3002`);
     for (const editor2 of EDITOR_COMPONENTS) {
       const schema = schemas[editor2.component];
       if (!schema?.props) throw new DomainError("INCOMPATIBLE_LIBRARY", `${editor2.component} \u7F3A\u5C11\u7F16\u8F91\u5668\u516C\u5F00\u534F\u8BAE\u3002`);
-      for (const prop of editor2.requiredProps) if (!schema.props[prop]) throw new DomainError("INCOMPATIBLE_LIBRARY", `${editor2.component}.${prop} \u5DF2\u4ECE\u7F16\u8F91\u5668\u534F\u8BAE\u79FB\u9664\u3002`);
+      for (const prop2 of editor2.requiredProps) if (!schema.props[prop2]) throw new DomainError("INCOMPATIBLE_LIBRARY", `${editor2.component}.${prop2} \u5DF2\u4ECE\u7F16\u8F91\u5668\u534F\u8BAE\u79FB\u9664\u3002`);
     }
   }
   async validateRendering(directory, files) {
@@ -23671,6 +24412,44 @@ var ComponentLibraryManager = class {
     await this.validateProtocol(directory);
     await this.validateRendering(directory, manifest.files);
     this.checked.add(manifest.snapshotId);
+  }
+  async exportSnapshot(snapshotId, destination) {
+    const manifest = await this.manifest(snapshotId), target = path10.join(destination, snapshotId);
+    const lock = new FilePersistence(destination, path10.join(destination, "../local/library-locks"));
+    await lock.withPageLock(snapshotId, async () => {
+      try {
+        const existing = JSON.parse(await readFile9(path10.join(target, "manifest.json"), "utf8"));
+        if (existing.digest === manifest.digest) return;
+        throw new DomainError("LIBRARY_DIGEST_MISMATCH", "\u9879\u76EE\u4E2D\u7684\u7EC4\u4EF6\u5E93\u5FEB\u7167\u4E0E\u7F13\u5B58\u4E0D\u4E00\u81F4\u3002");
+      } catch (error2) {
+        if (error2.code !== "ENOENT") throw error2;
+      }
+      const temporary = path10.join(destination, `.snapshot-${randomUUID5()}`);
+      try {
+        for (const file of manifest.files) {
+          const output2 = path10.join(temporary, safeRelative(file));
+          await mkdir5(path10.dirname(output2), { recursive: true });
+          await writeFile5(output2, await readFile9(await this.asset(snapshotId, file)));
+        }
+        await atomicJson(path10.join(temporary, "manifest.json"), { ...manifest, sourcePath: "project://component-library" });
+        await rename3(temporary, target);
+      } finally {
+        await rm3(temporary, { recursive: true, force: true });
+      }
+    });
+  }
+  async importSnapshot(directory, binding) {
+    const files = (await filesUnder(directory)).filter((file) => file !== "manifest.json");
+    const manifest = JSON.parse(await readFile9(path10.join(directory, "manifest.json"), "utf8"));
+    const hash = createHash3("sha256");
+    for (const file of files) {
+      hash.update(file);
+      hash.update(await readFile9(path10.join(directory, file)));
+    }
+    if (hash.digest("hex") !== binding.digest || binding.snapshotId !== `b2b-${binding.digest.slice(0, 16)}` || manifest.digest !== binding.digest || manifest.snapshotId !== binding.snapshotId || JSON.stringify(manifest.files) !== JSON.stringify(files)) throw new DomainError("LIBRARY_DIGEST_MISMATCH", "\u9879\u76EE\u7EC4\u4EF6\u5E93\u8D44\u6E90\u5DF2\u6539\u53D8\u6216\u4E0D\u5B8C\u6574\uFF0C\u8BF7\u6062\u590D\u5BF9\u5E94\u7248\u672C\u3002");
+    if (await this.has(binding.snapshotId)) return;
+    const restored = await this.createSnapshot(directory, "local");
+    if (restored.digest !== binding.digest) throw new DomainError("LIBRARY_DIGEST_MISMATCH", "\u7EC4\u4EF6\u5E93\u8D44\u6E90\u6458\u8981\u4E0D\u5339\u914D\u3002");
   }
   async catalog(snapshotId) {
     const id = snapshotId || (await this.current()).snapshotId;
@@ -23732,26 +24511,28 @@ var ComponentLibraryManager = class {
     return this.snapshotDirectory((await this.resolvePage(page)).snapshotId);
   }
   async asset(snapshotId, relative) {
-    const resolved = path8.resolve(this.snapshotDirectory(snapshotId), safeRelative(relative));
+    const resolved = path10.resolve(this.snapshotDirectory(snapshotId), safeRelative(relative));
     const root2 = this.snapshotDirectory(snapshotId);
-    if (!resolved.startsWith(`${root2}${path8.sep}`)) throw new DomainError("INVALID_LIBRARY_PATH", "\u7EC4\u4EF6\u5E93\u8D44\u6E90\u8DEF\u5F84\u65E0\u6548\u3002");
+    if (!resolved.startsWith(`${root2}${path10.sep}`)) throw new DomainError("INVALID_LIBRARY_PATH", "\u7EC4\u4EF6\u5E93\u8D44\u6E90\u8DEF\u5F84\u65E0\u6548\u3002");
     return resolved;
   }
 };
 
 // src/server.ts
-var root = path9.dirname(fileURLToPath(import.meta.url));
-var uiDirectory = path9.join(root, "ui");
-var build = JSON.parse(await readFile9(path9.join(root, "build.json"), "utf8"));
+var root = path11.dirname(fileURLToPath(import.meta.url));
+var uiDirectory = path11.join(root, "ui");
+var build = JSON.parse(await readFile10(path11.join(root, "build.json"), "utf8"));
 var runtime = { pluginVersion: build.pluginVersion, provider: "b2b-production", serverName: "page-builder-development" };
-var dataDirectory = process.env.PAGE_BUILDER_DATA_DIR || path9.join(homedir(), ".codex", "page-builder", "v1", "pages");
-var exportDirectory = process.env.PAGE_BUILDER_EXPORT_DIR || path9.join(homedir(), "Documents", "Page Builder Exports");
-var libraryCacheDirectory = process.env.PAGE_BUILDER_LIBRARY_DIR || path9.join(homedir(), ".codex", "page-builder", "v1", "component-libraries");
-var libraries = new ComponentLibraryManager(libraryCacheDirectory, path9.join(uiDirectory, "vendor/b2b"));
+var dataDirectory = process.env.PAGE_BUILDER_DATA_DIR || path11.join(homedir3(), ".codex", "page-builder", "v1", "pages");
+var exportDirectory = process.env.PAGE_BUILDER_EXPORT_DIR || path11.join(homedir3(), "Documents", "Page Builder Exports");
+var libraryCacheDirectory = process.env.PAGE_BUILDER_LIBRARY_DIR || path11.join(homedir3(), ".codex", "page-builder", "v1", "component-libraries");
+var libraries = new ComponentLibraryManager(libraryCacheDirectory, path11.join(uiDirectory, "vendor/b2b"));
 await libraries.initialize();
 var store = new PageStore(new FilePersistence(dataDirectory), () => libraries.binding(), libraries);
 await store.load();
-var editor = createEditorServer(store, uiDirectory, exportDirectory, runtime, libraries);
+var projects = new ProjectManager(process.env.PAGE_BUILDER_PROJECTS_DIR || (process.env.PAGE_BUILDER_DATA_DIR ? path11.join(dataDirectory, ".projects") : path11.join(homedir3(), ".codex/page-builder/v1/projects")), store, libraries);
+var directoryPicker = new DirectoryPicker();
+var editor = createEditorServer(store, uiDirectory, exportDirectory, runtime, libraries, projects, directoryPicker);
 var editorUrl = await editor.start();
 var UI_RESOURCE_URI = "ui://page-builder-development/editor-v5.html";
 var UI_MIME_TYPE = "text/html;profile=mcp-app";
@@ -23767,6 +24548,28 @@ async function handle(fn) {
     return { isError: true, content: [{ type: "text", text: JSON.stringify({ error: { code: err2.code, message: err2.message, details: err2.details } }) }] };
   }
 }
+function registerPageTool(name, config2, handler) {
+  const inputSchema = { ...config2.inputSchema, workspaceId: external_exports.string().optional().describe("Local workspace ID from project_open/project_create; omit only for legacy pages.") };
+  server.registerTool(name, { ...config2, inputSchema }, async (input) => {
+    try {
+      const result = await handler(input, await projects.store(input.workspaceId));
+      return input.workspaceId && result.structuredContent ? { ...result, structuredContent: { ...result.structuredContent, workspaceId: input.workspaceId } } : result;
+    } catch (error2) {
+      return handle(() => {
+        throw error2;
+      });
+    }
+  });
+}
+server.registerTool("project_choose_directory", { title: "\u9009\u62E9\u9879\u76EE\u6587\u4EF6\u5939", description: "Open a native folder chooser after a user clicks the editor's folder button. Returns a request ID; selection alone does not create, import or move files.", inputSchema: { purpose: external_exports.enum(["create", "open", "relink"]), initialDirectory: external_exports.string().optional() }, _meta: { ui: { visibility: ["app"] } } }, (input) => handle(() => directoryPicker.start(input.purpose, input.initialDirectory)));
+server.registerTool("project_directory_choice", { title: "\u8BFB\u53D6\u6587\u4EF6\u5939\u9009\u62E9", description: "Read the result of this editor's native folder chooser request.", inputSchema: { requestId: external_exports.string() }, _meta: { ui: { visibility: ["app"] } } }, (input) => handle(() => directoryPicker.status(input.requestId)));
+server.registerTool("project_cancel_directory_choice", { title: "\u53D6\u6D88\u6587\u4EF6\u5939\u9009\u62E9", description: "Cancel this editor's pending native folder chooser request.", inputSchema: { requestId: external_exports.string() }, _meta: { ui: { visibility: ["app"] } } }, (input) => handle(() => directoryPicker.cancel(input.requestId)));
+server.registerTool("project_list", { title: "\u6700\u8FD1\u9879\u76EE", description: "List locally opened Page Builder projects and the default parent directory.", inputSchema: {} }, () => handle(() => projects.list()));
+server.registerTool("project_create", { title: "\u65B0\u5EFA\u672C\u5730\u9879\u76EE", description: "Create a new local project folder with an initial page and portable component resources; never overwrite an existing directory.", inputSchema: { name: external_exports.string().min(1).max(80), parentDirectory: external_exports.string().optional() } }, (input) => handle(() => projects.create(input.name, input.parentDirectory)));
+server.registerTool("project_open", { title: "\u6253\u5F00\u672C\u5730\u9879\u76EE", description: "Open and validate a local Page Builder project folder, including a repository already cloned using Git. Returns workspaceId required by page tools.", inputSchema: { directory: external_exports.string(), expectedProjectId: external_exports.string().optional() } }, (input) => handle(() => projects.open(input.directory, input.expectedProjectId)));
+server.registerTool("project_relink", { title: "\u91CD\u65B0\u5173\u8054\u9879\u76EE\u8DEF\u5F84", description: "Validate a moved project against its registered identity and register its new local path. Never move, replace or delete project files.", inputSchema: { workspaceId: external_exports.string(), directory: external_exports.string() } }, (input) => handle(() => projects.relink(input.workspaceId, input.directory)));
+server.registerTool("project_update", { title: "\u4FDD\u5B58\u9879\u76EE\u8BBE\u7F6E", description: "Update project name, description, starred state and portable cover with optimistic revision checking. Does not rename or move files.", inputSchema: { workspaceId: external_exports.string(), expectedRevision: external_exports.number().int().nonnegative(), name: external_exports.string().min(1).max(80), description: external_exports.string().max(240), starred: external_exports.boolean(), coverImage: external_exports.string().nullable() } }, (input) => handle(() => projects.update(input.workspaceId, input.expectedRevision, input)));
+server.registerTool("project_get", { title: "\u8BFB\u53D6\u5F53\u524D\u9879\u76EE", description: "Resolve a registered local workspace without changing other editor panels.", inputSchema: { workspaceId: external_exports.string() } }, (input) => handle(async () => ({ project: await projects.resolve(input.workspaceId), pages: await (await projects.store(input.workspaceId)).list() })));
 server.registerResource("page-builder-development-editor", UI_RESOURCE_URI, { title: "\u9875\u9762\u642D\u5EFA\u5668\uFF08\u5F00\u53D1\u7248\uFF09", description: "Visual editor backed by the authoritative Page Schema", mimeType: UI_MIME_TYPE }, async () => {
   const html = await nativeHtml(uiDirectory, { runtime: { ...runtime, componentLibrary: await libraries.current() }, catalog: Object.values(await libraries.catalog()) });
   return { contents: [{ uri: UI_RESOURCE_URI, mimeType: UI_MIME_TYPE, text: html, _meta: { ui: { prefersBorder: false, csp: { connectDomains: [], resourceDomains: ["data:"], baseUriDomains: [] } }, "openai/widgetPrefersBorder": false } }] };
@@ -23783,8 +24586,8 @@ async function runtimePayload(snapshotId) {
 var RESOURCE_CHUNK_SIZE = 1e6;
 server.registerResource("page-builder-runtime", new ResourceTemplate("page-builder://runtime/{snapshotId}", { list: void 0 }), { mimeType: "application/json" }, async (uri, variables) => {
   const snapshotId = String(variables.snapshotId), payload = await runtimePayload(snapshotId);
-  const text = payload.length <= RESOURCE_CHUNK_SIZE ? payload : JSON.stringify({ snapshotId, chunkUris: Array.from({ length: Math.ceil(payload.length / RESOURCE_CHUNK_SIZE) }, (_, index) => `page-builder://runtime-chunk/${snapshotId}/${index}`) });
-  return { contents: [{ uri: uri.href, mimeType: "application/json", text }] };
+  const text2 = payload.length <= RESOURCE_CHUNK_SIZE ? payload : JSON.stringify({ snapshotId, chunkUris: Array.from({ length: Math.ceil(payload.length / RESOURCE_CHUNK_SIZE) }, (_, index) => `page-builder://runtime-chunk/${snapshotId}/${index}`) });
+  return { contents: [{ uri: uri.href, mimeType: "application/json", text: text2 }] };
 });
 server.registerResource("page-builder-runtime-chunk", new ResourceTemplate("page-builder://runtime-chunk/{snapshotId}/{index}", { list: void 0 }), { mimeType: "text/plain" }, async (uri, variables) => {
   const payload = await runtimePayload(String(variables.snapshotId)), index = Number(variables.index);
@@ -23797,61 +24600,61 @@ server.registerTool("page_builder_open", {
   inputSchema: {},
   _meta: { ui: { resourceUri: UI_RESOURCE_URI }, "openai/outputTemplate": UI_RESOURCE_URI, "openai/ui": { entrypoints: [{ type: "global" }, { type: "thread" }], preferredModelDisplayMode: "fullscreen" }, "openai/widgetAccessible": true, "openai/toolInvocation/invoking": "\u6B63\u5728\u6253\u5F00\u9875\u9762\u642D\u5EFA\u5668\uFF08\u5F00\u53D1\u7248\uFF09\u2026", "openai/toolInvocation/invoked": "\u9875\u9762\u642D\u5EFA\u5668\uFF08\u5F00\u53D1\u7248\uFF09\u5DF2\u5C31\u7EEA\u3002" }
 }, async () => output({ editorUrl, build, presentation: { entryVersion: 5, provider: runtime.provider, serverName: runtime.serverName, outputTemplate: UI_RESOURCE_URI }, pages: await store.list() }));
-server.registerTool("component_list", { title: "\u5217\u51FA\u7EC4\u4EF6", description: "Read components from the page-pinned library, or the current library for new pages.", inputSchema: { pageId: external_exports.string().optional() } }, async ({ pageId }) => handle(async () => {
-  const library = pageId ? await libraries.resolvePage(await store.get(pageId)) : await libraries.current();
+registerPageTool("component_list", { title: "\u5217\u51FA\u7EC4\u4EF6", description: "Read components from the page-pinned library, or the current library for new pages.", inputSchema: { pageId: external_exports.string().optional() } }, async ({ pageId, workspaceId }, store2) => handle(async () => {
+  const library = pageId ? await libraries.resolvePage(await store2.get(pageId)) : workspaceId ? await libraries.manifest((await projects.resolve(workspaceId)).componentLibrary.snapshotId) : await libraries.current();
   return { provider: "b2b-production", library, components: Object.values(await libraries.catalog(library.snapshotId)) };
 }));
-server.registerTool("component_get", { title: "\u8BFB\u53D6\u7EC4\u4EF6\u80FD\u529B", description: "Read the source protocol of a component, using pageId to match an existing page.", inputSchema: { componentId: external_exports.string(), pageId: external_exports.string().optional() } }, async ({ componentId, pageId }) => handle(async () => {
-  const library = pageId ? await libraries.resolvePage(await store.get(pageId)) : await libraries.current();
+registerPageTool("component_get", { title: "\u8BFB\u53D6\u7EC4\u4EF6\u80FD\u529B", description: "Read the source protocol of a component, using pageId to match an existing page.", inputSchema: { componentId: external_exports.string(), pageId: external_exports.string().optional() } }, async ({ componentId, pageId, workspaceId }, store2) => handle(async () => {
+  const library = pageId ? await libraries.resolvePage(await store2.get(pageId)) : workspaceId ? await libraries.manifest((await projects.resolve(workspaceId)).componentLibrary.snapshotId) : await libraries.current();
   const component = (await libraries.catalog(library.snapshotId))[componentId];
   if (!component) throw new DomainError("UNSUPPORTED_COMPONENT", `\u7EC4\u4EF6 ${componentId} \u5C1A\u672A\u9002\u914D\u3002`);
   return { library, component };
 }));
 server.registerTool("component_library_list", { title: "\u67E5\u770B\u7EC4\u4EF6\u5E93\u7248\u672C", description: "List verified immutable B2B component-library snapshots and the active version for new pages.", inputSchema: {} }, async () => output(await libraries.list()));
-server.registerTool("component_library_refresh", { title: "\u5237\u65B0\u5F53\u524D\u9875\u9762\u7EC4\u4EF6\u5E93", description: "Check the independent source, validate the existing page against it, then refresh this page and the default library without reinstalling the plugin. Content and undo history are preserved.", inputSchema: { pageId: external_exports.string(), expectedRevision: external_exports.number().int().nonnegative(), sourcePath: external_exports.string().optional() } }, async (input) => handle(() => refreshLibrary(libraries, store, input)));
+registerPageTool("component_library_refresh", { title: "\u5237\u65B0\u5F53\u524D\u9875\u9762\u7EC4\u4EF6\u5E93", description: "Check the independent source, validate the existing page against it, then refresh this page and the default library without reinstalling the plugin. Content and undo history are preserved.", inputSchema: { pageId: external_exports.string(), expectedRevision: external_exports.number().int().nonnegative(), sourcePath: external_exports.string().optional() } }, async (input, store2) => handle(() => refreshLibrary(libraries, store2, input)));
 server.registerTool("component_library_check", { title: "\u68C0\u67E5\u7EC4\u4EF6\u5E93\u66F4\u65B0", description: "Validate a local design-source directory as an immutable candidate without switching existing pages.", inputSchema: { sourcePath: external_exports.string().optional() } }, async ({ sourcePath }) => handle(() => libraries.check(sourcePath)));
 server.registerTool("component_library_apply", { title: "\u5E94\u7528\u7EC4\u4EF6\u5E93\u66F4\u65B0", description: "Atomically select a previously validated snapshot for newly created pages. Existing pages remain pinned.", inputSchema: { snapshotId: external_exports.string(), sourcePath: external_exports.string().optional() } }, async ({ snapshotId, sourcePath }) => handle(() => libraries.apply(snapshotId, sourcePath)));
-server.registerTool("page_upgrade_component_library", { title: "\u5347\u7EA7\u9875\u9762\u7EC4\u4EF6\u5E93", description: "Explicitly bind one page to a verified component-library snapshot with revision protection and undo history.", inputSchema: { pageId: external_exports.string(), expectedRevision: external_exports.number().int().nonnegative(), snapshotId: external_exports.string() } }, async ({ pageId, expectedRevision, snapshotId }) => handle(async () => ({ page: await store.setLibrary(pageId, expectedRevision, await libraries.binding(snapshotId)), library: await libraries.manifest(snapshotId) })));
-server.registerTool("page_list", { title: "\u5217\u51FA\u9875\u9762", description: "List saved pages and revisions.", inputSchema: {} }, async () => output({ pages: await store.list() }));
-server.registerTool("page_create", { title: "\u65B0\u5EFA\u9875\u9762", description: "Create an isolated empty page.", inputSchema: { name: external_exports.string().min(1).max(80) } }, async ({ name }) => handle(async () => ({ page: await store.create(name) })));
-server.registerTool("page_get_schema", { title: "\u8BFB\u53D6\u9875\u9762", description: "Read the authoritative Page Schema and revision.", inputSchema: { pageId: external_exports.string() } }, async ({ pageId }) => handle(async () => {
-  const snapshot = await store.snapshot(pageId);
+registerPageTool("page_upgrade_component_library", { title: "\u5347\u7EA7\u9875\u9762\u7EC4\u4EF6\u5E93", description: "Explicitly bind one page to a verified component-library snapshot with revision protection and undo history.", inputSchema: { pageId: external_exports.string(), expectedRevision: external_exports.number().int().nonnegative(), snapshotId: external_exports.string() } }, async ({ pageId, expectedRevision, snapshotId }, store2) => handle(async () => ({ page: await store2.setLibrary(pageId, expectedRevision, await libraries.binding(snapshotId)), library: await libraries.manifest(snapshotId) })));
+registerPageTool("page_list", { title: "\u5217\u51FA\u9875\u9762", description: "List saved pages and revisions.", inputSchema: {} }, async (_input, store2) => output({ pages: await store2.list() }));
+registerPageTool("page_create", { title: "\u65B0\u5EFA\u9875\u9762", description: "Create an isolated empty page.", inputSchema: { name: external_exports.string().min(1).max(80) } }, async ({ name }, store2) => handle(async () => ({ page: await store2.create(name) })));
+registerPageTool("page_get_schema", { title: "\u8BFB\u53D6\u9875\u9762", description: "Read the authoritative Page Schema and revision.", inputSchema: { pageId: external_exports.string() } }, async ({ pageId }, store2) => handle(async () => {
+  const snapshot = await store2.snapshot(pageId);
   return { ...snapshot, library: await libraries.resolvePage(snapshot.page), components: Object.values(await libraries.catalogForPage(snapshot.page)) };
 }));
-server.registerTool("page_get_selection", { title: "\u8BFB\u53D6\u9009\u533A", description: "Read the selected node for a page.", inputSchema: { pageId: external_exports.string() } }, async ({ pageId }) => handle(async () => ({ selection: await store.selection(pageId) })));
-server.registerTool("page_select_node", { title: "\u9009\u62E9\u8282\u70B9", description: "Set the shared UI/AI selection.", inputSchema: { pageId: external_exports.string(), nodeId: external_exports.string().nullable(), expectedRevision: external_exports.number().int().nonnegative().optional() } }, async ({ pageId, nodeId, expectedRevision }) => handle(async () => ({ selection: await store.select(pageId, nodeId, expectedRevision) })));
-server.registerTool("page_apply_operations", {
+registerPageTool("page_get_selection", { title: "\u8BFB\u53D6\u9009\u533A", description: "Read the selected node for a page.", inputSchema: { pageId: external_exports.string() } }, async ({ pageId }, store2) => handle(async () => ({ selection: await store2.selection(pageId) })));
+registerPageTool("page_select_node", { title: "\u9009\u62E9\u8282\u70B9", description: "Set the shared UI/AI selection.", inputSchema: { pageId: external_exports.string(), nodeId: external_exports.string().nullable(), expectedRevision: external_exports.number().int().nonnegative().optional() } }, async ({ pageId, nodeId, expectedRevision }, store2) => handle(async () => ({ selection: await store2.select(pageId, nodeId, expectedRevision) })));
+registerPageTool("page_apply_operations", {
   title: "\u539F\u5B50\u4FEE\u6539\u9875\u9762",
   description: "Apply add, move, update, duplicate, remove, layout, or rename operations atomically with revision protection.",
   inputSchema: { pageId: external_exports.string(), expectedRevision: external_exports.number().int().nonnegative(), operations: external_exports.array(external_exports.record(external_exports.unknown())).min(1).max(100) }
-}, async ({ pageId, expectedRevision, operations }) => handle(async () => {
-  const page = await store.apply(pageId, expectedRevision, operations);
-  return { page, selection: await store.selection(pageId) };
+}, async ({ pageId, expectedRevision, operations }, store2) => handle(async () => {
+  const page = await store2.apply(pageId, expectedRevision, operations);
+  return { page, selection: await store2.selection(pageId) };
 }));
-server.registerTool("page_undo", { title: "\u64A4\u9500\u9875\u9762\u4FEE\u6539", description: "Undo one committed batch and advance the revision.", inputSchema: { pageId: external_exports.string(), expectedRevision: external_exports.number().int().nonnegative() } }, async ({ pageId, expectedRevision }) => handle(async () => {
-  const page = await store.undo(pageId, expectedRevision);
-  return { page, selection: await store.selection(pageId) };
+registerPageTool("page_undo", { title: "\u64A4\u9500\u9875\u9762\u4FEE\u6539", description: "Undo one committed batch and advance the revision.", inputSchema: { pageId: external_exports.string(), expectedRevision: external_exports.number().int().nonnegative() } }, async ({ pageId, expectedRevision }, store2) => handle(async () => {
+  const page = await store2.undo(pageId, expectedRevision);
+  return { page, selection: await store2.selection(pageId) };
 }));
-server.registerTool("page_redo", { title: "\u91CD\u505A\u9875\u9762\u4FEE\u6539", description: "Redo one committed batch and advance the revision.", inputSchema: { pageId: external_exports.string(), expectedRevision: external_exports.number().int().nonnegative() } }, async ({ pageId, expectedRevision }) => handle(async () => {
-  const page = await store.redo(pageId, expectedRevision);
-  return { page, selection: await store.selection(pageId) };
+registerPageTool("page_redo", { title: "\u91CD\u505A\u9875\u9762\u4FEE\u6539", description: "Redo one committed batch and advance the revision.", inputSchema: { pageId: external_exports.string(), expectedRevision: external_exports.number().int().nonnegative() } }, async ({ pageId, expectedRevision }, store2) => handle(async () => {
+  const page = await store2.redo(pageId, expectedRevision);
+  return { page, selection: await store2.selection(pageId) };
 }));
-server.registerTool("page_export", { title: "\u5BFC\u51FA\u9875\u9762\u5DE5\u7A0B", description: "Export the committed revision as a self-contained ZIP with the page-pinned B2B runtime assets.", inputSchema: { pageId: external_exports.string() } }, async ({ pageId }) => handle(async () => {
-  const page = await store.get(pageId);
+registerPageTool("page_export", { title: "\u5BFC\u51FA\u9875\u9762\u5DE5\u7A0B", description: "Export the committed revision as a self-contained ZIP with the page-pinned B2B runtime assets.", inputSchema: { pageId: external_exports.string() } }, async ({ pageId }, store2) => handle(async () => {
+  const page = await store2.get(pageId);
   return { export: await exportPage(page, await libraries.directoryForPage(page), exportDirectory) };
 }));
-server.registerTool("page_import", { title: "\u5BFC\u5165\u9875\u9762\u63CF\u8FF0", description: "Validate and import a Page Builder page.json without overwriting an existing page; its pinned component library must be available.", inputSchema: { page: external_exports.record(external_exports.unknown()) } }, async ({ page }) => handle(async () => {
+registerPageTool("page_import", { title: "\u5BFC\u5165\u9875\u9762\u63CF\u8FF0", description: "Validate and import a Page Builder page.json without overwriting an existing page; its pinned component library must be available.", inputSchema: { page: external_exports.record(external_exports.unknown()), name: external_exports.string().min(1).max(80).optional() } }, async ({ page, name }, store2) => handle(async () => {
   const candidate = validatePage(structuredClone(page), null);
   await libraries.resolvePage(candidate);
-  return { page: await store.import(candidate) };
+  return { page: await store2.import(candidate, name) };
 }));
-server.registerTool("page_capture", { title: "\u83B7\u53D6\u9875\u9762\u5B9E\u9645\u753B\u9762", description: "Render the requested saved page in Chrome and return a screenshot bound to pageId, revision, and viewport.", inputSchema: { pageId: external_exports.string(), viewport: external_exports.enum(["desktop", "narrow"]).default("desktop") } }, async ({ pageId, viewport }) => {
+registerPageTool("page_capture", { title: "\u83B7\u53D6\u9875\u9762\u5B9E\u9645\u753B\u9762", description: "Render the requested saved page in Chrome and return a screenshot bound to pageId, revision, and viewport.", inputSchema: { pageId: external_exports.string(), viewport: external_exports.enum(["desktop", "narrow"]).default("desktop") } }, async ({ pageId, viewport, workspaceId }, store2) => {
   try {
-    const before = await store.get(pageId);
-    const capture = await capturePage(before, editorUrl, viewport);
-    const after = await store.get(pageId);
+    const before = await store2.get(pageId);
+    const capture = await capturePage(before, workspaceId ? `${editorUrl}?workspace=${encodeURIComponent(workspaceId)}` : editorUrl, viewport);
+    const after = await store2.get(pageId);
     if (after.revision !== before.revision) throw new DomainError("CAPTURE_STALE", `\u622A\u56FE\u671F\u95F4\u9875\u9762\u4ECE revision ${before.revision} \u66F4\u65B0\u5230 ${after.revision}\uFF0C\u65E7\u56FE\u672A\u8FD4\u56DE\u3002`, { currentRevision: after.revision });
-    const metadata = { pageId, revision: before.revision, viewport, width: capture.dimensions.width, height: capture.dimensions.height };
+    const metadata = { ...workspaceId ? { workspaceId } : {}, pageId, revision: before.revision, viewport, width: capture.dimensions.width, height: capture.dimensions.height };
     return { content: [{ type: "text", text: JSON.stringify(metadata) }, { type: "image", data: capture.png.toString("base64"), mimeType: "image/png" }], structuredContent: metadata };
   } catch (error2) {
     const err2 = error2 instanceof DomainError ? error2 : new DomainError("CAPTURE_FAILED", error2 instanceof Error ? error2.message : String(error2));

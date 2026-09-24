@@ -145,6 +145,35 @@ export class ComponentLibraryManager {
     this.checked.add(manifest.snapshotId);
   }
 
+  async exportSnapshot(snapshotId: string, destination: string) {
+    const manifest = await this.manifest(snapshotId), target = path.join(destination, snapshotId);
+    // Serialize publication across server processes. A page is saved only afterwards.
+    const lock = new FilePersistence(destination, path.join(destination, "../local/library-locks"));
+    await lock.withPageLock(snapshotId, async () => {
+      try { const existing = JSON.parse(await readFile(path.join(target, "manifest.json"), "utf8")); if (existing.digest === manifest.digest) return; throw new DomainError("LIBRARY_DIGEST_MISMATCH", "项目中的组件库快照与缓存不一致。"); }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+      const temporary = path.join(destination, `.snapshot-${randomUUID()}`);
+      try {
+        for (const file of manifest.files) { const output = path.join(temporary, safeRelative(file)); await mkdir(path.dirname(output), { recursive: true }); await writeFile(output, await readFile(await this.asset(snapshotId, file))); }
+        await atomicJson(path.join(temporary, "manifest.json"), { ...manifest, sourcePath: "project://component-library" });
+        await rename(temporary, target);
+      } finally { await rm(temporary, { recursive: true, force: true }); }
+    });
+  }
+
+  async importSnapshot(directory: string, binding: ComponentLibraryBinding) {
+    // Even when the cache already has this ID, verify the project copy so missing
+    // or modified portable assets are never silently accepted.
+    const files = (await filesUnder(directory)).filter(file => file !== "manifest.json");
+    const manifest = JSON.parse(await readFile(path.join(directory, "manifest.json"), "utf8")) as LibraryManifest;
+    const hash = createHash("sha256");
+    for (const file of files) { hash.update(file); hash.update(await readFile(path.join(directory, file))); }
+    if (hash.digest("hex") !== binding.digest || binding.snapshotId !== `b2b-${binding.digest.slice(0, 16)}` || manifest.digest !== binding.digest || manifest.snapshotId !== binding.snapshotId || JSON.stringify(manifest.files) !== JSON.stringify(files)) throw new DomainError("LIBRARY_DIGEST_MISMATCH", "项目组件库资源已改变或不完整，请恢复对应版本。");
+    if (await this.has(binding.snapshotId)) return;
+    const restored = await this.createSnapshot(directory, "local");
+    if (restored.digest !== binding.digest) throw new DomainError("LIBRARY_DIGEST_MISMATCH", "组件库资源摘要不匹配。");
+  }
+
   async catalog(snapshotId?: string) {
     const id = snapshotId || (await this.current()).snapshotId;
     if (!this.catalogs.has(id)) this.catalogs.set(id, await readLibraryCatalog(this.snapshotDirectory(id)));

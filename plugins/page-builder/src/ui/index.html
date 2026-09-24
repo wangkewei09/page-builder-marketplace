@@ -8,10 +8,11 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div id="startup-status" role="status" style="position:fixed;z-index:99999;inset:12px 12px auto;padding:14px;background:#fff;color:#243047;border:1px solid #d4d8e0;border-radius:8px;font:14px system-ui">正在启动页面搭建器…</div>
+  <div id="startup-status" role="status">正在启动页面搭建器…</div>
   <div id="app" class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">P</span><span>页面搭建器</span></div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>页面搭建器</span></div>
+      <div id="project-menu" class="ui-control"></div>
       <div id="page-name" class="page-name-control" aria-label="页面名称"></div>
       <div class="save-state" id="save-state"></div>
       <div class="toolbar" role="toolbar" aria-label="页面操作">
@@ -36,16 +37,16 @@
       </div>
     </aside>
     <main class="workspace">
-      <div class="canvas-toolbar"><span id="breadcrumb">页面</span><span id="revision-badge"></span></div>
+      <div class="canvas-toolbar"><span id="breadcrumb">页面</span><span id="selection-hint">⌘ / Ctrl + 点击多选</span><span id="revision-badge"></span></div>
       <div class="canvas-scroll"><div id="canvas-frame" class="canvas-frame"><div id="canvas" class="canvas" aria-label="页面画布"></div></div></div>
       <div class="statusbar"><span id="provider-status">正在连接真实组件…</span><span id="node-count">0 个节点</span></div>
     </main>
     <aside class="right-panel panel">
       <div class="inspector-heading">
-        <div><strong>属性</strong><span id="selection-type">未选择</span></div>
+        <div><strong id="inspector-title">页面</strong><span id="selection-type">未选择</span></div>
         <div class="context-connection"><div id="context-status" class="context-status"></div><div id="sync-context" class="ui-control"></div></div>
       </div>
-      <div id="inspector" class="inspector"><div class="empty-inspector"><span class="empty-icon">◇</span><p>选择画布中的组件</p><small>在这里修改内容、变体和状态</small></div></div>
+      <div id="inspector" class="inspector"><div class="empty-inspector"><span class="empty-icon" aria-hidden="true"></span><p>选择画布中的组件</p><small>在这里修改内容、变体和状态</small></div></div>
     </aside>
   </div>
   <div id="toast" class="toast" aria-live="polite"></div>

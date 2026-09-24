@@ -1,3 +1,4 @@
+import { editInline, openInline } from "./inline-helpers.mjs";
 import { strict as assert } from "node:assert";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -47,15 +48,17 @@ try {
   await frame.getByLabel("添加卡片").click();
   await frame.getByText("卡片已添加").waitFor();
   await frame.locator('.node-shell[data-renderer-valid="true"]').first().click();
-  for (const label of ["卡片标题", "卡片正文", "辅助信息"]) await frame.locator("#inspector .field-label").getByText(label, { exact: true }).waitFor();
+  await frame.locator("#sync-context button").click();
+  for (const label of ["卡片标题", "卡片正文", "辅助信息"]) await frame.locator("#inspector").getByRole("button", { name: `编辑${label}`, exact: true }).waitFor();
   assert.equal(await frame.getByText("已选值（每行一个）", { exact: true }).count(), 0);
-  const body = frame.locator("#inspector textarea");
-  assert.equal(await body.evaluate(el => el.getBoundingClientRect().height), 92);
+  const body = await openInline(frame, "卡片正文");
+  assert.ok(await body.evaluate(el => el.isContentEditable && el.classList.contains('card-body')), 'edits the source card body itself');
+  assert.equal(await frame.locator('.inline-editor').count(), 0);
   await body.fill("原生资源编辑已保存", { timeout: 5000 }).catch(async error => { console.error(JSON.stringify({ inspector: await frame.locator("#inspector").innerText(), errors })); throw error; }); await body.press("Tab");
   await frame.locator("#canvas").getByText("原生资源编辑已保存", { exact: true }).waitFor();
   await frame.getByRole('button', { name: '上传媒体图片', exact: true }).waitFor();
   await page.screenshot({ path: "/tmp/page-builder-property-labels.png" });
-  await frame.getByLabel("添加标签").click(); await frame.getByText("标签已添加").waitFor();
+  await frame.getByLabel("添加标签").click(); await frame.getByText("标签已添加").waitFor().catch(async error => { console.error(JSON.stringify({ errors, body: await frame.locator("body").innerText(), editing: await frame.locator("[data-pb-inline-edit]").count() })); throw error; });
   assert.equal(await frame.locator(".render-error,.ui-control-error").count(), 0);
   assert.equal(await frame.locator('[data-renderer-valid="true"]').count(), 2);
   assert.equal(await frame.locator("#startup-status").isVisible(), false);
@@ -65,8 +68,9 @@ try {
   await frame.locator("#canvas").getByText("原生资源编辑已保存", { exact: true }).waitFor();
   await frame.getByLabel("添加输入框").click(); await frame.getByText("输入框已添加").waitFor().catch(async error => { console.error(JSON.stringify({ errors, body: await frame.locator("body").innerText() })); throw error; });
   await frame.locator('.component-shell[data-renderer-valid="true"]').last().click();
+  await frame.locator("#sync-context button").click();
   for (const variant of ["数字输入框", "带图标输入框", "带属性输入框", "组合输入框", "长文本输入框", "基础输入框"]) {
-    const control = frame.locator("#inspector .field").filter({ has: frame.locator(".field-label", { hasText: /^变体$/ }) });
+    const control = frame.locator("#inspector .pb-field").filter({ has: frame.locator(".pb-field-label", { hasText: /^变体$/ }) });
     await control.locator("[data-select-trigger]").click();
     await control.getByRole("option", { name: variant, exact: true }).click();
     await frame.getByText("属性已更新", { exact: true }).waitFor();
@@ -80,15 +84,16 @@ try {
   }
   // Compare each card to a directly mounted production Renderer at the same width/props.
   await frame.locator('.component-shell[data-renderer-valid="true"]').first().click();
+  await frame.locator("#sync-context button").click();
   const uploadBytes = await page.screenshot({ clip: { x: 0, y: 0, width: 300, height: 120 } });
   await frame.locator('#inspector input[type="file"]').setInputFiles({ name: 'test-cover.png', mimeType: 'image/png', buffer: uploadBytes });
   await page.waitForFunction(() => window.contexts.native?.props?.coverAlt === 'test-cover.png');
   const image = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='120'%3E%3Crect width='300' height='120' fill='%23e6edfa'/%3E%3C/svg%3E";
-  await frame.getByRole("group", { name: "媒体图片地址（图文／底部操作卡片必填）", exact: true }).locator("input").fill(image);
+  await frame.locator("#app:not([inert]) #inspector:not([inert])").getByRole("group", { name: "媒体图片地址（图文／底部操作卡片必填）", exact: true }).locator("input").fill(image);
   await page.waitForFunction(image => window.contexts.native?.props?.coverImage === image, image);
   const cardNames = { basic: "基础卡片", compact: "简洁卡片", cover: "封面卡片", meta: "图文卡片", "external-grid": "栅格卡片", "content-grid": "内容区隔", nested: "内部卡片", tabs: "页签卡片", actions: "底部操作卡片", interactive: "整体可点击" };
   for (const variant of ["compact", "cover", "meta", "external-grid", "content-grid", "nested", "tabs", "actions", "interactive", "basic"]) {
-    const control = frame.getByRole("group", { name: "变体", exact: true });
+    const control = frame.locator("#app:not([inert]) #inspector:not([inert])").getByRole("group", { name: "变体", exact: true });
     await control.locator("[data-select-trigger]").click();
     await control.getByRole("option", { name: cardNames[variant], exact: true }).click();
     await page.waitForFunction(variant => window.contexts.native?.props?.variant === variant, variant);
@@ -112,7 +117,7 @@ try {
     if (variant === 'nested') {
       await frame.getByRole('button', { name: '添加一项', exact: true }).click();
       await page.waitForFunction(() => window.contexts.native?.props?.items?.length === 2).catch(async error => { console.error(JSON.stringify({ contexts: await page.evaluate(() => window.contexts), errors, inspector: await frame.locator('#inspector').innerText() })); throw error; });
-      await frame.getByRole('group', { name: '子卡片标题 2', exact: true }).locator('input').fill('第二张子卡片');
+      await frame.locator('#app:not([inert]) #inspector:not([inert])').getByRole('group', { name: '子卡片标题 2', exact: true }).locator('input').fill('第二张子卡片');
       await frame.locator('#canvas').getByText('第二张子卡片', { exact: true }).waitFor();
       await frame.getByRole('button', { name: '移除第 2 项', exact: true }).click();
       await page.waitForFunction(() => window.contexts.native?.props?.items?.length === 1);
@@ -122,13 +127,14 @@ try {
   // Exercise every publicly declared tag/select/button variant through the real inspector.
   const enumNames = { category: "分类标签", filter: "筛选标签", closable: "可关闭", checkable: "可选择", loading: "加载中", bordered: "描边标签", status: "状态标签", avatar: "头像标签", property: "属性标签", option: "选项标签", primary: "主要按钮", danger: "主要危险按钮", "secondary-blue": "蓝色次要按钮", "secondary-danger": "次要危险按钮", "secondary-gray": "灰色次要按钮" };
   async function choose(label, value) {
-    const control = frame.getByRole("group", { name: label, exact: true });
+    const control = frame.locator("#app:not([inert]) #inspector:not([inert])").getByRole("group", { name: label, exact: true });
     await control.locator("[data-select-trigger]").click();
     await control.getByRole("option", { name: enumNames[value] || value, exact: true }).click();
     await page.waitForFunction(({ key, value }) => window.contexts.native?.props?.[key] === value, { key: label === "类型" ? "type" : "variant", value });
     assert.equal(await frame.locator(".render-error,.ui-control-error").count(), 0, value);
   }
   await frame.locator('.component-shell[data-renderer-valid="true"]').nth(1).click();
+  await frame.locator("#sync-context button").click();
   for (const variant of ["category", "filter", "closable", "checkable", "loading", "bordered", "status"]) {
     await choose("变体", variant);
     const props = await page.evaluate(() => window.contexts.native.props);
@@ -138,17 +144,19 @@ try {
     if (variant === "checkable") assert.equal(props.checkable, true);
   }
   for (const type of ["avatar", "property", "option", "status"]) await choose("类型", type);
-  await frame.getByText("全部组件属性", { exact: true }).click();
-  const allProps = frame.locator("#inspector details");
+  await frame.getByText("其他设置", { exact: true }).click();
+  const allProps = frame.locator("#app:not([inert]) #inspector:not([inert]) details");
   await allProps.getByRole("group", { name: "图标", exact: true }).locator("input").fill("person");
-  const color = allProps.getByRole("group", { name: "颜色", exact: true });
+  await allProps.getByRole("button", { name: "应用其他设置", exact: true }).click();
+  await page.waitForFunction(() => window.contexts.native?.props?.icon === "person");
+  const color = frame.locator('#inspector:not([inert])').getByRole('group', { name: '颜色', exact: true });
   await color.locator('[data-select-trigger]').click();
   await color.getByRole('option', { name: '绿色', exact: true }).click();
-  await allProps.getByRole("button", { name: "应用全部属性", exact: true }).click();
-  await page.waitForFunction(() => window.contexts.native?.props?.icon === "person");
+  await page.waitForFunction(() => window.contexts.native?.props?.color === 'green');
   assert.equal(await page.evaluate(() => window.contexts.native.props.color), 'green', 'full properties must also save the source value, not the Chinese label');
   await frame.getByLabel("添加选择器").click(); await frame.getByText("选择器已添加").waitFor();
   await frame.locator('.component-shell[data-renderer-valid="true"]').last().click();
+  await frame.locator("#sync-context button").click();
   for (const variant of ["基础多选", "自定义选项", "分组选项", "无边框", "下划线", "可搜索", "可创建", "复杂内容", "基础单选"]) {
     await choose("变体", variant);
     const props = await page.evaluate(() => window.contexts.native.props);
@@ -158,16 +166,19 @@ try {
   }
   await frame.getByLabel("添加基础按钮").click(); await frame.getByText("基础按钮已添加").waitFor();
   await frame.locator('.component-shell[data-renderer-valid="true"]').last().click();
+  await frame.locator("#sync-context button").click();
   for (const variant of ["primary", "danger", "secondary-blue", "secondary-danger", "secondary-gray"]) await choose("变体", variant);
-  // A second view starts passive and only the one clicked by the user owns context.
+  // A second view stays passive until its explicit context button is clicked.
   await page.evaluate(() => { const first=document.querySelector('iframe');const second=document.createElement('iframe');second.id='second';second.width='1200';second.height='800';second.srcdoc=first.srcdoc;document.body.append(second); });
   const second = page.frameLocator("#second"); await second.getByLabel("添加输入框").waitFor();
   assert.ok(!(await page.evaluate(() => window.contexts.second)));
   assert.deepEqual(await page.evaluate(() => Object.keys(window.attachments)), ['native']);
   await second.locator('.component-shell[data-renderer-valid="true"]').first().click();
+  await second.locator(".node-actions").getByRole("button", { name: "加入 AI 上下文", exact: true }).click();
   await page.waitForFunction(() => window.contexts.second && !window.contexts.native);
   assert.deepEqual(await page.evaluate(() => Object.keys(window.attachments)), ['second']);
   await frame.locator('.component-shell[data-renderer-valid="true"]').last().click();
+  await frame.locator("#sync-context button").click();
   await page.waitForFunction(() => window.contexts.native && !window.contexts.second);
   assert.deepEqual(await page.evaluate(() => Object.keys(window.attachments)), ['native']);
   await page.locator("#second").evaluate(el => el.remove());

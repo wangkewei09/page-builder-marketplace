@@ -85,3 +85,95 @@ A09/A17：桥接与严格原生资源模拟通过零空附件、同源双面板�
 - `inspector-options.test.ts` 验证未知值、数值类型和标签重名；`native-refresh.test.mjs` 验证连续原生重载后中文变体仍可切换。build/typecheck、官方插件校验通过。
 - Browser plugin not available，采用已有 Playwright/Chrome。桌面 1440×900 及窄面板 520×440、320×360，控制台和 HTTP 错误为 0。截图 `/tmp/page-builder-property-labels.png`、`/tmp/page-builder-native-refresh-fixed.png`。原生 Codex 当前面板加载本次安装单独待确认。
 - 未完成：常用字段布局、中文词典和复杂变体转换仍由插件维护，完整编辑元数据解耦不能标为通过，边界见 COMPONENT_LIBRARY_LIFECYCLE。
+
+## 2026-09-18 / 编辑协议 v1（P01–P06）
+
+| 编号 | 可观察结果 | 验证与状态 |
+|---|---|---|
+| P01 | 五组件的中文字段、枚举、分组、条件与控件来自源 JSON | 真实源 76 字段、37 变体、4 标签类型，builder-source：通过 |
+| P02 | 仅源协议改动即可手动更新属性栏，当前节点内容不重置 | builder-inspector / native-refresh：HTTP 与原生动态注入路径均通过，插件构建字节未变 |
+| P03 | 无协议的旧库兼容，错误协议拒绝候选 | parser 单测、旧库 native-resource、未知版本 UI 拒绝且页/默认快照保留：通过 |
+| P04 | 数字分支与空值、禁用/显隐、简单伴随更新、图片、嵌套中文编辑可用 | builder-source / builder-inspector：通过；复杂转换继续走兼容适配器 |
+| P05 | 草稿、保存恢复与导出不丢数据，布局设置不进入 props | 草稿阻止其他写入并可取消、library-refresh、保存重开/导出、既有领域与存储测试：通过 |
+| P06 | 安装包有效、当前真实 Codex 面板已加载 | 官方插件/Skill 校验通过，安装逐字节核对见 PROGRESS；真实 Codex 已打开面板加载：待验证 |
+
+环境：Browser plugin not available（本会话未提供 browser skill），采用项目已有 Playwright Core 与 Google Chrome。HTTP 1440×1000/1500×1000 与 520×760；原生注入 1440×1000，旧库窄面板 520×440/320×360。页面身份正确、非空、无错误覆盖层、非预期控制台错误 0。注入错误协议时预期出现一条 400 拒绝请求，有独立断言，不算正常流程成功。
+
+截图已目视：`/tmp/page-builder-real-protocol.png`、`/tmp/page-builder-protocol-desktop.png`、`/tmp/page-builder-protocol-narrow.png`、`/tmp/page-builder-native-refresh-fixed.png`。浏览器测试均使用隔离页面/缓存/导出目录，不修改真实用户页面。代码测试比对源实际有效 schema，未把测试替身当组件库实现。
+
+
+## A04/A05/A08 拖拽反馈专项（2026-09-21）
+
+- `npm run test:drag`：真实鼠标事件验证中间插入与让位动画、稳定落点、上下移动、原位放回、Esc/外部取消、撤销重做、重开、版本冲突、空纵向/横向/分栏、跨容器移动、横向换行/多行分栏、边缘滚动及取消停止、保存失败后的重试、520px 窄面板和减少动态效果。全部通过；预览期间 revision 不变，完成只增一次。
+- 浏览器基础编辑回归通过：拖入、改文案/变体、avatar 类型、跨容器移动、删除/撤销、预览原组件交互和保存重开。原测试模糊匹配“类型”同时命中变体提示，改为精确属性组定位；补隔离 library cache，未弱化行为断言。
+- `native-refresh.test.mjs` 增加严格无 HTTP 动态注入文档在多次库重载/恢复之后的真实鼠标占位及插入；安装版本对应结果见 PROGRESS。
+- 环境：本任务未列出 Browser skill（Browser plugin not available in this session），采用既有 Playwright/Chrome 153.0.8010.52，HTTP 1440×1000 / 520×760；原生资源沙箱 1420×960。无空白/渲染错误、非预期控制台错误 0。故意注入的 409/503 单独记录。
+- 连续交互与数据证据：`/tmp/page-builder-drag-result.json`；桌面 `/tmp/page-builder-drag-placeholder.png`、窄屏 `/tmp/page-builder-drag-narrow.png`、重载后原生资源 `/tmp/page-builder-drag-native.png`。截图仅辅助视觉检查，不替代拖动和持久化断言。
+- 真实 Codex 当前面板加载新版本仍属 A17 单独验收；没有把浏览器/原生资源沙箱当成实际宿主验收。
+
+## 选中操作、增量渲染和源样式（2026-09-21）
+
+- `incremental-canvas.test.mjs`：真实 C-02/C-04 工具栏复制/删除、布局子树复制新 ID、撤销重做、移动零挂载、未改节点 DOM/实例与本地输入保留、延迟挂载不清空画布、单组件 props 更新、晚到保存不覆盖新选区，以及异步淘汰/失败/reset 清理通过。桌面与 520px 窄面板工具栏可见，Foundation 变量和图标字体来源通过。
+- `host-bridge.test.mjs`：选中/添加不附加；显式加入、换选后更新保留旧引用、修改引用内容、删除清空、跨面板显式接管、拒绝/超时重试、失败状态不因换选变绿、teardown 先清空再响应、无 ui/message，全部通过。
+- `browser`、`drag-preview`、`builder-inspector` 通过；C-42 avatar、属性中文/条件/源协议更新和草稿保护仍可用。源 Renderer 的 37 种变体/四种标签类型、10 种卡片直接样式对照、无 HTTP 原生资源沙箱和原生文档连续重载/失败恢复/重载后拖拽全部通过。
+- 23 项单测、2 项 MCP/独立包测试、typecheck、插件/Skill 校验通过。新测试等待属性面板脱离 inert 后输入（Playwright fill 不检查 inert 焦点），不通过固定延时掩盖保存竞争。
+- 自审覆盖挂载代次、引用所有权、串行写入、迟返回选区、组件源边界和重载解锁；未运行独立 Agent 评审。证据：`artifacts/evidence/selection-incremental-20260921.json`，桌面/窄屏 `selection-toolbar[-narrow]-20260921.png`，截图已目视复核。
+- 浏览器和原生资源沙箱不等于当前 Codex 宿主已经加载。开发版安装后需完整退出再开，真实 A17 仍待宿主重启后确认。
+
+## 多组件上下文（2026-09-21）
+
+- `multi-context.test.mjs` 使用真实 MCP 服务和打包后的原生 HTML，无 HTTP 的严格 CSP 宿主模拟：多选/取消、一个附件、同类不同 ID、换选保留引用、两项已保存属性更新、结构树键盘、拒绝后换选再重试、部分删除/全部清空均通过，错误为 0。真实 macOS ⌘ 点击；Windows Ctrl 仅事件分支验证，未称 Windows 实机通过。
+- 原有 `host-bridge`、`incremental-canvas`、`native-refresh` 回归通过，覆盖跨面板接管、单选兼容、复制删除、实例复用与组件库重载恢复。typecheck、23 项 TS 行为测试、2 项 MCP/独立包测试、插件和 Skill 校验通过。
+- 自审检查了活动选区/临时多选/显式引用三者边界、相同活动节点的组变化、异步发布与重试、节点删除、旧字段兼容；未做独立 Agent 评审。
+- 截图已目视复核桌面与 660px 面板的数量、选框和浮动操作；连续测试和安装证据见 `artifacts/evidence/multi-context-20260921.json`。当前 Codex 宿主真实加载与附件展开仍需重启后验收，不能由模拟宿主结果代替。
+
+## 空白取消选择与页面概览（2026-09-21）
+
+- `multi-context` 新增真实点击根布局间隙（含 ⌘）、画布 padding、外侧空白；单选/多选与持久选区清空，已有附件不变。页面名称及组件/非根布局数量随 Schema 更新，子布局和源 C-02「页面布局」入口仍可选择。
+- `native-refresh` 新增反复库重载、失败恢复和拖入后的空白取消验收，页面 revision 与引用均不变。原 `host-bridge`、`incremental-canvas`、typecheck、插件校验通过，相关控制台错误为 0。
+- 桌面 1440×900 / 窄屏 680×900（内嵌视口 1420px / 660px）截图已目视复核；没有 Browser skill，使用既有 Playwright/Chrome 和隔离 MCP 严格 CSP 资源。证据 `artifacts/evidence/page-overview-20260921.json`。自审覆盖命中边界、草稿保护、空选区、视图缓存和重载监听器，未做独立评审。
+- 安装与源码构建核对、用户数据备份分别记录；当前 Codex 宿主加载仍须重启后确认。
+
+## 画布浮层编辑与属性去重（2026-09-22，历史实现）
+
+此版本通过保存功能测试，但用户反馈浮层不符合原位交互要求，已由下节修正。
+
+- 通过：单击/双击、源 C-21、无重复字段、单组件更新保留无关 DOM、中文输入法、数字类型/非法值、正文换行、失焦、取消、服务器拒绝保留草稿/重试、输入控件挂载失败可退出、撤销/重做、外部更新 409 不覆盖、预览不进入编辑、桌面/520px 浮层位置。
+- 通过：真实源 37 变体/4 类型、10 卡片样式几何对照、嵌套列表/导出、原生无 HTTP 多次重载后编辑、源侧改定位元数据改变右侧/画布入口且消费者构建字节不变；旧数据和源 CSS/Renderer 行为保留。
+- 安装包、源码构建和 fresh installed MCP 均通过；用户 327 个页面/历史/配置文件备份后核对未变。当前真实 Codex 已运行面板的加载保持待确认，需完整退出重开。
+- 控制台仅有故意注入的挂载失败和 400/409，正常流程无非预期错误；自审，未进行独立评审。详细证据见 [本轮记录](../artifacts/evidence/inline-editing-20260922.json)，范围和 240 字源控件限制见 [功能说明](INLINE_EDITING.md)。
+
+## 真正原位编辑（2026-09-22）
+
+- 通过：光标在原元素/原生输入框，没有弹窗或新 C-21；按钮文本字体/颜色/位置/尺寸不变，图标身份保留，取消还原同一源节点与完整属性。
+- 通过：实际键入时原位置展示草稿而 revision 不变，保存/失焦、正文换行与超过 240 字、IME、数字、纯文本粘贴、错误草稿/重试、撤销重做、409 不覆盖、禁用/加载按钮编辑、预览恢复原事件。
+- 通过：桌面与 520px 截图；既有拖拽/增量/上下文、重复组件库重载、真实源/严格 CSP 原生资源回归，源侧协议/实现格式无变动。
+- 安装文件与 fresh MCP 已核对，327 个用户文件未变；真实 Codex 运行中面板需完整退出重开后确认。控制台只有测试主动注入的 400/409；此次自审。
+- [证据](../artifacts/evidence/inplace-editing-20260922.json)，[桌面截图](../artifacts/evidence/inplace-desktop-20260922.png)，[窄屏截图](../artifacts/evidence/inplace-narrow-20260922.png)。
+# 2026-09-24 / 本地项目创建增量
+
+构建 `0.1.1+codex.20260924071459`。26 个 TypeScript 行为测试、MCP/package 2 项、13 个浏览器测试脚本集合分段通过。Browser skill 未列于当前会话，按前端测试技能使用项目 Playwright 与本机 Chrome。检查结果为自审，不是独立 Agent 审核。
+
+| 范围 | 结果与证据 |
+|---|---|
+| 新建、打开、最近项目、添加/切换/复制页面 | 严格 CSP 的原生 MCP iframe 实际点击流程通过；磁盘 JSON 与重新打开内容一致。`tests/projects.test.mjs` |
+| 同 ID 的两份本地工程 | projectId/pageId 保持一致，workspaceId 不同；修改一份不影响另一份，旧全局页面不受影响 |
+| 便携资源与坏数据 | 修改惰性 CSS 字节生成非内置快照，空缓存恢复通过；资源损坏、普通文件夹、非法身份/名字拒绝，不覆盖原文件 |
+| 保存与切换 | 延迟原位保存后进入项目菜单，文字已持久化；切页清除旧上下文；跨库切换及注入资源读取失败后恢复旧画布均通过 |
+| 创建失败 | 注入资源写失败，未完成项目目录清理；同名已有文件夹和用户文件保持原样。`tests/projects.test.ts` |
+| HTTP/MCP/AI | 共用工作区存储，HTTP 与第二个 MCP 进程读到相同页面；上下文带 workspaceId/projectId；异源本地文件 API 请求拒绝 |
+| 视觉与交互回归 | 桌面 1440px 与窄屏 680px 项目界面无横向溢出；原位、拖拽、局部更新、多选上下文、原生重载、属性协议、独立导出均通过 |
+| 安装 | 官方 CLI 安装；16 个关键文件逐字节一致，隔离安装版 MCP 新建/读取项目成功；353 个原用户文件 SHA256 不变 |
+| 真实运行宿主 | 尚未确认当前已打开 Codex 面板加载新版本，保持待用户重开验收，不据隔离 iframe/新 MCP 标记通过 |
+
+首次集合回归发现工具栏尚未挂载完即显示，以及原位编辑捕获点击后吞掉紧接的添加操作；已修正为工具栏完整挂载再显示、保存成功后继续明确的编辑器按钮操作，相关脚本补跑通过。没有以延时或删断言掩盖失败。[专项日志](evidence/2026-09-24-projects/projects.log)、[原生资源回归](evidence/2026-09-24-projects/native-resource.log)、[桌面](evidence/2026-09-24-projects/desktop.png)、[窄屏](evidence/2026-09-24-projects/narrow.png)、[自审与完整范围](evidence/2026-09-24-projects/README.md)。
+
+## 2026-09-24 / 项目卡片工作台
+
+项目入口改为 Figma 式导航与卡片页，每张卡片进入自己的页面列表或设置。搜索/收藏/封面、跨项目设置隔离、清单并发保护、错误路径拒绝与移动恢复通过；1440/680/420 截图已复核。27 项 TS、2 项 MCP/package、项目专项、编辑器 browser 和 native-resource 回归通过。官方安装 0.1.1+codex.20260924080549；16 文件一致，fresh installed MCP 创建/保存项目设置通过，353 个原用户文件摘要未变。实际运行中的 Codex 宿主加载新版仍待重新启动验收。
+
+详细矩阵、首轮失败与修正、自审和边界见 [卡片页证据](evidence/2026-09-24-project-cards/README.md)。
+
+## 2026-09-24 / 系统文件夹选择
+
+构建 `0.1.1+codex.20260924085012`。31 个 TS 行为测试、2 个 MCP/package、项目专项通过；3 个入口均无路径输入框，选择/取消/失败重试、未选禁止创建、不同项目拒绝关联均验证。浏览器只模拟 OS 选择结果，项目后端为真实 MCP；系统窗口自身的视觉和点击返回尚待用户确认。官方 CLI 安装通过，16 关键文件一致，安装版 app-only 工具与隔离项目读写通过，353 个原用户文件摘要不变。当前 Codex 旧进程尚未证实重新加载。完整边界和截图见 [目录选择证据](evidence/2026-09-24-folder-picker/README.md)。
