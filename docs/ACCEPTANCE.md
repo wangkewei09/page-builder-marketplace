@@ -167,3 +167,9 @@ A09/A17：桥接与严格原生资源模拟通过零空附件、同源双面板�
 | 真实运行宿主 | 尚未确认当前已打开 Codex 面板加载新版本，保持待用户重开验收，不据隔离 iframe/新 MCP 标记通过 |
 
 首次集合回归发现工具栏尚未挂载完即显示，以及原位编辑捕获点击后吞掉紧接的添加操作；已修正为工具栏完整挂载再显示、保存成功后继续明确的编辑器按钮操作，相关脚本补跑通过。没有以延时或删断言掩盖失败。[专项日志](evidence/2026-09-24-projects/projects.log)、[原生资源回归](evidence/2026-09-24-projects/native-resource.log)、[桌面](evidence/2026-09-24-projects/desktop.png)、[窄屏](evidence/2026-09-24-projects/narrow.png)、[自审与完整范围](evidence/2026-09-24-projects/README.md)。
+
+## 2026-09-24 / 项目卡片工作台
+
+项目入口改为 Figma 式导航与卡片页，每张卡片进入自己的页面列表或设置。搜索/收藏/封面、跨项目设置隔离、清单并发保护、错误路径拒绝与移动恢复通过；1440/680/420 截图已复核。27 项 TS、2 项 MCP/package、项目专项、编辑器 browser 和 native-resource 回归通过。官方安装 0.1.1+codex.20260924080549；16 文件一致，fresh installed MCP 创建/保存项目设置通过，353 个原用户文件摘要未变。实际运行中的 Codex 宿主加载新版仍待重新启动验收。
+
+详细矩阵、首轮失败与修正、自审和边界见 [卡片页证据](evidence/2026-09-24-project-cards/README.md)。

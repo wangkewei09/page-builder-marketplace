@@ -38,7 +38,9 @@ export function createEditorServer(legacyStore: PageStore, uiDirectory: string, 
       const store = projects ? await projects.store(workspaceId) : legacyStore;
       if (pathname === "/api/projects" && request.method === "GET" && projects) return send(response, 200, await projects.list());
       if (pathname === "/api/projects" && request.method === "POST" && projects) { const input = await json(request); return send(response, 201, await projects.create(input.name, input.parentDirectory)); }
-      if (pathname === "/api/projects/open" && request.method === "POST" && projects) { const input = await json(request); return send(response, 200, await projects.open(input.directory)); }
+      if (pathname === "/api/projects/open" && request.method === "POST" && projects) { const input = await json(request); return send(response, 200, await projects.open(input.directory, input.expectedProjectId)); }
+      if (pathname === "/api/projects/relink" && request.method === "POST" && projects) { const input = await json(request); return send(response, 200, await projects.relink(input.workspaceId, input.directory)); }
+      if (pathname === "/api/projects/settings" && request.method === "POST" && projects) { const input = await json(request); return send(response, 200, await projects.update(input.workspaceId, input.expectedRevision, input)); }
       if (pathname === "/api/projects/current" && request.method === "GET" && projects && workspaceId) return send(response, 200, { project: await projects.resolve(workspaceId), pages: await store.list() });
       if (pathname === "/api/health") return send(response, 200, { ok: true, ...runtime, components: Object.keys(COMPONENTS), schemaVersion: 1, componentLibrary: await libraries.current() });
       if (pathname === "/api/catalog" && request.method === "GET") return send(response, 200, { components: Object.values(await libraries.catalog(url.searchParams.get("snapshotId") || undefined)) });

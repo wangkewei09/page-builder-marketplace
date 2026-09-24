@@ -15,6 +15,9 @@ Call `page_builder_open` for a visual page-building request. Entry version 5 dec
 
 For a local project, use `project_list`, `project_open` (an existing project root), or `project_create` (a new named child directory). Keep the returned `workspaceId` in **every** page/component read, write, capture, import, export, and library-refresh call. Context attachments include workspaceId and projectId; projectId alone does not identify a local checkout. Omit workspaceId only for legacy global pages. Never fall back to another workspace when the requested one cannot be opened. The local project contains portable component snapshots and independent page files; ordinary source-code repositories must first be prepared as Page Builder projects, and are not automatically converted. Git clone/pull remains a separate operation; reopen after external Git changes. Do not run external Git writes concurrently with editing.
 
+Project cards and their settings use `project_list`/`project_get` and `project_update`. Supply the project's own workspaceId plus current project revision (0 for older manifests) when saving name, description (up to 240 characters), starred and optional embedded cover. A project settings revision is separate from page revision. Names do not rename folders. Use `project_relink` only to reconnect an already moved project directory; it verifies the registered project identity and never moves/deletes user files. Missing path cards remain visible for recovery. Do not use unscoped page operations for a card belonging to another project.
+
+
 New project pages use the project's creation-time library binding. Refreshing an individual page does not silently upgrade sibling pages or the project default.
 
 1. Use `page_list` to resolve the intended page explicitly.

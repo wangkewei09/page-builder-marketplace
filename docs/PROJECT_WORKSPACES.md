@@ -6,6 +6,18 @@
 
 顶部「项目」入口提供新建、路径打开、最近项目；新建自动进入「首页」。项目内可以添加、切换、复制页面，历史页面可显式复制进项目。原有公共页面与历史不迁移、不删除。项目管理标准控件使用绑定组件库的 C-02/C-21、Foundation 与图标。
 
+## 项目工作台（2026-09-24）
+
+顶部项目名称按钮现在打开完整项目卡片页，关闭为「继续编辑」，保留原画布实例。参考用户提供的 Figma 首页截图：左侧最近/所有/收藏/历史页面导航，右侧搜索、新建/打开与封面卡片网格。点击卡片进入该项目的页面列表；卡片设置按钮进入独立设置页。没有加入社区推荐、分享或团队管理等本次未要求功能。
+
+项目设置包括名称、说明（源 C-21 的 240 字上限）、封面与收藏。封面仅手动上传 PNG/JPEG/WebP，最大 1 MB，推荐 16:9；没有封面时显示项目名称缩写，明确不当作页面截图。没有截图轮询或组件库自动刷新。项目内容是既有页面文件，新建/打开/复制沿用原来的工作区接口。
+
+本地路径是实际目录。修改项目名称只改显示名称；「重新关联本地路径」用于用户已移动的同一项目，先核对 projectId、页面和便携资源，再登记新路径。移动后仍保留缺失路径卡片；成功关联时只清除不存在旧路径的本机快捷登记，绝不移动、覆盖或删除用户文件。已存在的另一份检出继续独立保留。
+
+标准卡片来自源 C-34 actions，页面入口使用 C-34 interactive，输入和操作使用 C-21/C-02，内部头像、图标操作由 C-34 组合。页面 CSS 只处理网格、导航区、表单组合和响应式；没有改动源 Renderer、CSS、Token 或协议文件。
+
+项目清单可选新增 `revision/updatedAt/description/starred/coverImage`，旧项目 revision 默认为 0；保存通过同目录跨进程锁和 expectedRevision 原子更新，页面 JSON 不变。`project_update` 与 HTTP settings 共用实现；`project_relink` 与 HTTP relink 共用身份校验；UI 请求可显式携带 workspaceId，不借用当前正在编辑的项目范围。工作台打开期间暂停原页轮询，不建立后台项目扫描。
+
 实际文件结构：根目录 `page-builder.project.json` 保存 schemaVersion/projectId/name/defaultCanvasId/创建时组件库绑定；`.page-builder/pages/*.json` 为页面事实；`canvases/main.json` 预留默认画布及 placements，页面成员直接来源于 pages 目录，不维护第二份引用列表；`libraries/<snapshotId>/manifest.json` 及资源为可移植组件快照，manifest 已含完整 digest，因此此增量不重复生成 library-lock.json；`local/` 为 Git 忽略的历史、选区、锁。无限画布位置与交互尚未实现。
 
 `ProjectManager` 通过真实目录路径生成本机 workspaceId，全局索引只登记目录与访问时间。每次 HTTP/MCP 请求独立解析存储，绝不修改进程共享的“当前项目”。同一 projectId/pageId 的两个目录副本拥有不同 workspaceId。AI 组件附件和页面工具结果带 workspaceId，截图 URL 同样带工作区范围。

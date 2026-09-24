@@ -7,7 +7,8 @@ import { FilePersistence, PageStore } from "./store.js";
 import { ComponentLibraryManager } from "./library.js";
 
 const MANIFEST = "page-builder.project.json";
-type Project = { schemaVersion: 1; projectId: string; name: string; createdAt: string; defaultCanvasId: "main"; componentLibrary: ComponentLibraryBinding };
+type Project = { schemaVersion: 1; projectId: string; name: string; createdAt: string; defaultCanvasId: "main"; componentLibrary: ComponentLibraryBinding; revision?: number; updatedAt?: string; description?: string; starred?: boolean; coverImage?: string | null };
+export type ProjectSettings = { name: string; description: string; starred: boolean; coverImage: string | null };
 export type Workspace = Project & { workspaceId: string; directory: string };
 async function json(file: string) { return JSON.parse(await readFile(file, "utf8")); }
 async function atomic(file: string, value: unknown) {
@@ -26,7 +27,15 @@ async function readProject(directory: string): Promise<Project> {
   try { value = await json(path.join(directory, MANIFEST)); }
   catch { throw new DomainError("INVALID_PROJECT", "这个文件夹没有有效的搭建器项目文件，请选择项目根目录。"); }
   if (value.schemaVersion !== 1 || !/^project-[\w-]+$/.test(value.projectId) || typeof value.name !== "string" || !value.name.trim() || value.name.length > 80 || value.defaultCanvasId !== "main" || !/^b2b-[a-f0-9]{16}$/.test(value.componentLibrary?.snapshotId)) throw new DomainError("INVALID_PROJECT", "项目格式无效或版本不受支持。");
+  validateSettings({ name: value.name, description: value.description ?? "", starred: value.starred ?? false, coverImage: value.coverImage ?? null });
+  if (value.revision !== undefined && (!Number.isSafeInteger(value.revision) || value.revision < 0)) throw new DomainError("INVALID_PROJECT", "项目版本无效。");
   return value;
+}
+
+function validateSettings(value: ProjectSettings) {
+  if (typeof value.name !== "string" || !value.name.trim() || value.name.trim().length > 80 || /[\x00-\x1f]/.test(value.name)) throw new DomainError("INVALID_PROJECT_NAME", "项目名称请填写 1–80 个字符。");
+  if (typeof value.description !== "string" || value.description.length > 240 || typeof value.starred !== "boolean") throw new DomainError("INVALID_PROJECT_SETTINGS", "项目说明最多 240 个字符，收藏状态必须为布尔值。");
+  if (value.coverImage !== null && (typeof value.coverImage !== "string" || value.coverImage.length > 1_400_000 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value.coverImage))) throw new DomainError("INVALID_PROJECT_COVER", "封面请使用 1 MB 以内的 PNG、JPEG 或 WebP 图片。");
 }
 
 async function validateLocalDirectories(directory: string) {
@@ -75,14 +84,46 @@ export class ProjectManager {
     await mkdir(this.registryDirectory, { recursive: true });
     const projects = [];
     for (const file of await readdir(this.registryDirectory)) if (/^workspace-[a-f0-9]{32}\.json$/.test(file)) {
-      try { const entry = await json(path.join(this.registryDirectory, file)); const project = await this.resolve(file.slice(0, -5)); projects.push({ ...project, lastOpenedAt: entry.lastOpenedAt, available: true }); }
-      catch { /* An unavailable path is recoverable through Open; do not mutate it. */ }
+      try { const entry = await json(path.join(this.registryDirectory, file)); const project = await this.resolve(file.slice(0, -5)); const pages = await this.makeStore(project).list(); projects.push({ ...project, pageCount: pages.length, lastOpenedAt: entry.lastOpenedAt, updatedAt: [project.updatedAt || project.createdAt, ...pages.map(page => page.updatedAt)].sort().at(-1), available: true }); }
+      catch {
+        // Keep missing projects visible so their own settings can repair the path.
+        try {
+          const entry = await json(path.join(this.registryDirectory, file));
+          if (!/^project-[\w-]+$/.test(entry.projectId) || typeof entry.directory !== "string" || typeof entry.lastOpenedAt !== "string") continue;
+          projects.push({ workspaceId: file.slice(0, -5), projectId: entry.projectId, directory: entry.directory, name: entry.name || path.basename(entry.directory), description: "文件夹已移动或暂时无法读取，请在项目设置中重新关联路径。", lastOpenedAt: entry.lastOpenedAt, updatedAt: entry.lastOpenedAt, available: false, pageCount: null });
+        } catch { /* A corrupt registry entry is not a project and is not rewritten. */ }
+      }
     }
     return { projects: projects.sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt)), defaultDirectory: this.defaultDirectory };
   }
-  async open(directoryInput: string) {
+  async update(workspaceId: string, expectedRevision: number, settings: ProjectSettings) {
+    validateSettings(settings);
+    const workspace = await this.resolve(workspaceId);
+    const persistence = new FilePersistence(path.join(workspace.directory, ".page-builder/pages"), path.join(workspace.directory, ".page-builder/local"));
+    return persistence.withPageLock("project-settings", async () => {
+      const latest = await this.resolve(workspaceId);
+      if ((latest.revision ?? 0) !== expectedRevision) throw new DomainError("PROJECT_REVISION_CONFLICT", "项目设置已在其他窗口更新，请重新打开设置后再保存。");
+      const { workspaceId: _id, directory: _directory, ...manifest } = latest;
+      const next = { ...manifest, description: settings.description, starred: settings.starred, coverImage: settings.coverImage, name: settings.name.trim(), revision: (latest.revision ?? 0) + 1, updatedAt: new Date().toISOString() };
+      await atomic(path.join(latest.directory, MANIFEST), next);
+      return { project: { ...next, workspaceId, directory: latest.directory } };
+    });
+  }
+  async relink(workspaceId: string, directory: string) {
+    const entry = await json(this.entry(workspaceId));
+    if (!/^project-[\w-]+$/.test(entry.projectId)) throw new DomainError("INVALID_PROJECT", "登记的项目身份无效，请重新打开项目。");
+    const opened = await this.open(directory, entry.projectId);
+    // Forget only an inaccessible old shortcut, never delete or move user files.
+    if (opened.project.workspaceId !== workspaceId) {
+      const missing = await realpath(localPath(entry.directory)).then(() => false, error => { if (error.code === "ENOENT") return true; throw error; });
+      if (missing) await rm(this.entry(workspaceId), { force: true });
+    }
+    return opened;
+  }
+  async open(directoryInput: string, expectedProjectId?: string) {
     const directory = await realpath(localPath(directoryInput)).catch(() => { throw new DomainError("PROJECT_NOT_FOUND", "找不到这个本地文件夹。"); });
     const project = await readProject(directory);
+    if (expectedProjectId && project.projectId !== expectedProjectId) throw new DomainError("PROJECT_ID_MISMATCH", "这个路径属于另一个项目，原项目关联未改变。请使用打开本地项目。");
     await validateLocalDirectories(directory);
     const pagesDirectory = path.join(directory, ".page-builder/pages");
     const files = await readdir(pagesDirectory).catch(() => { throw new DomainError("INVALID_PROJECT", "项目缺少页面目录。"); });
@@ -95,7 +136,7 @@ export class ProjectManager {
     }
     for (const binding of bindings.values()) await this.libraries.importSnapshot(path.join(directory, ".page-builder/libraries", binding.snapshotId), binding);
     const workspace = { ...project, directory, workspaceId: this.id(directory) };
-    await atomic(this.entry(workspace.workspaceId), { directory, projectId: project.projectId, lastOpenedAt: new Date().toISOString() });
+    await atomic(this.entry(workspace.workspaceId), { directory, projectId: project.projectId, name: project.name, lastOpenedAt: new Date().toISOString() });
     return { project: workspace, pages: await this.makeStore(workspace).list() };
   }
   async create(nameInput: string, parentInput?: string) {
@@ -114,7 +155,7 @@ export class ProjectManager {
       await atomic(path.join(directory, ".page-builder/canvases/main.json"), { schemaVersion: 1, canvasId: "main", name: "项目画布", pageSource: "../pages", placements: {} });
       await writeFile(path.join(directory, ".page-builder/.gitignore"), "local/\n*.tmp\n");
       await atomic(path.join(directory, MANIFEST), project); published = true;
-      await atomic(this.entry(workspace.workspaceId), { directory, projectId: project.projectId, lastOpenedAt: new Date().toISOString() });
+      await atomic(this.entry(workspace.workspaceId), { directory, projectId: project.projectId, name: project.name, lastOpenedAt: new Date().toISOString() });
       return { project: workspace, page, pages: await this.makeStore(workspace).list() };
     } catch (error) { if (!published) await rm(directory, { recursive: true, force: true }); throw error; }
   }

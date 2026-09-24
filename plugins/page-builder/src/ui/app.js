@@ -59,7 +59,7 @@ const canvasRenderer = createCanvasRenderer({
   labelFor: layout => labels[layout]
 });
 const selectionToolbar = createSelectionToolbar({
-  canShow: () => !inlineEditor.active && !state.preview && !state.dragging && !reloadingRuntime,
+  canShow: () => !projectDialogOpen && !inlineEditor.active && !state.preview && !state.dragging && !reloadingRuntime,
   clear: () => clearUiPrefix("node-action-"),
   actions: id => state.selectedIds.size > 1 ? [
     { key: "count", badge: true, label: `已选 ${state.selectedIds.size} 项` },
@@ -134,10 +134,12 @@ function startup(message) { const el = $("#startup-status"); if (el) { el.hidden
 async function nativeApi(path, options) {
   if (path === "./api/health") return native.runtime;
   if (path === "./api/catalog") return { components: native.catalog };
-  const input = { ...JSON.parse(options.body || "{}"), ...(!options.unscoped && workspaceId ? { workspaceId } : {}) };
+  const input = { ...JSON.parse(options.body || "{}"), ...((options.workspaceId || (!options.unscoped && workspaceId)) ? { workspaceId: options.workspaceId || workspaceId } : {}) };
   let name, args = input;
   if (path === "./api/projects") name = options.method === "POST" ? "project_create" : "project_list";
   else if (path === "./api/projects/open") name = "project_open";
+  else if (path === "./api/projects/relink") name = "project_relink";
+  else if (path === "./api/projects/settings") name = "project_update";
   else if (path === "./api/projects/current") name = "project_get";
   else if (path === "./api/import") name = "page_import";
   else if (path === "./api/libraries") name = "component_library_list";
@@ -157,7 +159,8 @@ async function nativeApi(path, options) {
 
 async function api(path, options = {}) {
   if (native) return nativeApi(path, options);
-  if (!options.unscoped && workspaceId) path += `${path.includes("?") ? "&" : "?"}workspace=${encodeURIComponent(workspaceId)}`;
+  const requestWorkspace = options.workspaceId || (!options.unscoped && workspaceId);
+  if (requestWorkspace) path += `${path.includes("?") ? "&" : "?"}workspace=${encodeURIComponent(requestWorkspace)}`;
   const response = await fetch(path, { headers: { "content-type": "application/json", ...(options.headers || {}) }, ...options });
   const payload = await response.json();
   if (!response.ok) { const error = new Error(payload.error?.message || "请求失败"); error.code = payload.error?.code; error.details = payload.error?.details; throw error; }
@@ -204,7 +207,8 @@ function definition(id) { return state.catalog.find((item) => item.id === id); }
 
 const projectManager = createProjectManager({ api, mountUi, clearUiPrefix, inputProps, buttonProps,
   current: () => ({ project: currentProject, page: state.page }),
-  setOpen: value => { projectDialogOpen = value; },
+  setOpen: value => { projectDialogOpen = value; document.body.classList.toggle("is-project-home", value); selectionToolbar.position(); },
+  changed: async project => { if (currentProject?.workspaceId === project.workspaceId) { currentProject = project; await renderChrome(); } },
   settle: async () => {
     if (switchingProject || reloadingRuntime || refreshingLibrary) return false;
     if (!await inlineEditor.finish()) return false;

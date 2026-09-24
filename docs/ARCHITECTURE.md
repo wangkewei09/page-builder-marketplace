@@ -144,3 +144,7 @@ D20（修正 D19 的组件重载生命周期）：原生组件库更新在当前
 ## 2026-09-24 / 项目基础与后续画布设计
 
 已实现 ProjectManager 与项目目录中的 FilePersistence；HTTP/MCP 每请求通过 workspaceId 解析独立存储。项目归属和画板坐标放在 PageSchema 外，默认画布直接枚举 pages，避免跨文件引用事务。不可变组件快照先发布再保存页面，打开时验证完整摘要并恢复本机缓存。UI 切换收束保存与上下文，并丢弃旧轮询响应。CanvasStore 交互和 Git 工作流尚未实现，外部 Git 写入不能只靠 revision 判断并发；实际格式、边界见 [项目方案](PROJECT_WORKSPACES.md)。
+
+## 2026-09-24 / 项目卡片与设置
+
+ProjectManager 新增清单级 revision、原子设置保存及 relink，复用 FilePersistence 跨进程锁。列表按需枚举页数，保留不可用路径的登记供恢复；卡片设置指定自己的 workspaceId，不改变编辑器当前工作区。根内嵌封面是便携数据 URL，HTTP/native CSP 共用，禁止外部图片 URL；无后台截图或 watcher。工作台管理模块切换只隐藏原编辑器并暂停轮询，进入页面才调用已有收束保存/库切换/上下文逻辑。组件、数据及路径规则见 [项目方案](PROJECT_WORKSPACES.md)。

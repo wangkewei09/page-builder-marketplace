@@ -1,0 +1,49 @@
+
+> page-builder-mcp-plugin@0.1.1+codex.20260924071459 test
+> tsx --test tests/*.test.ts && node --test tests/mcp.test.mjs tests/package.test.mjs
+
+✔ metadata changes presentation without overriding source defaults, enums, or render props (103.943375ms)
+✔ invalid versions, API drift, controls and reserved props are rejected (0.56ms)
+✔ conditions and declared transitions preserve caller content, use source defaults and reject ambiguous changes (0.349125ms)
+✔ nested metadata follows both typed object schemas and field-name-only schemas (0.289042ms)
+✔ conditional controls select a valid union branch and fail on ambiguous matches (0.181125ms)
+✔ one atomic batch adds independent production component nodes (3.482458ms)
+✔ invalid tail operation leaves original batch untouched (0.331083ms)
+✔ stale revisions and undeclared props are rejected (0.152333ms)
+✔ unsafe resource paths and malformed layout values are rejected (0.274292ms)
+✔ layout move rejects cycles (0.232791ms)
+✔ tag avatar transitions require an atomic compatible prop set (0.7975ms)
+✔ editor rejects known but unsupported public variants before rendering (0.239875ms)
+✔ six C-21 variants transition atomically and invalid conversions preserve content (0.733667ms)
+✔ all card variants have atomic companions and reject malformed nested data (1.435333ms)
+✔ export contains a portable runtime closure and importable page schema (234.889667ms)
+✔ source-owned anchors are optional, replace compatibility mappings and do not change APIs (117.17975ms)
+✔ anchors reject unsupported versions, schema drift, arbitrary DOM selectors and controls (0.710542ms)
+✔ labels preserve source enum identity, order, unknown values and numeric types (0.826084ms)
+✔ library updates are verified, immutable, page-pinned, rollbackable, and build-independent (3545.024042ms)
+✔ project creation rolls back its own incomplete directory and never overwrites an existing folder (15.594125ms)
+✔ project settings are isolated, portable and revision checked across concurrent managers (55.826375ms)
+✔ save failure does not mutate committed page (4.145167ms)
+✔ undo and redo restore content while revisions advance (1.03775ms)
+✔ reloading from persistence keeps pages isolated (0.391959ms)
+✔ invalid import cannot overwrite an existing page (0.291208ms)
+✔ failed page write preserves prior history and selection revision (0.857459ms)
+✔ independent stores reload live state and serialize competing writes (38.729ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3678.456292
+✔ MCP tools read and mutate the same revisioned page (5690.129708ms)
+✔ installed dist starts with no developer dependencies and validates a component (4353.353375ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5801.70025
