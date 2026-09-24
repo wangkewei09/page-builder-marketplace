@@ -39,8 +39,27 @@ try {
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('request', request => { if (/^https?:/.test(request.url())) requests.push(request.url()); });
   let delayNextSave = false, failNextResources = false;
+  // Only the OS-dialog boundary is simulated; every project read/write uses real MCP.
+  const choices = [], choiceJobs = new Map(); let choiceNumber = 0;
+  const chooserCalls = [];
+  async function choose(group, result) {
+    choices.push(result);
+    await group.getByRole('button', { name: '选择文件夹', exact: true }).click();
+    await frame.locator('#project-home[data-ready="true"]').waitFor();
+  }
   await page.exposeFunction('mcpRequest', async message => {
     if (delayNextSave && message.method === 'tools/call' && message.params.name === 'page_apply_operations') { delayNextSave = false; await new Promise(resolve => setTimeout(resolve, 350)); }
+    if (message.method === 'tools/call' && message.params.name.startsWith('project_') && message.params.name.includes('directory')) {
+      const { name, arguments: args } = message.params; chooserCalls.push({ name, args });
+      let result;
+      if (name === 'project_choose_directory') {
+        assert.ok(choices.length, 'unexpected system chooser request');
+        const requestId = 'choice-' + ++choiceNumber;
+        choiceJobs.set(requestId, { requestId, ...choices.shift() }); result = { requestId, status: 'pending' };
+      } else if (name === 'project_directory_choice') result = choiceJobs.get(args.requestId);
+      else result = { requestId: args.requestId, status: 'cancelled' };
+      return { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] };
+    }
     if (message.method === 'tools/call') return client.callTool(message.params);
     if (message.method === 'resources/read') { if (failNextResources) { failNextResources = false; throw new Error('模拟组件资源读取失败'); } return client.readResource(message.params); }
     return {};
@@ -54,7 +73,21 @@ try {
   const dialog = frame.locator('#project-home[data-ready="true"]');
   await dialog.getByRole('button', { name: '新建项目', exact: true }).click();
   await dialog.getByRole('group', { name: '项目名称', exact: true }).locator('input').fill('运营工作台');
-  await dialog.getByRole('group', { name: '保存到文件夹', exact: true }).locator('input').fill(directory);
+  const saveFolder = dialog.getByRole('group', { name: '保存到文件夹', exact: true });
+  assert.equal(await saveFolder.locator('input').count(), 0, 'save location must not require typing a path');
+  await dialog.getByRole('button', { name: '创建项目', exact: true }).click();
+  await dialog.getByText('请先选择保存项目的文件夹。', { exact: true }).waitFor();
+  assert.equal((await call('project_list')).projects.length, 0);
+  await choose(saveFolder, { status: 'cancelled' });
+  assert.equal(await saveFolder.locator('[data-folder-name]').textContent(), '尚未选择文件夹');
+  await choose(saveFolder, { status: 'failed', message: '文件夹选择测试失败' });
+  await dialog.getByText('文件夹选择测试失败').waitFor();
+  await choose(saveFolder, { status: 'selected', directory });
+  assert.equal(await saveFolder.locator('[data-folder-name]').textContent(), path.basename(directory));
+  await choose(saveFolder, { status: 'cancelled' });
+  assert.equal(await saveFolder.locator('[data-folder-name]').textContent(), path.basename(directory), 'cancel preserves the previous choice');
+  assert.equal((await call('project_list')).projects.length, 0, 'selection alone never creates a project');
+  await page.screenshot({ path: '/tmp/page-builder-folder-picker.png' });
   await dialog.getByRole('button', { name: '创建项目', exact: true }).click();
   await frame.locator('#project-home').waitFor({ state: 'detached', timeout: 20000 });
   const project = (await call('project_list')).projects[0];
@@ -141,16 +174,25 @@ try {
   const unavailable = dialog.locator(`[data-project="${movedProject.workspaceId}"]`);
   await unavailable.getByText('路径待关联').waitFor();
   await unavailable.getByRole('button', { name: '项目设置', exact: true }).click();
-  await dialog.getByRole('group', { name: '新的项目文件夹路径', exact: true }).locator('input').fill(other.directory);
+  await choose(dialog.getByRole('group', { name: '新的项目文件夹', exact: true }), { status: 'selected', directory: other.directory });
   await dialog.getByRole('button', { name: '验证并关联路径', exact: true }).click();
   await dialog.getByText(/这个路径属于另一个项目/).waitFor();
-  await dialog.getByRole('group', { name: '新的项目文件夹路径', exact: true }).locator('input').fill(movedDirectory);
+  await choose(dialog.getByRole('group', { name: '新的项目文件夹', exact: true }), { status: 'selected', directory: movedDirectory });
   await dialog.getByRole('button', { name: '验证并关联路径', exact: true }).click();
   await dialog.getByRole('heading', { name: '数据分析平台', exact: true }).waitFor();
   const movedListing = (await call('project_list')).projects;
   assert.equal(movedListing.filter(item => item.projectId === movedProject.projectId).length, 1);
   assert.equal(movedListing.find(item => item.projectId === movedProject.projectId).directory, await realpath(movedDirectory));
 
+  await dialog.getByRole('button', { name: '返回项目', exact: true }).click();
+  await dialog.getByRole('button', { name: '打开本地项目', exact: true }).click();
+  const openFolder = dialog.getByRole('group', { name: '项目文件夹', exact: true });
+  assert.equal(await openFolder.locator('input').count(), 0);
+  await choose(openFolder, { status: 'selected', directory: other.directory });
+  await dialog.getByRole('button', { name: '打开项目', exact: true }).click();
+  await dialog.getByRole('heading', { name: '客户服务中心', exact: true }).waitFor();
+  assert.deepEqual([...new Set(chooserCalls.filter(item => item.name === 'project_choose_directory').map(item => item.args.purpose))].sort(), ['create', 'open', 'relink']);
+  assert.equal(choices.length, 0);
   await dialog.getByRole('button', { name: '继续编辑', exact: true }).click();
   await page.setViewportSize({ width: 1440, height: 980 });
   await page.screenshot({ path: '/tmp/page-builder-projects-editor.png' });
@@ -210,5 +252,5 @@ try {
   const httpPage = await browser.newPage(); await httpPage.goto(`${opened.editorUrl}/?workspace=${project.workspaceId}&page=${initial.pageId}`);
   await httpPage.locator('#canvas').getByText('卡片标题', { exact: true }).waitFor();
   await httpPage.locator('#startup-status').waitFor({ state: 'hidden' });
-  console.log(JSON.stringify({ ok: true, directory, cases: ['native create/edit/context', 'card search/star/cover/settings', 'safe relink and wrong-project rejection', 'page create/switch/copy', 'desktop/narrow', 'portable files', 'clone isolation', 'invalid project preservation', 'cross-process reopen', 'HTTP scope', 'corrupt resources', 'fresh cache open'] }));
+  console.log(JSON.stringify({ ok: true, directory, cases: ['folder chooser create/open/relink/cancel/failure (OS adapter simulated)', 'native create/edit/context', 'card search/star/cover/settings', 'safe relink and wrong-project rejection', 'page create/switch/copy', 'desktop/narrow', 'portable files', 'clone isolation', 'invalid project preservation', 'cross-process reopen', 'HTTP scope', 'corrupt resources', 'fresh cache open'] }));
 } finally { await browser.close(); for (const client of clients) await client.close(); }

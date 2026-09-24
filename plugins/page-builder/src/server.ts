@@ -1,3 +1,4 @@
+import { DirectoryPicker } from "./directory-picker.js";
 import { ProjectManager } from "./projects.js";
 import { refreshLibrary } from "./library-update.js";
 import { homedir } from "node:os";
@@ -26,7 +27,8 @@ const libraryCacheDirectory = process.env.PAGE_BUILDER_LIBRARY_DIR || path.join(
 const libraries = new ComponentLibraryManager(libraryCacheDirectory, path.join(uiDirectory, "vendor/b2b")); await libraries.initialize();
 const store = new PageStore(new FilePersistence(dataDirectory), () => libraries.binding(), libraries); await store.load();
 const projects = new ProjectManager(process.env.PAGE_BUILDER_PROJECTS_DIR || (process.env.PAGE_BUILDER_DATA_DIR ? path.join(dataDirectory, ".projects") : path.join(homedir(), ".codex/page-builder/v1/projects")), store, libraries);
-const editor = createEditorServer(store, uiDirectory, exportDirectory, runtime, libraries, projects); const editorUrl = await editor.start();
+const directoryPicker = new DirectoryPicker();
+const editor = createEditorServer(store, uiDirectory, exportDirectory, runtime, libraries, projects, directoryPicker); const editorUrl = await editor.start();
 const UI_RESOURCE_URI = "ui://page-builder-development/editor-v5.html";
 const UI_MIME_TYPE = "text/html;profile=mcp-app";
 const server = new McpServer({ name: runtime.serverName, version: build.pluginVersion }, { capabilities: { tools: {}, resources: {} } });
@@ -44,6 +46,9 @@ function registerPageTool<S extends z.ZodRawShape>(name: string, config: { title
     catch (error) { return handle(() => { throw error; }); }
   });
 }
+server.registerTool("project_choose_directory", { title: "选择项目文件夹", description: "Open a native folder chooser after a user clicks the editor's folder button. Returns a request ID; selection alone does not create, import or move files.", inputSchema: { purpose: z.enum(["create", "open", "relink"]), initialDirectory: z.string().optional() }, _meta: { ui: { visibility: ["app"] } } }, input => handle(() => directoryPicker.start(input.purpose, input.initialDirectory)));
+server.registerTool("project_directory_choice", { title: "读取文件夹选择", description: "Read the result of this editor's native folder chooser request.", inputSchema: { requestId: z.string() }, _meta: { ui: { visibility: ["app"] } } }, input => handle(() => directoryPicker.status(input.requestId)));
+server.registerTool("project_cancel_directory_choice", { title: "取消文件夹选择", description: "Cancel this editor's pending native folder chooser request.", inputSchema: { requestId: z.string() }, _meta: { ui: { visibility: ["app"] } } }, input => handle(() => directoryPicker.cancel(input.requestId)));
 server.registerTool("project_list", { title: "最近项目", description: "List locally opened Page Builder projects and the default parent directory.", inputSchema: {} }, () => handle(() => projects.list()));
 server.registerTool("project_create", { title: "新建本地项目", description: "Create a new local project folder with an initial page and portable component resources; never overwrite an existing directory.", inputSchema: { name: z.string().min(1).max(80), parentDirectory: z.string().optional() } }, input => handle(() => projects.create(input.name, input.parentDirectory)));
 server.registerTool("project_open", { title: "打开本地项目", description: "Open and validate a local Page Builder project folder, including a repository already cloned using Git. Returns workspaceId required by page tools.", inputSchema: { directory: z.string(), expectedProjectId: z.string().optional() } }, input => handle(() => projects.open(input.directory, input.expectedProjectId)));

@@ -27,6 +27,34 @@ export function createProjectManager({ api, mountUi, clearUiPrefix, inputProps, 
     await render(`${prefix}${root?.querySelector("[data-content]")?.contains(parent) ? "view-" : ""}${++sequence}`, slot(group), 'C-21', props, { 'b2b:input-change': event => update(String(event.detail.value ?? '')) });
     return group;
   }
+  async function folder(parent, label, purpose, initialDirectory, update) {
+    const group = slot(parent, 'project-field project-folder'); group.setAttribute('role', 'group'); group.setAttribute('aria-label', label);
+    text(group, label, 'label');
+    const summary = text(group, '尚未选择文件夹'); summary.dataset.folderName = '';
+    const location = document.createElement('details'); location.hidden = true; group.append(location);
+    text(location, '查看完整位置', 'summary'); const fullPath = text(location, ''); fullPath.className = 'project-path';
+    let selected = '';
+    await button(group, '选择文件夹', async () => {
+      message('请在系统窗口中选择文件夹，或点击取消返回。');
+      let choice = await api('./api/projects/choose-directory', { unscoped: true, method: 'POST', body: JSON.stringify({ purpose, initialDirectory: selected || initialDirectory }) });
+      const requestId = choice.requestId;
+      try {
+        const deadline = Date.now() + 190000;
+        while (choice.status === 'pending') {
+          if (!root?.isConnected || Date.now() > deadline) throw new Error('文件夹选择已结束，请重新选择。');
+          await new Promise(resolve => setTimeout(resolve, 500));
+          choice = await api('./api/projects/directory-choice', { unscoped: true, method: 'POST', body: JSON.stringify({ requestId }) });
+        }
+        if (choice.status === 'cancelled') return;
+        if (choice.status !== 'selected' || !choice.directory) throw new Error(choice.message || '未能选择文件夹，请重试。');
+        selected = choice.directory; update(selected);
+        summary.textContent = selected.split(/[\\/]/).filter(Boolean).at(-1) || selected;
+        fullPath.textContent = selected; location.hidden = false;
+      } finally {
+        if (choice.status === 'pending') await api('./api/projects/cancel-directory-choice', { unscoped: true, method: 'POST', body: JSON.stringify({ requestId }) }).catch(() => {});
+      }
+    }, 'secondary-blue', 'folder_open');
+  }
   async function action(run) {
     if (busy || !root) return;
     busy = true; root.dataset.ready = 'false'; root.querySelector('[data-body]').inert = true; message('正在处理…');
@@ -120,11 +148,12 @@ export function createProjectManager({ api, mountUi, clearUiPrefix, inputProps, 
   async function createForm() {
     const body = content('新建项目', '选择本地保存位置，开始组织你的页面。');
     await button(body, '返回项目', () => home(), 'secondary-gray', 'arrow_back');
-    const form = slot(body, 'project-settings-form'); let name = '', parentDirectory = listing.defaultDirectory;
+    const form = slot(body, 'project-settings-form'); let name = '', parentDirectory = '';
     await input(form, '项目名称', name, value => { name = value; });
-    await input(form, '保存到文件夹', parentDirectory, value => { parentDirectory = value; });
+    await folder(form, '保存到文件夹', 'create', listing.defaultDirectory, value => { parentDirectory = value; });
     text(form, '在该位置创建同名文件夹，不会覆盖已有文件。');
     await button(form, '创建项目', async () => {
+      if (!parentDirectory) throw new Error('请先选择保存项目的文件夹。');
       const result = await api('./api/projects', { unscoped: true, method: 'POST', body: JSON.stringify({ name, parentDirectory }) }); await openPage(result.project, result.page.pageId);
     }, 'primary', 'add');
   }
@@ -132,9 +161,9 @@ export function createProjectManager({ api, mountUi, clearUiPrefix, inputProps, 
     const body = content('打开本地项目', '支持已从 GitHub 克隆或下载到本地的搭建器项目。');
     await button(body, '返回项目', () => home(), 'secondary-gray', 'arrow_back');
     const form = slot(body, 'project-settings-form'); let directory = '';
-    await input(form, '项目文件夹路径', directory, value => { directory = value; });
+    await folder(form, '项目文件夹', 'open', listing.defaultDirectory, value => { directory = value; });
     text(form, '请选择含 page-builder.project.json 的项目根目录。');
-    await button(form, '打开项目', async () => { const result = await api('./api/projects/open', { unscoped: true, method: 'POST', body: JSON.stringify({ directory }) }); await details(result.project); }, 'primary', 'folder_open');
+    await button(form, '打开项目', async () => { if (!directory) throw new Error('请先选择要打开的项目文件夹。'); const result = await api('./api/projects/open', { unscoped: true, method: 'POST', body: JSON.stringify({ directory }) }); await details(result.project); }, 'primary', 'folder_open');
   }
   async function settingsForm(project) {
     if (project.available === false) {
@@ -178,10 +207,11 @@ export function createProjectManager({ api, mountUi, clearUiPrefix, inputProps, 
     await pathForm(relocation, project);
   }
   async function pathForm(parent, project) {
-    let directory = project.directory;
+    let directory = '';
     text(parent, '如果你已在文件管理器中移动了项目，在这里关联新位置。此操作不会移动、覆盖或删除文件，并会核对项目身份。');
-    await input(parent, '新的项目文件夹路径', directory, value => { directory = value; });
+    await folder(parent, '新的项目文件夹', 'relink', project.directory, value => { directory = value; });
     await button(parent, '验证并关联路径', async () => {
+      if (!directory) throw new Error('请先选择移动后的项目文件夹。');
       const result = await api('./api/projects/relink', { unscoped: true, method: 'POST', body: JSON.stringify({ directory, workspaceId: project.workspaceId }) }); await details(result.project);
     }, 'secondary-blue', 'folder_open');
   }

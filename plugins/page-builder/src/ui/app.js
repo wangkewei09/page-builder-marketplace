@@ -137,6 +137,9 @@ async function nativeApi(path, options) {
   const input = { ...JSON.parse(options.body || "{}"), ...((options.workspaceId || (!options.unscoped && workspaceId)) ? { workspaceId: options.workspaceId || workspaceId } : {}) };
   let name, args = input;
   if (path === "./api/projects") name = options.method === "POST" ? "project_create" : "project_list";
+  else if (path === "./api/projects/choose-directory") name = "project_choose_directory";
+  else if (path === "./api/projects/directory-choice") name = "project_directory_choice";
+  else if (path === "./api/projects/cancel-directory-choice") name = "project_cancel_directory_choice";
   else if (path === "./api/projects/open") name = "project_open";
   else if (path === "./api/projects/relink") name = "project_relink";
   else if (path === "./api/projects/settings") name = "project_update";

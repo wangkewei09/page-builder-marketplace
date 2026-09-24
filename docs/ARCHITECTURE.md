@@ -148,3 +148,7 @@ D20（修正 D19 的组件重载生命周期）：原生组件库更新在当前
 ## 2026-09-24 / 项目卡片与设置
 
 ProjectManager 新增清单级 revision、原子设置保存及 relink，复用 FilePersistence 跨进程锁。列表按需枚举页数，保留不可用路径的登记供恢复；卡片设置指定自己的 workspaceId，不改变编辑器当前工作区。根内嵌封面是便携数据 URL，HTTP/native CSP 共用，禁止外部图片 URL；无后台截图或 watcher。工作台管理模块切换只隐藏原编辑器并暂停轮询，进入页面才调用已有收束保存/库切换/上下文逻辑。组件、数据及路径规则见 [项目方案](PROJECT_WORKSPACES.md)。
+
+## 2026-09-24 / 本地目录选择边界
+
+DirectoryPicker 只处理系统目录选择与临时请求状态，ProjectManager 继续独立负责文件创建、项目校验与登记。原生面板经 execFile 参数传入用途与初始目录，不将路径拼进 shell 或脚本。HTTP 与三个 app-only MCP 工具共享单实例；start/status/cancel 使工具返回不依赖用户选目录速度。结果做 realpath/目录校验；单活动请求、180 秒取消、16 项结果上限，无后台目录轮询。界面只在显式选择期间查询，取消保留草稿。依据：[NSOpenPanel](https://developer.apple.com/documentation/appkit/nsopenpanel)、[execFile/AbortSignal](https://nodejs.org/api/child_process.html)。
