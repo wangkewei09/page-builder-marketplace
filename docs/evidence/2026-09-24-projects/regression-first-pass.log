@@ -1,0 +1,90 @@
+
+> page-builder-mcp-plugin@0.1.1+codex.20260924071459 verify
+> npm run clean && npm run build && npm run typecheck && npm test && npm run test:browser
+
+
+> page-builder-mcp-plugin@0.1.1+codex.20260924071459 clean
+> node scripts/clean.mjs
+
+
+> page-builder-mcp-plugin@0.1.1+codex.20260924071459 build
+> node scripts/build.mjs
+
+
+> page-builder-mcp-plugin@0.1.1+codex.20260924071459 typecheck
+> tsc --noEmit
+
+
+> page-builder-mcp-plugin@0.1.1+codex.20260924071459 test
+> tsx --test tests/*.test.ts && node --test tests/mcp.test.mjs tests/package.test.mjs
+
+✔ metadata changes presentation without overriding source defaults, enums, or render props (92.3315ms)
+✔ invalid versions, API drift, controls and reserved props are rejected (0.524875ms)
+✔ conditions and declared transitions preserve caller content, use source defaults and reject ambiguous changes (0.418125ms)
+✔ nested metadata follows both typed object schemas and field-name-only schemas (0.298417ms)
+✔ conditional controls select a valid union branch and fail on ambiguous matches (0.184333ms)
+✔ one atomic batch adds independent production component nodes (7.966542ms)
+✔ invalid tail operation leaves original batch untouched (0.745459ms)
+✔ stale revisions and undeclared props are rejected (0.657209ms)
+✔ unsafe resource paths and malformed layout values are rejected (0.326667ms)
+✔ layout move rejects cycles (0.25175ms)
+✔ tag avatar transitions require an atomic compatible prop set (0.303917ms)
+✔ editor rejects known but unsupported public variants before rendering (0.134584ms)
+✔ six C-21 variants transition atomically and invalid conversions preserve content (0.648166ms)
+✔ all card variants have atomic companions and reject malformed nested data (1.096459ms)
+✔ export contains a portable runtime closure and importable page schema (211.939042ms)
+✔ source-owned anchors are optional, replace compatibility mappings and do not change APIs (101.22125ms)
+✔ anchors reject unsupported versions, schema drift, arbitrary DOM selectors and controls (0.592458ms)
+✔ labels preserve source enum identity, order, unknown values and numeric types (0.816333ms)
+✔ library updates are verified, immutable, page-pinned, rollbackable, and build-independent (6854.929125ms)
+✔ project creation rolls back its own incomplete directory and never overwrites an existing folder (26.755333ms)
+✔ save failure does not mutate committed page (6.95075ms)
+✔ undo and redo restore content while revisions advance (0.454458ms)
+✔ reloading from persistence keeps pages isolated (0.281958ms)
+✔ invalid import cannot overwrite an existing page (0.226375ms)
+✔ failed page write preserves prior history and selection revision (0.55425ms)
+✔ independent stores reload live state and serialize competing writes (38.688375ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6978.998875
+✔ MCP tools read and mutate the same revisioned page (5459.451292ms)
+✔ installed dist starts with no developer dependencies and validates a component (4178.529625ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5568.665209
+
+> page-builder-mcp-plugin@0.1.1+codex.20260924071459 test:browser
+> node tests/browser.test.mjs && node tests/drag-preview.test.mjs && node tests/incremental-canvas.test.mjs && node tests/host-bridge.test.mjs && node tests/multi-context.test.mjs && node tests/native-resource.test.mjs && node tests/native-refresh.test.mjs && node tests/library-refresh.test.mjs && node tests/cross-process.test.mjs && node tests/standalone-export.test.mjs && node tests/builder-inspector.test.mjs && node tests/inline-editing.test.mjs && node tests/projects.test.mjs
+
+{"url":"http://127.0.0.1:61635","title":"页面搭建器","revision":"Revision 16","rendererValid":"true","productionRenderers":5,"persistedText":"提交申请","consoleErrors":0}
+{"url":"http://127.0.0.1:61709","title":"页面搭建器","viewports":["1440x1000","520x760"],"browser":"153.0.8010.53","checks":["middle insertion: visible slot, real space, animation, stable hover, one revision","existing component moves in both directions without duplicate nodes","Escape and outside drop restore the page, no write","no-op, undo/redo, reopen","concurrent update rejects stale drop, preserves newer content","empty column/row/grid, entering a nested layout and moving back out","wrapped horizontal layout and multi-row column grid insertion","edge autoscroll runs only during drag and stops on cancel","failed save preserves content and supports another drag","520px narrow panel and reduced motion"],"errors":[],"expectedErrors":["Failed to load resource: the server responded with a status of 409 (Conflict)","Error: 页面已更新到 revision 7。\n    at api (http://127.0.0.1:61709/app.js:16231:21)\n    at async commitNow (http://127.0.0.1:61709/app.js:16857:20)\n    at async addNode (http://127.0.0.1:61709/app.js:16829:3)\n    at async HTMLDocument.<anonymous> (http://127.0.0.1:61709/app.js:15570:7)","Failed to load resource: the server responded with a status of 503 (Service Unavailable)","Error: 保存失败测试\n    at api (http://127.0.0.1:61709/app.js:16231:21)\n    at async commitNow (http://127.0.0.1:61709/app.js:16857:20)\n    at async addNode (http://127.0.0.1:61709/app.js:16829:3)\n    at async HTMLDocument.<anonymous> (http://127.0.0.1:61709/app.js:15570:7)"],"baseline":1}
+{"incremental":"pass","lateSavePreservesNewSelection":true,"lifecycle":{"failureKeptOld":true,"latestWon":true,"cleared":true,"disposed":["initial","latest","slow-old","slow-reset"]},"unchangedInstancesAndLocalInputRetained":true,"newComponentOnlyOnCopy":true,"noMountOnMove":true,"noBlankCanvasDuringDelayedMount":true,"layoutCopyNewIds":true,"undoRedo":true,"foundationAndIconsFromSource":true,"narrowToolbarVisible":true,"stats":{"mounts":6,"destroys":2,"rootRemovals":0,"delay":0},"errors":[]}
+{"hostBridge":"pass","lastComponent":"C-42","ghostAttachments":0,"singleAttachmentAcrossTwoPanels":true,"cleared":true,"teardownClearedBeforeReply":true,"rejectionAndTimeoutRetry":true,"autoMessageCalls":0,"unsupportedVisible":true,"errors":[],"screenshot":"/tmp/page-builder-context-fixed.png"}
+{"multiContext":"pass","cmdAndCtrlToggle":true,"explicitOneAttachment":true,"duplicateComponentIdsRetainNodeIdentity":true,"savedPropsUpdated":true,"pinnedGroupSurvivesSelectionAndRetry":true,"blankClearsSelectionOnly":true,"pageOverviewUpdates":true,"nestedAndRootLayoutSelectable":true,"treeKeyboard":true,"partialDeletionKeepsRemaining":true,"finalDeletionClears":true,"narrowToolbar":true,"httpRequests":0,"errors":[]}
+{"errors":[],"body":"dashboard_customize\n页面搭建器\nfolder_open\n项目\n已保存\nundo\n撤销\nredo\n重做\n桌面\n移动\nvisibility\n预览\ndownload\n导出\n组件\n结构\n组件库来源与更新\nsearch\n已适配组件\nsmart_button\n基础按钮\n触发立即动作并表达操作优先级。\nadd\n添加基础按钮\ninput\n输入框\n录入单行或多行文本。\nadd\n添加输入框\nlist_alt\n选择器\n从候选项中选择一项。\nadd\n添加选择器\nsell\n标签\n展示状态、分类或筛选条件。\nadd\n添加标签\nweb_asset\n卡片\n承载独立对象或摘要，不接收任意子组件。\nadd\n添加卡片\n布局\nview_agenda\n纵向布局\n接收组件与布局\nadd\n添加纵向布局\nview_week\n横向布局\n接收组件与布局\nadd\n添加横向布局\nview_column\n分栏布局\n2–4 列响应式容器\nadd\n添加分栏布局\n历史页面\n⌘ / Ctrl + 点击多选\nRevision 2\ndescription\n卡片标题\n更多\n原生资源编辑已保存\n今天更新\n查看详情\n真实 B2B Renderer · 5 个已适配组件 · 0.1.1+codex.20260924071459\n1 个节点\n属性\nC-34 · 卡片\n对话已引用：卡片\n重新同步\n\n内容可在画布中双击编辑，也可从这里定位。\n\nedit\n编辑卡片标题\nedit\n编辑卡片正文\nedit\n编辑辅助信息\n变体\n基础卡片\nexpand_more\ncheck\n切换会重置不兼容的头像、子项或页签配置；可通过撤销恢复。\n外观\n有边框\nexpand_more\ncheck\n尺寸\n默认\nexpand_more\ncheck\n悬停反馈\n媒体图片地址（图文／底部操作卡片必填）\n上传媒体图片\n其他设置\ndelete\n删除节点\narrow_upward\n上移\narrow_downward\n下移\ncontent_copy\n复制\ndelete\n删除\nadd_comment\n加入 AI 上下文","editing":0}
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.waitFor: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('#native').contentFrame().getByText('标签已添加') to be visible[22m
+
+    at /Users/wangkewei/Desktop/page-builder-marketplace/plugins/page-builder/tests/native-resource.test.mjs:61:74 {
+  log: [
+    "  - waiting for locator('#native').contentFrame().getByText('标签已添加') to be visible"
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v24.14.0

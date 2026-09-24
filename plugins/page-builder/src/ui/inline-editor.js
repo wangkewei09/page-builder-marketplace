@@ -130,6 +130,9 @@ export function createInlineEditor({ canEdit, getNode, getRevision, definition, 
     if (document.activeElement !== control) { close(); status('此内容暂时无法获得编辑焦点。'); }
   }
   const inside = event => current && (event.target === current.control || current.control.contains(event.target));
+  // These editor commands can continue after a successful save. Canvas/source
+  // buttons remain suppressed: editing their text must never activate them.
+  const editorButton = event => event.target.closest?.('#project-menu button,.library-add button,#undo button,#redo button');
   document.addEventListener('dblclick', event => {
     if (!canEdit() || current) return;
     const shell = event.target.closest?.('#canvas .component-shell'); if (!shell) return;
@@ -140,13 +143,17 @@ export function createInlineEditor({ canEdit, getNode, getRevision, definition, 
   document.addEventListener('pointerdown', event => {
     if (!current) return;
     if (inside(event) && !current.saving) return;
-    event.preventDefault(); event.stopImmediatePropagation(); void finish();
+    event.preventDefault(); event.stopImmediatePropagation();
+    // Defer to click so an immediately completed save cannot run the command twice.
+    if (!editorButton(event)) void finish();
   }, true);
   document.addEventListener('click', event => {
     if (!current) return;
     // Caret placement uses pointerdown; clicking text must not activate a source
     // button, link, checkbox or its containing selection/drag handler.
     event.preventDefault(); event.stopImmediatePropagation();
+    const button = editorButton(event);
+    if (button) void finish().then(saved => { if (saved && button.isConnected && !button.disabled) button.click(); });
   }, true);
   document.addEventListener('keydown', event => {
     if (!current) return;

@@ -13,6 +13,10 @@ Call `page_builder_open` for a visual page-building request. Entry version 5 dec
 
 ## Read before writing
 
+For a local project, use `project_list`, `project_open` (an existing project root), or `project_create` (a new named child directory). Keep the returned `workspaceId` in **every** page/component read, write, capture, import, export, and library-refresh call. Context attachments include workspaceId and projectId; projectId alone does not identify a local checkout. Omit workspaceId only for legacy global pages. Never fall back to another workspace when the requested one cannot be opened. The local project contains portable component snapshots and independent page files; ordinary source-code repositories must first be prepared as Page Builder projects, and are not automatically converted. Git clone/pull remains a separate operation; reopen after external Git changes. Do not run external Git writes concurrently with editing.
+
+New project pages use the project's creation-time library binding. Refreshing an individual page does not silently upgrade sibling pages or the project default.
+
 1. Use `page_list` to resolve the intended page explicitly.
 2. Use `page_get_schema` and keep its `pageId` and `revision`.
 3. When the message includes a Page Builder context attachment, resolve its `pageId` and all `nodeIds` against the latest saved schema. A group attachment contains `nodes[]` with each node’s identity, parent and saved properties; a single-node attachment also keeps the legacy `nodeId`/`kind`/`props` fields. The user explicitly pinned those nodes with “加入 AI 上下文”; ordinary canvas selection can now point elsewhere. Use `page_get_selection` as a fallback when no attachment or explicit node is provided. Never substitute a different selected node for a missing/deleted referenced node.

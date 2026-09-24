@@ -34,8 +34,8 @@ export class FilePersistence implements Persistence {
   private stateDirectory: string;
   private lockDirectory: string;
 
-  constructor(private directory: string) {
-    this.stateDirectory = path.join(directory, ".page-builder-state");
+  constructor(private directory: string, stateDirectory?: string) {
+    this.stateDirectory = stateDirectory || path.join(directory, ".page-builder-state");
     this.lockDirectory = path.join(this.stateDirectory, "locks");
   }
 
@@ -240,11 +240,11 @@ export class PageStore {
     });
   }
 
-  async import(input: unknown) {
+  async import(input: unknown, name?: string) {
     const raw = validatePage(clone(input) as PageSchema, this.libraries ? null : undefined);
     const candidate = validatePage(raw, this.libraries ? await this.libraries.catalogForPage(raw) : undefined);
     await this.libraries?.validatePage(candidate);
-    const page = { ...candidate, pageId: createPage().pageId, name: `${candidate.name}（导入）`, revision: 0, updatedAt: new Date().toISOString() };
+    const page = validatePage({ ...candidate, pageId: createPage().pageId, name: name ?? `${candidate.name.slice(0, 76)}（导入）`, revision: 0, updatedAt: new Date().toISOString() }, null);
     return this.persistence.withPageLock(page.pageId, async () => {
       await this.persistence.saveHistory(page.pageId, { headRevision: page.revision, past: [], future: [] });
       await this.persistence.saveSelection(page.pageId, { revision: page.revision, nodeId: null, updatedAt: page.updatedAt });

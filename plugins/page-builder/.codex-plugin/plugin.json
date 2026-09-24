@@ -1,6 +1,6 @@
 {
   "name": "page-builder",
-  "version": "0.1.1+codex.20260922100557",
+  "version": "0.1.1+codex.20260924071459",
   "description": "A visual page builder backed by the production B2B component renderers and a versioned Page Schema.",
   "author": {
     "name": "Local Page Builder Team"

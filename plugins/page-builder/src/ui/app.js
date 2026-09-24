@@ -1,3 +1,4 @@
+import { createProjectManager } from "./project-manager.js";
 import { selectVariantPatch } from "../select-variants.ts";
 import { inspectorOptions } from "./inspector-options.js";
 import { contractPatch, editorControl, editorFields, matchesConditions } from "../editor-contract.ts";
@@ -15,6 +16,7 @@ import { createInlineEditor } from "./inline-editor.js";
 const $ = (selector, root = document) => root.querySelector(selector);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 const state = { page: null, library: null, loadedLibraryId: null, catalog: [], selection: null, selectedIds: new Set(), preview: false, uiSlots: new Map(), editTimers: new Map(), fullPropsDirty: false, dragging: null, searchQuery: "", leftTab: "components", viewport: "desktop", inspectorOpen: false, lastCommittedAt: 0, renderEpoch: 0, selectionEpoch: 0, mutating: 0, polling: false, runtime: null };
+let workspaceId = new URL(location.href).searchParams.get("workspace") || null, currentProject = null, projectDialogOpen = false, switchingProject = false, workspaceEpoch = 0;
 let mutationQueue = Promise.resolve();
 let pendingSelections = 0, inspectorRendering = false;
 let inspectorQueue = Promise.resolve();
@@ -132,9 +134,13 @@ function startup(message) { const el = $("#startup-status"); if (el) { el.hidden
 async function nativeApi(path, options) {
   if (path === "./api/health") return native.runtime;
   if (path === "./api/catalog") return { components: native.catalog };
-  const input = JSON.parse(options.body || "{}");
+  const input = { ...JSON.parse(options.body || "{}"), ...(!options.unscoped && workspaceId ? { workspaceId } : {}) };
   let name, args = input;
-  if (path === "./api/libraries") name = "component_library_list";
+  if (path === "./api/projects") name = options.method === "POST" ? "project_create" : "project_list";
+  else if (path === "./api/projects/open") name = "project_open";
+  else if (path === "./api/projects/current") name = "project_get";
+  else if (path === "./api/import") name = "page_import";
+  else if (path === "./api/libraries") name = "component_library_list";
   else if (path === "./api/libraries/refresh") name = "component_library_refresh";
   else if (path === "./api/pages") name = options.method === "POST" ? "page_create" : "page_list";
   else {
@@ -151,6 +157,7 @@ async function nativeApi(path, options) {
 
 async function api(path, options = {}) {
   if (native) return nativeApi(path, options);
+  if (!options.unscoped && workspaceId) path += `${path.includes("?") ? "&" : "?"}workspace=${encodeURIComponent(workspaceId)}`;
   const response = await fetch(path, { headers: { "content-type": "application/json", ...(options.headers || {}) }, ...options });
   const payload = await response.json();
   if (!response.ok) { const error = new Error(payload.error?.message || "请求失败"); error.code = payload.error?.code; error.details = payload.error?.details; throw error; }
@@ -195,15 +202,63 @@ function nodeCount(node) { return 1 + (node.kind === "layout" ? node.children.re
 function findNode(node, id, parent = null) { if (node.id === id) return { node, parent }; if (node.kind === "layout") for (const child of node.children) { const found = findNode(child, id, node); if (found) return found; } return null; }
 function definition(id) { return state.catalog.find((item) => item.id === id); }
 
+const projectManager = createProjectManager({ api, mountUi, clearUiPrefix, inputProps, buttonProps,
+  current: () => ({ project: currentProject, page: state.page }),
+  setOpen: value => { projectDialogOpen = value; },
+  settle: async () => {
+    if (switchingProject || reloadingRuntime || refreshingLibrary) return false;
+    if (!await inlineEditor.finish()) return false;
+    if (state.fullPropsDirty) { toast("请先应用或取消其他设置的修改，再切换项目。", "error"); return false; }
+    canvasDrag.cancel(false);
+    // Debounced edits still target the current page until navigation is allowed.
+    const deadline = Date.now() + 5000;
+    while ((state.editTimers.size || state.mutating || pendingSelections || state.polling) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 40));
+    await mutationQueue; await inspectorQueue;
+    if (state.editTimers.size || state.mutating || pendingSelections || state.polling) { toast("正在保存，请稍后打开项目。", "error"); return false; }
+    return true;
+  },
+  enter: async (project, pageId) => {
+    if (switchingProject) return;
+    switchingProject = true; workspaceEpoch += 1; state.selectionEpoch += 1;
+    const previousWorkspace = workspaceId, previousProject = currentProject, previousPageId = state.page.pageId, previousUrl = location.href;
+    try {
+      workspaceId = project?.workspaceId || null; currentProject = project;
+      if (!pageId) pageId = (await api("./api/pages", { method: "POST", body: JSON.stringify({ name: "首页" }) })).page.pageId;
+      // Resolve before releasing the current view; a failed open keeps it usable.
+      const next = await api(`./api/pages/${pageId}`);
+      const url = new URL(location.href);
+      if (!native) { if (workspaceId) url.searchParams.set("workspace", workspaceId); else url.searchParams.delete("workspace"); url.searchParams.set("page", pageId); window.history.replaceState(null, "", url); }
+      await contextLease?.close(); contextNodeIds = []; contextEpoch += 1;
+      if (!native && state.loadedLibraryId !== next.library.snapshotId) { location.reload(); return; }
+      state.preview = false; state.fullPropsDirty = false; inspectorKey = null; renderedPageName = null; setSelection(null, true);
+      await loadPage(pageId); await renderChrome(); await renderLibrarySettings(); renderLibrary();
+      contextLease = contextOwner(`${workspaceId || "legacy"}:${pageId}`, () => { contextNodeIds = []; contextEpoch += 1; return clearPublishedContext(); });
+      contextReadyStatus(true); setSaving("", "已保存"); startup(null);
+    } catch (error) {
+      workspaceId = previousWorkspace; currentProject = previousProject;
+      if (!native) window.history.replaceState(null, "", previousUrl);
+      try {
+        await loadPage(previousPageId); await renderChrome(); runtimeReloadFailed = false;
+        for (const selector of [".topbar", ".workspace", ".right-panel", "#component-list", "#layout-list", "#tree"]) if ($(selector)) $(selector).inert = false;
+        lockInspector(); startup(null);
+      }
+      catch { $(".workspace").inert = true; startup("项目切换失败，当前画布已停止编辑。请重新打开搭建器，已保存内容仍在本地。"); }
+      throw error;
+    }
+    finally { switchingProject = false; }
+  }
+});
+
 async function bootstrap() {
   if (native) { startup("正在连接插件服务…"); await connectHost(); if (!host.app) throw host.error || new Error("插件服务未连接"); }
   startup("正在读取已保存页面…");
+  if (workspaceId) currentProject = (await api("./api/projects/current")).project;
   const [health, catalog, pages] = await Promise.all([api("./api/health"), api("./api/catalog"), api("./api/pages")]); state.runtime = health; state.catalog = catalog.components;
   let pageId = new URL(location.href).searchParams.get("page"); if (!pageId || !pages.pages.some((page) => page.pageId === pageId)) pageId = pages.pages[0]?.pageId;
   if (!pageId) pageId = (await api("./api/pages", { method: "POST", body: JSON.stringify({ name: "我的页面" }) })).page.pageId;
   await loadPage(pageId); await renderChrome(); await renderLibrarySettings(); setSaving("", "已保存"); renderLibrary(); $("#provider-status").textContent = `真实 B2B Renderer · ${state.catalog.length} 个已适配组件 · ${health.pluginVersion}`;
   if (!native) await connectHost();
-  contextLease = contextOwner(state.page.pageId, () => {
+  contextLease = contextOwner(`${workspaceId || "legacy"}:${state.page.pageId}`, () => {
     contextNodeIds = []; contextEpoch += 1; setContextStatus("ready", "上下文已由另一个面板接管"); return clearPublishedContext();
   });
   const cleared = await clearPublishedContext();
@@ -321,10 +376,10 @@ function modelContext() {
     return { nodeId: node.id, parentId: parent?.id ?? null, kind: node.kind, ...(node.kind === "component" ? { componentId: node.componentId, props: node.props } : { layout: node.layout, gap: node.gap, columns: node.columns ?? null }) };
   });
   if (!nodes.length) return { content: [] };
-  const summary = { pageId: state.page.pageId, revision: state.page.revision, nodeIds: nodes.map(node => node.nodeId), nodes, ...(nodes.length === 1 ? nodes[0] : {}) };
+  const summary = { ...(currentProject ? { workspaceId, projectId: currentProject.projectId, projectName: currentProject.name } : {}), pageId: state.page.pageId, revision: state.page.revision, nodeIds: nodes.map(node => node.nodeId), nodes, ...(nodes.length === 1 ? nodes[0] : {}) };
   const label = nodes.length > 1 ? `${nodes.length} 项选中内容` : nodes[0].kind === "component" ? `${nodes[0].componentId} ${definition(nodes[0].componentId)?.label || "组件"}` : labels[nodes[0].layout];
   const identity = nodes.length === 1 ? `nodeId=${nodes[0].nodeId}` : `nodeIds=${summary.nodeIds.join(",")}`;
-  return { content: [{ type: "text", text: `页面搭建器引用组件：${label}；pageId=${summary.pageId}；${identity}；revision=${summary.revision}。` }], structuredContent: { pageBuilderSelection: summary }, presentation: { composerLabel: `页面搭建器 · ${label}` } };
+  return { content: [{ type: "text", text: `页面搭建器引用组件：${label}；${workspaceId ? `workspaceId=${workspaceId}；` : ""}pageId=${summary.pageId}；${identity}；revision=${summary.revision}。` }], structuredContent: { pageBuilderSelection: summary }, presentation: { composerLabel: `页面搭建器 · ${label}` } };
 }
 
 function syncModelContext() {
@@ -346,10 +401,10 @@ async function publishModelContext(epoch) {
 }
 
 async function refreshFromDisk() {
-  if (!state.page || state.fullPropsDirty || inlineEditor.active || state.dragging || state.mutating || pendingSelections || state.polling || reloadingRuntime || runtimeReloadFailed) return;
-  state.polling = true;
+  if (projectDialogOpen || switchingProject || !state.page || state.fullPropsDirty || inlineEditor.active || state.dragging || state.mutating || pendingSelections || state.polling || reloadingRuntime || runtimeReloadFailed) return;
+  state.polling = true; const scopeEpoch = workspaceEpoch;
   try {
-    const result = await api(`./api/pages/${state.page.pageId}`); if (state.fullPropsDirty || inlineEditor.active || state.dragging || state.mutating || pendingSelections || reloadingRuntime) return; const nextLibrary = result.library || state.runtime?.componentLibrary || null;
+    const result = await api(`./api/pages/${state.page.pageId}`); if (scopeEpoch !== workspaceEpoch || projectDialogOpen || switchingProject || state.fullPropsDirty || inlineEditor.active || state.dragging || state.mutating || pendingSelections || reloadingRuntime) return; const nextLibrary = result.library || state.runtime?.componentLibrary || null;
     if (nextLibrary?.snapshotId && state.library?.snapshotId && nextLibrary.snapshotId !== state.library.snapshotId) {
       if (state.fullPropsDirty || state.editTimers.size) return;
       if (native) await reloadNativePage(result); else location.reload(); return;
@@ -371,6 +426,9 @@ function inputProps(label, value, variant = "基础输入框") { return { varian
 function selectProps(items, value, placeholder) { return { variant: "基础单选", items, selected: value == null ? [] : [String(value)], multiple: false, open: false, placeholder, clearable: false, searchable: false, creatable: false, query: "", size: "medium", state: "default", position: "bottom-left" }; }
 
 async function renderChrome() {
+  await mountUi("project-menu", "#project-menu", "C-02", buttonProps(currentProject?.name || "项目", "secondary-gray", "folder_open"), { "b2b:button-activate": () => projectManager.show() });
+  $("#project-menu").title = currentProject?.directory || "创建或打开本地项目";
+  $("#breadcrumb").textContent = currentProject ? `${currentProject.name} / 项目画布 / 页面` : "历史页面";
   const family = await window.B2B.describeComponentFamily("button");
   document.body.dataset.buttonFamily = family?.family || "button";
   const pageNameChange = (event) => { const value = String(event.detail?.value ?? "").trim(); if (value && value !== state.page.name) scheduleEdit("page-name", () => commit([{ type: "rename", name: value }])); };
@@ -443,7 +501,7 @@ async function addNode(kind, id, selectedId, index) {
 }
 
 function commit(operations, success, applyDraft = false) {
-  if (inlineEditor.active) return Promise.resolve();
+  if (inlineEditor.active) return inlineEditor.finish().then(saved => saved ? commit(operations, success, applyDraft) : undefined);
   if (state.fullPropsDirty && !applyDraft) { toast("请先应用或取消其他设置的修改。", "error"); return Promise.resolve(); }
   mutationQueue = mutationQueue.then(() => commitNow(operations, success, applyDraft));
   return mutationQueue;
@@ -472,7 +530,7 @@ async function commitNow(operations, success, applyDraft) {
   } finally { state.mutating -= 1; lockInspector(); }
 }
 function history(direction) {
-  if (inlineEditor.active) return Promise.resolve();
+  if (inlineEditor.active) return inlineEditor.finish().then(saved => saved ? history(direction) : undefined);
   if (state.fullPropsDirty) { toast("请先应用或取消其他设置的修改。", "error"); return Promise.resolve(); }
   mutationQueue = mutationQueue.then(async () => {
     const epoch = state.selectionEpoch; state.mutating += 1; lockInspector();
@@ -516,7 +574,7 @@ async function renderAll() {
     } });
   }
   const canvas = $("#canvas"); canvas.classList.toggle("is-preview", state.preview);
-  const rendered = await canvasRenderer.render(state.page.root, canvas, { preview: state.preview, identity: `${state.page.pageId}:${state.loadedLibraryId}` });
+  const rendered = await canvasRenderer.render(state.page.root, canvas, { preview: state.preview, identity: `${workspaceId || "legacy"}:${state.page.pageId}:${state.loadedLibraryId}` });
   if (!rendered || epoch !== state.renderEpoch) return;
   await mountUi("revision", "#revision-badge", "C-42", { variant: "status", type: "status", size: "extra-small", color: "neutral", text: `Revision ${state.page.revision}`, icon: null, avatar: null, closable: false, checkable: false, checked: false, loading: false, bordered: true, solid: false, disabled: false });
   $("#node-count").textContent = `${nodeCount(state.page.root) - 1} 个节点`;

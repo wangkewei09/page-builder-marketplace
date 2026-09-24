@@ -58,7 +58,7 @@ try {
   await frame.locator("#canvas").getByText("原生资源编辑已保存", { exact: true }).waitFor();
   await frame.getByRole('button', { name: '上传媒体图片', exact: true }).waitFor();
   await page.screenshot({ path: "/tmp/page-builder-property-labels.png" });
-  await frame.getByLabel("添加标签").click(); await frame.getByText("标签已添加").waitFor();
+  await frame.getByLabel("添加标签").click(); await frame.getByText("标签已添加").waitFor().catch(async error => { console.error(JSON.stringify({ errors, body: await frame.locator("body").innerText(), editing: await frame.locator("[data-pb-inline-edit]").count() })); throw error; });
   assert.equal(await frame.locator(".render-error,.ui-control-error").count(), 0);
   assert.equal(await frame.locator('[data-renderer-valid="true"]').count(), 2);
   assert.equal(await frame.locator("#startup-status").isVisible(), false);

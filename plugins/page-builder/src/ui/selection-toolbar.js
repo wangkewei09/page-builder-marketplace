@@ -6,7 +6,7 @@ export function createSelectionToolbar({ mount, clear, actions, canShow }) {
     const shell = document.querySelector(`[data-node-id="${CSS.escape(selected)}"]`);
     const clip = document.querySelector(".canvas-scroll")?.getBoundingClientRect();
     const rect = shell?.getBoundingClientRect();
-    element.hidden = !canShow() || !rect || !clip || rect.bottom <= clip.top || rect.top >= clip.bottom || rect.right <= clip.left || rect.left >= clip.right;
+    element.hidden = element.dataset.ready !== "true" || !canShow() || !rect || !clip || rect.bottom <= clip.top || rect.top >= clip.bottom || rect.right <= clip.left || rect.left >= clip.right;
     if (element.hidden) return;
     const inspector = document.querySelector(".right-panel");
     const overlay = inspector && getComputedStyle(inspector).position === "fixed" && getComputedStyle(inspector).display !== "none" ? inspector.getBoundingClientRect() : null;
@@ -25,6 +25,7 @@ export function createSelectionToolbar({ mount, clear, actions, canShow }) {
     if (id === selected && key === signature) { position(); return; }
     reset(); if (!id) return;
     selected = id; signature = key; const toolbar = document.createElement("div"); element = toolbar;
+    toolbar.hidden = true; toolbar.inert = true;
     toolbar.className = "node-actions"; toolbar.setAttribute("role", "toolbar"); toolbar.setAttribute("aria-label", "选中组件操作");
     for (const event of ["click", "pointerdown", "dragstart"]) toolbar.addEventListener(event, e => e.stopPropagation());
     document.body.append(toolbar);
@@ -36,7 +37,8 @@ export function createSelectionToolbar({ mount, clear, actions, canShow }) {
       const control = document.createElement("span"); control.className = "ui-control"; toolbar.append(control);
       await mount(control, action, id);
     }
-    position();
+    if (element !== toolbar) return;
+    toolbar.dataset.ready = "true"; toolbar.inert = false; position();
   }
   // Register before library transport starts tracking component-owned listeners.
   document.addEventListener("scroll", position, true);

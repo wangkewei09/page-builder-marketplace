@@ -1,3 +1,4 @@
+import { ProjectManager } from "./projects.js";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -14,6 +15,7 @@ const exportDirectory = process.env.PAGE_BUILDER_EXPORT_DIR || await mkdtemp(pat
 const libraryCacheDirectory = process.env.PAGE_BUILDER_LIBRARY_DIR || await mkdtemp(path.join(tmpdir(), "page-builder-libraries-"));
 const libraries = new ComponentLibraryManager(libraryCacheDirectory, path.join(root, "ui", "vendor/b2b")); await libraries.initialize();
 const store = new PageStore(new FilePersistence(dataDirectory), () => libraries.binding(), libraries); await store.load();
-const server = createEditorServer(store, path.join(root, "ui"), exportDirectory, { pluginVersion: build.pluginVersion, provider: "b2b-production", serverName: "page-builder-development-standalone" }, libraries);
+const projects = new ProjectManager(process.env.PAGE_BUILDER_PROJECTS_DIR || path.join(dataDirectory, ".projects"), store, libraries);
+const server = createEditorServer(store, path.join(root, "ui"), exportDirectory, { pluginVersion: build.pluginVersion, provider: "b2b-production", serverName: "page-builder-development-standalone" }, libraries, projects);
 const url = await server.start(); console.log(url);
 for (const signal of ["SIGTERM", "SIGINT"] as const) process.once(signal, () => Promise.all([server.close(), libraries.close()]).finally(() => process.exit(0)));

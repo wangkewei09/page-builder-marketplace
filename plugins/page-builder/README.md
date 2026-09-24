@@ -2,11 +2,19 @@
 
 本地 Codex 插件：在右侧工作区用真实 B2B Renderer 搭建页面，并让手动编辑、AI 修改、保存、撤销和导出共享同一份版本化 Page Schema。
 
-当前开发构建：**0.1.1+codex.20260922100557**。变更与已知边界见 [版本记录](CHANGELOG.md)。
+当前开发构建：**0.1.1+codex.20260924071459**。变更与已知边界见 [版本记录](CHANGELOG.md)。
 
 运行要求：Node.js 20+ 和 Google Chrome，或通过 `CHROME_PATH` 指定兼容浏览器。GitHub 发布包已包含组件校验驱动，无需在安装目录执行 npm install。
 
-## 开发
+## 本地项目
+
+顶部「项目」可新建、打开或切换最近项目。新建时填写名称和保存位置，自动创建同名文件夹及「首页」。打开时填写含 `page-builder.project.json` 的项目根目录；已经用 Git 克隆到本地的搭建器工程也可打开。项目面板可添加、切换、复制页面，或将历史页面复制入项目，原文件保留。
+
+项目页面位于 `.page-builder/pages`，组件资源位于 `.page-builder/libraries`；历史、选区和锁位于 Git 忽略的 `.page-builder/local`。`PAGE_BUILDER_PROJECTS_DIR` 可覆盖最近项目索引目录。AI 调用项目页面工具须传入 `project_create` / `project_open` 返回的 `workspaceId`，只有历史页面省略此字段。
+
+本增量交付项目基础与页面管理，默认画布的数据文件已经保留；无限画布交互与 GitHub 克隆/拉取按钮尚未实现。切换 Git 分支或外部修改文件后请重新打开工程，不支持外部 Git 修改与编辑器同时写入。
+
+## 开发与验证
 
 ```bash
 npm ci

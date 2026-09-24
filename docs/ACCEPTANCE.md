@@ -150,3 +150,20 @@ A09/A17：桥接与严格原生资源模拟通过零空附件、同源双面板�
 - 通过：桌面与 520px 截图；既有拖拽/增量/上下文、重复组件库重载、真实源/严格 CSP 原生资源回归，源侧协议/实现格式无变动。
 - 安装文件与 fresh MCP 已核对，327 个用户文件未变；真实 Codex 运行中面板需完整退出重开后确认。控制台只有测试主动注入的 400/409；此次自审。
 - [证据](../artifacts/evidence/inplace-editing-20260922.json)，[桌面截图](../artifacts/evidence/inplace-desktop-20260922.png)，[窄屏截图](../artifacts/evidence/inplace-narrow-20260922.png)。
+# 2026-09-24 / 本地项目创建增量
+
+构建 `0.1.1+codex.20260924071459`。26 个 TypeScript 行为测试、MCP/package 2 项、13 个浏览器测试脚本集合分段通过。Browser skill 未列于当前会话，按前端测试技能使用项目 Playwright 与本机 Chrome。检查结果为自审，不是独立 Agent 审核。
+
+| 范围 | 结果与证据 |
+|---|---|
+| 新建、打开、最近项目、添加/切换/复制页面 | 严格 CSP 的原生 MCP iframe 实际点击流程通过；磁盘 JSON 与重新打开内容一致。`tests/projects.test.mjs` |
+| 同 ID 的两份本地工程 | projectId/pageId 保持一致，workspaceId 不同；修改一份不影响另一份，旧全局页面不受影响 |
+| 便携资源与坏数据 | 修改惰性 CSS 字节生成非内置快照，空缓存恢复通过；资源损坏、普通文件夹、非法身份/名字拒绝，不覆盖原文件 |
+| 保存与切换 | 延迟原位保存后进入项目菜单，文字已持久化；切页清除旧上下文；跨库切换及注入资源读取失败后恢复旧画布均通过 |
+| 创建失败 | 注入资源写失败，未完成项目目录清理；同名已有文件夹和用户文件保持原样。`tests/projects.test.ts` |
+| HTTP/MCP/AI | 共用工作区存储，HTTP 与第二个 MCP 进程读到相同页面；上下文带 workspaceId/projectId；异源本地文件 API 请求拒绝 |
+| 视觉与交互回归 | 桌面 1440px 与窄屏 680px 项目界面无横向溢出；原位、拖拽、局部更新、多选上下文、原生重载、属性协议、独立导出均通过 |
+| 安装 | 官方 CLI 安装；16 个关键文件逐字节一致，隔离安装版 MCP 新建/读取项目成功；353 个原用户文件 SHA256 不变 |
+| 真实运行宿主 | 尚未确认当前已打开 Codex 面板加载新版本，保持待用户重开验收，不据隔离 iframe/新 MCP 标记通过 |
+
+首次集合回归发现工具栏尚未挂载完即显示，以及原位编辑捕获点击后吞掉紧接的添加操作；已修正为工具栏完整挂载再显示、保存成功后继续明确的编辑器按钮操作，相关脚本补跑通过。没有以延时或删断言掩盖失败。[专项日志](evidence/2026-09-24-projects/projects.log)、[原生资源回归](evidence/2026-09-24-projects/native-resource.log)、[桌面](evidence/2026-09-24-projects/desktop.png)、[窄屏](evidence/2026-09-24-projects/narrow.png)、[自审与完整范围](evidence/2026-09-24-projects/README.md)。
